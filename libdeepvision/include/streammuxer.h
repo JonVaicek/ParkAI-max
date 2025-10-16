@@ -28,17 +28,17 @@ class StreamMuxer{
                 if(frames[i].ready == false && frames[i].read == true){
                     ret = update_frame(i);
                     if(ret){
-                        src_handles[i]->noframe = false;
+                        //src_handles[i]->noframe = false;
                         frames[i].nfailed = 0;
                         std::cout << i <<" - New Frame\n";
                         frames[i].ready = true;
                         frames[i].read = false;
-                        frames[i]
+                        frames[i].age = 0;
                     }
                     else{
                         frames[i].nfailed++;
                         if(frames[i].nfailed >= 500){
-                            src_handles[i]->noframe = true;
+                            //src_handles[i]->noframe = true;
                         }
                     }
                 }
@@ -144,7 +144,6 @@ class StreamMuxer{
         uint32_t ret = pull_image(src_handles[id], JPEG, img_buf, max_size);
         return 1;
     }
-
 };
 
 

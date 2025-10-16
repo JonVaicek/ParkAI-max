@@ -29,6 +29,7 @@ struct StreamCtrl{
     GMainLoop *loop = NULL;
     uint32_t imgW = 0;
     uint32_t imgH = 0;
+    uint64_t n_ftim = 0; //fail timer. to time how long pipeline did not produce new frames
     bool run = true;
     bool noframe = false;
     bool restart = false;

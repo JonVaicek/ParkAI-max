@@ -407,6 +407,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
     int width = 640;
     int height = 480;
     ctl->frame_rd = true;
+    ctl->n_ftim = 0;
     if (true) {
         return GST_FLOW_OK;
     }
@@ -438,10 +439,10 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
 
         case GST_MESSAGE_EOS:
             std::cout << "End of Stream received — restarting pipeline" << std::endl;
-            gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-            g_main_loop_quit(ctrl->loop);
-            return FALSE;
-            //break;
+            //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+            //g_main_loop_quit(ctrl->loop);
+            //return FALSE;
+            break;
 
         default:
             break;
@@ -476,6 +477,10 @@ static gboolean periodic_tick_continious(gpointer user_data){
         ctrl->restart = true;
         no_frame_cnt = 0;
     }
+  }
+  ctrl->n_ftim ++;
+  if (ctrl->n_ftim > 100){
+    ctrl->restart = true;
   }
   // std::cout << "Running: " << *(ctrl->run) << std::endl;
   if (! ctrl->run || ctrl->restart == true) {
@@ -641,6 +646,8 @@ int pipeline_manual(const char *rtsp_url, StreamCtrl *ctrl){
         create_pipeline_multi_frame_manual(rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
         std::this_thread::sleep_for(std::chrono::seconds(10));
+        ctrl->restart = false;
+        ctrl->n_ftim = 0;
     }
     return 1;
 }
