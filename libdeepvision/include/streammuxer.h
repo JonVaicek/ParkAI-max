@@ -4,6 +4,7 @@
 #include "camstream.h"
 #include "detector.h"
 
+#define FRAME_NOT_RECEIVED_THRESHOLD_MS 10000
 struct FrameInfo {
     uchar *idata = nullptr;
     uint64_t nbytes = 0;
@@ -20,6 +21,22 @@ class StreamMuxer{
     std::vector<StreamCtrl *> src_handles;
     std::vector<FrameInfo> frames;
     std::thread mux_thread;
+    std::thread tick_thread;
+    bool run=true;
+
+    int periodic_tick(uint32_t period_ms){
+        while(run){
+            for(int i = 0; i<frames.size(); i++){
+                frames[i].nfailed++;
+                if(frames[i].nfailed >= FRAME_NOT_RECEIVED_THRESHOLD_MS){
+                    frames[i].nfailed = 0;
+                    src_handles[i]->restart = true;
+                }
+            } 
+            std::this_thread::sleep_for(std::chrono::milliseconds(period_ms));
+        }
+        return 1;
+    }
 
     int muxer_thread(void){
         int ret = 0;
@@ -35,12 +52,6 @@ class StreamMuxer{
                         frames[i].read = false;
                         frames[i].age = 0;
                     }
-                    else{
-                        frames[i].nfailed++;
-                        if(frames[i].nfailed >= 500){
-                            //src_handles[i]->noframe = true;
-                        }
-                    }
                 }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -49,6 +60,7 @@ class StreamMuxer{
     public:
     StreamMuxer(void){
         mux_thread = std::thread([this](){muxer_thread();});
+        //tick_thread =std::thread([this](){periodic_tick(1);});
     };
 
     int link_stream(vstream *src, StreamCtrl *src_handle){
@@ -65,7 +77,7 @@ class StreamMuxer{
     int update_frame(uint32_t id){
         uchar *img = nullptr;
         uint64_t nbytes;
-        uint32_t ret = pull_image(src_handles[id], JPEG, &img, &nbytes);
+        uint32_t ret = pull_image(src_handles[id], PNG, &img, &nbytes);
         if (!ret){
             return 0;
         }
@@ -86,7 +98,7 @@ class StreamMuxer{
     }
 
     uint32_t pull_valid_frame(uchar **data, uint64_t *nbytes){
-        uint32_t id=128; // will be 0 by default
+        uint32_t id=0xFFFFFFFF;
         //priority for oldest frames
         uint32_t age = 0;
         for (int i = 0; i < frames.size(); i++){
@@ -99,19 +111,20 @@ class StreamMuxer{
             }
         }
         if (id >= frames.size()){
-            return 128;
+            return 0xFFFFFFFF;
         }
         //logic to return frames
         *data = frames[id].idata;
         *nbytes = frames[id].nbytes;
+        //ret_i = src_handles[id]->index;
         //frames[id].read = true;
         return id;
     }
 
     int clear_frame_buffers(uint32_t id){
         std::cout << "ID - " << id << " Cleaning up.\n";
-        std::cout << "idata = " <<  (uint8_t*)frames[id].idata << std::endl;
-        std::cout << "nbytes = " << frames[id].nbytes << std::endl;
+        //std::cout << "idata = " <<  (uint8_t*)frames[id].idata << std::endl;
+        //std::cout << "nbytes = " << frames[id].nbytes << std::endl;
         if (frames[id].idata != nullptr){
             //std::cout << "ID = "<< id<< " Clearing Buffers\n";
             free(frames[id].idata);
@@ -143,6 +156,15 @@ class StreamMuxer{
         }
         uint32_t ret = pull_image(src_handles[id], JPEG, img_buf, max_size);
         return 1;
+    }
+
+    uint32_t get_src_index(uint32_t src_id){
+        if (src_id < src_handles.size()){
+            return src_handles[src_id]->index;
+        }
+        else{
+            return 0xFFFFFFFF;
+        }
     }
 };
 

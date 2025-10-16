@@ -31,6 +31,9 @@
 
 #define VERBOSE true
 
+#define SAVE_INPUT_IMAGES true
+#define SAVE_DETECTION_TXT_FILES true
+
 #define THREADS 4
 
 #define WORK_DIR   "/mnt/c/p/"
@@ -74,6 +77,11 @@ typedef enum {
     LP_MODEL,
     OCR_MODEL
 }model_t;
+
+struct stream_info{
+    std::string url;
+    int index;
+};
 
 namespace ImgUtils {/* Private function to load the image file*/
     inline cv::Mat load_image(const char * img_path){
@@ -144,7 +152,7 @@ namespace ImgUtils {/* Private function to load the image file*/
         }
         return ret;
     }
-}
+};
 
 namespace detector {
     inline bbox max_bbox(std::vector<bbox> bboxes){
@@ -158,7 +166,7 @@ namespace detector {
         }
         return ret;
     }  
-}
+};
 
 
 
@@ -947,13 +955,14 @@ class Engine{
             cv::Mat jpegBuf(1, nbytes, CV_8UC1, imgbuf);
             if (jpegBuf.empty()){
                 std::cout << "JPEG not loaded! Skipping...\n";
-                return 1;
+                return 0;
             }
             cv::Mat img = cv::imdecode(jpegBuf, cv::IMREAD_COLOR);
+            cv::Mat im = img;
             // cv::Mat img = ImgUtils::load_image(img_file.c_str());
             if (img.empty()){
                 std::cout << "Image not loaded! Skipping..\n";
-                return 1;
+                return 0;
             }
             cv::Mat prep_img = ImgUtils::preprocess_image(img);
 
@@ -997,6 +1006,14 @@ class Engine{
                 
                 detl.push_back(det);
             }
+            if (SAVE_INPUT_IMAGES){
+                const char *f_ext = ".png";
+                char fn[16]; 
+                sprintf(fn, "%05d%s", img_uid, f_ext);
+                std::string outpath = IMG_DIR + fn;
+                std::cout << "Saving input image " << fn << std::endl;
+                cv::imwrite(outpath, im);
+            }
             if (visualize){
                 std::string f_ext = ".png";
                 std::string name = std::to_string(img_uid);
@@ -1004,7 +1021,25 @@ class Engine{
                 std::cout << "Saving visualize image " << outname << std::endl;
                 cv::imwrite(outname, img);
             }
-            return 0;
+            return 1;
+        }
+        int init(void){
+            if (SAVE_INPUT_IMAGES){
+                if(!wdet::dir_exists(IMG_DIR)){
+                    std::filesystem::create_directory(IMG_DIR);
+                }
+            }
+            if(SAVE_DETECTION_TXT_FILES){
+                if (!wdet::dir_exists(detai_dir)){
+                    std::filesystem::create_directory(detai_dir);
+                }
+            }
+            if (visualize){
+                if (!wdet::dir_exists(visualize_dir)){
+                    std::filesystem::create_directory(visualize_dir);
+                }
+            }
+            return 1;
         }
     
     public:
@@ -1025,6 +1060,7 @@ class Engine{
                 connectModel(car_e, VEHICLE_MODEL);
                 connectModel(lpd_e, LP_MODEL);
                 connectModel(lpr_e, OCR_MODEL);
+                int ret = init();
             }
         
         void connectModel(OnnxDetector &detector, model_t mod_type){
@@ -1076,46 +1112,39 @@ class Engine{
                 return;
             }
 
-            if (visualize){
-                if (!wdet::dir_exists(visualize_dir)){
-                    std::filesystem::create_directory(visualize_dir);
-                }
-            }
-
             std::vector<parknetDet> dets;
             if(!muxer){
                 std::cout << "Muxer not initialized\n";
                 return;
             }
 
-
             id = muxer->pull_valid_frame(&img, &nbytes);
-            if (id == 128){
+            if (id == 0xFFFFFFFF){
                 //std::cout << "No valid frame pulled\n";
                 return;
             }
-
+            uint32_t ind = muxer->get_src_index(id);
+            if (ind == 0xFFFFFFFF){
+                return;
+            }
 
             if (nbytes == 0 || img == nullptr){
                 //std::cout << "ID - " << id << "img size = 0\n"; 
                 return;
             }
             std::cout << "ID - " << id << " Running Inference\n";
-            int ret = pipeline_run(img, nbytes, id, dets);
-            std::cout << "ret Value is: " << ret << std::endl;
-            if (ret){
+            int ret = pipeline_run(img, nbytes, ind, dets);
+            if (!ret){
                 std::cout << "ID = " << id << " Detection failed\n";
             }
 
+
             muxer->clear_frame_buffers(id);
 
-            if (!wdet::dir_exists(detai_dir)){
-                std::filesystem::create_directory(detai_dir);
-            }
-            ret = true; //skip the disk writing
-            if (!ret){
+            //ret = true; //skip the disk writing
+            if (ret){
                 char fn[16]; 
-                sprintf(fn, "%05d.txt", id);
+                sprintf(fn, "%05d.txt", ind);
                 wdet::WriteDetectionInfo(dets, wdet::get_filename(fn, detai_dir));
                 std::cout << "in image " << fn << " detected " << dets.size() << " objects\n";
                 if (dets.size() != 0){
@@ -1201,21 +1230,21 @@ class Detector{
     bool visualize = false;
     std::vector <vstream> sources;
     std::vector <StreamCtrl> src_handles;
-    std::vector <std::string> urls;
+    std::vector <stream_info> streams;
     std::vector <std::thread> task;
 
     StreamMuxer muxer;
 
     void detection_task(bool *run, int nthreads, bool visualize){
         init_camstream();
-        src_handles.reserve(urls.size());
-        sources.reserve(urls.size());
-        for (int i=0; i<urls.size(); i++){
-            std::cout << "Creating srcbin " << urls[i] << std::endl;
+        src_handles.reserve(streams.size());
+        sources.reserve(streams.size());
+        for (int i=0; i<streams.size(); i++){
+            std::cout << "Creating srcbin "<< streams[i].index << " - " << streams[i].url << std::endl;
             StreamCtrl ctrl;
-
+            ctrl.index = streams[i].index;
             src_handles.emplace_back(ctrl);
-            sources.emplace_back(load_manual_stream(urls[i].c_str(), &src_handles[i]));
+            sources.emplace_back(load_manual_stream(streams[i].url.c_str(), &src_handles[i]));
             muxer.link_stream(&sources[i], &src_handles[i]);
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // add streams with a delay
         }
@@ -1232,11 +1261,12 @@ class Detector{
     };
 
     public:
-        Detector(int nthreads, bool visualize, std::vector<std::string> urls):
+        Detector(int nthreads, bool visualize, std::vector<stream_info> streams):
         nthreads(nthreads),
         visualize(visualize),
-        urls(urls)
+        streams(streams)
         {
+
             //detection_task(&run, nthreads, visualize);
         }
 

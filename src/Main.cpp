@@ -364,21 +364,23 @@ int main(int argc, char* argv[]) {
     if(!START_AI_ENGINE){
        detector.stop();
     }
-    std::vector<std::string> urls;
+    std::vector <stream_info> streams;
     for (const auto & cam:camList){
         std::string ip = cam.ipaddr;
         if(ip.find('X') != std::string::npos){
             std::cout << "Skipping " << cam.ipaddr <<std::endl;
             continue;
         }
-        else
-            urls.push_back(cam.rtsp);
+        else{
+            stream_info str = {cam.rtsp, cam.index};
+            streams.push_back(str);
+        }
     }
     uchar *img = nullptr;
     uint64_t im_size = 0;
 
 
-    Detector det(1, 1, urls);
+    Detector det(1, 1, streams);
     det.start();
 
     std::thread th_heartbeat = std::thread(send_periodic_hb, &app_settings, &detector,
