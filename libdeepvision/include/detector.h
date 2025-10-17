@@ -953,7 +953,7 @@ class Engine{
         }
 
         int pipeline_run(uchar *imgbuf, uint64_t nbytes, uint32_t img_uid, std::vector<parknetDet> &detl){
-            std::cout << "Running Inference on "<< img_uid << std::endl;
+            //std::cout << "Running Inference on "<< img_uid << std::endl;
             cv::Mat jpegBuf(1, nbytes, CV_8UC1, imgbuf);
             if (jpegBuf.empty()){
                 std::cout << "JPEG not loaded! Skipping...\n";
@@ -1141,10 +1141,10 @@ class Engine{
                 //std::cout << "ID - " << id << "img size = 0\n"; 
                 return;
             }
-            std::cout << "ID - " << id << " Running Inference\n";
+            //std::cout << "ID - " << id << " Running Inference\n";
             int ret = pipeline_run(img, nbytes, ind, dets);
             if (!ret){
-                std::cout << "ID = " << id << " Detection failed\n";
+                //std::cout << "ID = " << id << " Detection failed\n";
             }
 
 
@@ -1156,7 +1156,7 @@ class Engine{
                 char fn[16]; 
                 sprintf(fn, "%05d.txt", ind);
                 wdet::WriteDetectionInfo(dets, wdet::get_filename(fn, detai_dir));
-                std::cout << "in image " << fn << " detected " << dets.size() << " objects\n";
+                //std::cout << "in image " << fn << " detected " << dets.size() << " objects\n";
                 if (dets.size() != 0){
                     std::cout << "[";
                     for (int i=0; i < dets.size()-1; i++){

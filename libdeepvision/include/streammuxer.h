@@ -49,7 +49,7 @@ class StreamMuxer{
                     if(ret){
                         //src_handles[i]->noframe = false;
                         frames[i].nfailed = 0;
-                        std::cout << i <<" - New Frame\n";
+                        //std::cout << i <<" - New Frame\n";
                         frames[i].ready = true;
                         frames[i].read = false;
                         frames[i].age = 0;
@@ -95,13 +95,13 @@ class StreamMuxer{
         //     nbytes = 0;
         //     return 0;
         // }
-        std::cout << "ID - " << id << " Frame Pulled Successfully\n";
+        //std::cout << "ID - " << id << " Frame Pulled Successfully\n";
         frames[id].nbytes = nbytes;
         frames[id].idata = (uchar *)malloc(nbytes);
         memcpy(frames[id].idata, img, nbytes);
         free(img);
         nbytes = 0;
-        std::cout << "ID - " << id << " Frame Copied Successfully\n";
+        //std::cout << "ID - " << id << " Frame Copied Successfully\n";
         return 1;
     }
 
@@ -130,7 +130,7 @@ class StreamMuxer{
     }
 
     int clear_frame_buffers(uint32_t id){
-        std::cout << "ID - " << id << " Cleaning up.\n";
+        //std::cout << "ID - " << id << " Cleaning up.\n";
         //std::cout << "idata = " <<  (uint8_t*)frames[id].idata << std::endl;
         //std::cout << "nbytes = " << frames[id].nbytes << std::endl;
         if (frames[id].idata != nullptr){
@@ -140,7 +140,7 @@ class StreamMuxer{
             frames[id].nbytes = 0;
             frames[id].ready = false;
             frames[id].read = true;
-            std::cout << "Cleanup Success\n";
+            //std::cout << "Cleanup Success\n";
             return 1;
         }
         // else{
@@ -150,7 +150,7 @@ class StreamMuxer{
         //     frames[id].nbytes = 0;
         //     frames[id].ready = false;
         // }
-        std::cout << "Cleanup Skipped\n";
+        //std::cout << "Cleanup Skipped\n";
         return 0;
     }
     
