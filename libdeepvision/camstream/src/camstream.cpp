@@ -232,7 +232,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     GstStateChangeReturn ret;
     ctrl->frame_rd = false;
     GstState current_state, pending_state;
-    if (GST_IS_ELEMENT(ctrl->pipeline)){
+    if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->appsink)){
         gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
     }
     else{
@@ -285,6 +285,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         gst_structure_get_int(structure, "width", &width);
         gst_structure_get_int(structure, "height", &height);
         //std::cout << "Image WH = " << width << "x" << height <<std::endl;
+        
         *img_buf = (unsigned char*)malloc(map.size);
         *max_size = (uint64_t) map.size;
         ctrl->imgW = width;
@@ -458,7 +459,7 @@ static gboolean periodic_tick(gpointer user_data){
   //std::cout << "run val = " << lpctl->run <<  std::endl;;
   if (! (lpctl->run)) {
         std::cout << "Stopping Cam Preview!\n";
-        gst_element_set_state(lpctl->pipeline, GST_STATE_NULL);
+        //gst_element_set_state(lpctl->pipeline, GST_STATE_NULL);
         g_main_loop_quit(lpctl->loop);
         // Returning FALSE removes this timeout
         return false;
@@ -577,6 +578,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     //cleanup
     g_source_remove(bus_watch_id);
     gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+
     gst_object_unref(ctrl->pipeline);
     gst_object_unref(ctrl->appsink);
     g_main_loop_unref(ctrl->loop);

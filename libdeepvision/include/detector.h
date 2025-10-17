@@ -946,6 +946,8 @@ class Engine{
         ImgReader *input_str = nullptr;
         StreamMuxer *muxer = nullptr;
 
+        uint64_t nframes = 0;
+
         static std::string make_name(std::string txt, int id){
             return txt + "-" + std::to_string(id);
         }
@@ -1095,6 +1097,7 @@ class Engine{
         }
 
         void run(bool visualize){
+            static int nfailed = 0;
             this->visualize = visualize;
             uchar *img = nullptr;
             uint64_t nbytes = 0;
@@ -1120,9 +1123,15 @@ class Engine{
 
             id = muxer->pull_valid_frame(&img, &nbytes);
             if (id == 0xFFFFFFFF){
+                nfailed++;
+                if (nfailed == 1000){
+                    std::cout << "cannot load new frames n=1000\n";
+                    nfailed=0;
+                }
                 //std::cout << "No valid frame pulled\n";
                 return;
             }
+            nfailed = 0;
             uint32_t ind = muxer->get_src_index(id);
             if (ind == 0xFFFFFFFF){
                 return;
@@ -1140,6 +1149,7 @@ class Engine{
 
 
             muxer->clear_frame_buffers(id);
+            nframes ++;
 
             //ret = true; //skip the disk writing
             if (ret){

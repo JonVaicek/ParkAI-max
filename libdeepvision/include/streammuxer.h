@@ -32,13 +32,15 @@ class StreamMuxer{
                     frames[i].nfailed = 0;
                     src_handles[i]->restart = true;
                 }
-            } 
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(period_ms));
         }
         return 1;
     }
 
     int muxer_thread(void){
+        uint64_t n=0;
+        uint64_t nfr = 0;
         int ret = 0;
         while (true){
             for (int i = 0; i < src_handles.size(); i++){
@@ -51,10 +53,16 @@ class StreamMuxer{
                         frames[i].ready = true;
                         frames[i].read = false;
                         frames[i].age = 0;
+                        nfr ++ ;
                     }
                 }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            n++;
+            if (n == 1000){
+                n=0;
+                std::cout << "Muxer running. Frames read: "<< nfr <<std::endl;
+            }
         }
     }
     public:
@@ -127,8 +135,8 @@ class StreamMuxer{
         //std::cout << "nbytes = " << frames[id].nbytes << std::endl;
         if (frames[id].idata != nullptr){
             //std::cout << "ID = "<< id<< " Clearing Buffers\n";
-            free(frames[id].idata);
-            frames[id].idata = nullptr;
+            //free(frames[id].idata);
+            //frames[id].idata = nullptr;
             frames[id].nbytes = 0;
             frames[id].ready = false;
             frames[id].read = true;
