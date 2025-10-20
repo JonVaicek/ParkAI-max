@@ -135,8 +135,8 @@ class StreamMuxer{
         //std::cout << "nbytes = " << frames[id].nbytes << std::endl;
         if (frames[id].idata != nullptr){
             //std::cout << "ID = "<< id<< " Clearing Buffers\n";
-            //free(frames[id].idata);
-            //frames[id].idata = nullptr;
+            free(frames[id].idata);
+            frames[id].idata = nullptr;
             frames[id].nbytes = 0;
             frames[id].ready = false;
             frames[id].read = true;
@@ -144,7 +144,7 @@ class StreamMuxer{
             return 1;
         }
         // else{
-        //     //std::cout << "ID = "<< id<< " idata is unallocated\n";
+        //     //std::cout << "ID = "<< id << " idata is unallocated\n";
         //     free(frames[id].idata);
         //     frames[id].idata = nullptr;
         //     frames[id].nbytes = 0;
