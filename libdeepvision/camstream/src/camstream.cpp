@@ -475,6 +475,7 @@ static gboolean periodic_tick_continious(gpointer user_data){
   if (ctrl->noframe ){
     no_frame_cnt++;
     if (no_frame_cnt >= THRESHOLD_NOT_RECEIVED){
+        std::cout << "RESTARTING COUSE OF NOFRAMECNT\n";
         ctrl->restart = true;
         no_frame_cnt = 0;
     }
@@ -484,6 +485,7 @@ static gboolean periodic_tick_continious(gpointer user_data){
   }
   ctrl->n_ftim ++;
   if (ctrl->n_ftim > THRESHOLD_NOT_RECEIVED){
+    std::cout << "RESTARTING COUSE OF N_FTIM\n";
     ctrl->restart = true;
   }
   // std::cout << "Running: " << *(ctrl->run) << std::endl;
