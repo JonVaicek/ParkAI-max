@@ -479,8 +479,11 @@ static gboolean periodic_tick_continious(gpointer user_data){
         no_frame_cnt = 0;
     }
   }
+  else{
+    no_frame_cnt = 0;
+  }
   ctrl->n_ftim ++;
-  if (ctrl->n_ftim > 100){
+  if (ctrl->n_ftim > THRESHOLD_NOT_RECEIVED){
     ctrl->restart = true;
   }
   // std::cout << "Running: " << *(ctrl->run) << std::endl;
