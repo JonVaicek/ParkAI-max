@@ -387,7 +387,6 @@ class OnnxDetector{
         std::cout << provider << " ";
     }
     std::cout << std::endl;
-        
     }
 
 
@@ -982,7 +981,7 @@ class Engine{
                         cv::putText(img, std::to_string(car.conf), cv::Point(car.x1, car.y1 - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
                     else
                         cv::putText(img, std::to_string(car.conf), cv::Point(car.x1, car.y2 - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
-                    }
+                }
                 std::vector<bbox> plates = lp_det->detect_preproc(car_img);
                 bbox fplate, plate;
                 std::string plate_text;
@@ -1156,7 +1155,7 @@ class Engine{
                 char fn[16]; 
                 sprintf(fn, "%05d.txt", ind);
                 wdet::WriteDetectionInfo(dets, wdet::get_filename(fn, detai_dir));
-                //std::cout << "in image " << fn << " detected " << dets.size() << " objects\n";
+                std::cout << "in image " << fn << " detected " << dets.size() << " objects\n";
                 if (dets.size() != 0){
                     std::cout << "[";
                     for (int i=0; i < dets.size()-1; i++){
