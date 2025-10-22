@@ -6,8 +6,8 @@ GUI Cross Compile app:
 1. Sends heartbeat to parksolUSA cloud server.
 2. Reads data from counting software and sends Gate Data to parksolUSA Cloud server for parking reports.
 
-### Prerequisites
-## Update to cmake 3.24
+## Prerequisites
+### Update to cmake 3.24
 ```bash
 sudo apt remove --purge cmake -y
 sudo apt update
@@ -24,15 +24,15 @@ sudo ln -s /usr/local/bin/cmake /usr/bin/cmake
 cmake --version
 ```
 
-## Install X11 support (IF BUILDING ON WSL)
+### Install X11 support (IF BUILDING ON WSL)
 ```bash
 sudo apt install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
 ```
-## Install CURL
+### Install CURL
 ```bash
 sudo apt install -y libcurl4-openssl-dev
 ```
-## Install GStreamer
+### Install GStreamer
 ```bash
 sudo apt install -y \
   libgstreamer1.0-dev \
@@ -44,7 +44,7 @@ sudo apt install -y \
   gstreamer1.0-plugins-ugly \
   gstreamer1.0-libav
 ```
-## Download ONNX-Runtime prebuilt libraries
+### Download ONNX-Runtime prebuilt libraries
 ```bash
 wget https://github.com/microsoft/onnxruntime/releases/download/v1.19.2/onnxruntime-linux-x64-gpu-1.19.2.tgz
 tar -xzf onnxruntime-linux-x64-gpu-1.19.2.tgz
@@ -52,7 +52,7 @@ cp -r onnxruntime-linux-x64-gpu-1.19.2/include ./libdeepvision
 cp -r onnxruntime-linux-x64-gpu-1.19.2/lib ./libdeepvision
 ```
 
-### build
+## build
 ```bash
 mkdir build \
 cd build

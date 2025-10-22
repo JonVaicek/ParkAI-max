@@ -4,6 +4,8 @@
 #include "camstream.h"
 #include "detector.h"
 
+
+#define STREAMMUX_MS 1
 #define FRAME_NOT_RECEIVED_THRESHOLD_MS 10000
 struct FrameInfo {
     uchar *idata = nullptr;
@@ -22,16 +24,80 @@ class StreamMuxer{
     std::vector<FrameInfo> frames;
     std::thread mux_thread;
     std::thread tick_thread;
+    uint64_t frames_returned = 0;
+    uint64_t fd[10];
+
     bool run=true;
 
+    int update_fd(void){
+        static int bi = 0;
+        fd[bi] = frames_returned;
+        bi++;
+        if (bi>=sizeof(fd)/sizeof(fd[0])){
+            bi=0;
+        }
+        return bi;
+    }
+
+    float get_fps(void){
+        float fps = 0.0;
+        int fpsa = 0;
+        int len = sizeof(fd)/sizeof(fd[0]);
+        uint64_t max  = 0;
+
+        int im;
+
+        for(int i = 0; i < len; i++){
+            if(fd[i] > max){
+                max = fd[i];
+                im = i;
+            }
+            //std::cout << "i - " << i << ", val = " << fd[i] << std::endl;
+        }
+        if (max == 0){
+            return 0;
+        }
+        
+        int is = len - (im+1);
+        uint64_t val = 0;
+        int n = 0;
+        int start = im;
+        for (int i = 0; i < len; i++){
+
+            im = start - i;
+            if (im < 0){
+                im = len + (start-i);
+            }
+            is = im - 1;
+            if(is < 0){
+                is = len - 1;
+            }
+            if (fd[im] < fd[is])
+                continue;
+            val = fd[im] - fd[is];
+            if(val >= 0){
+                fpsa += val;
+                n++;
+            }
+        }
+        fps = fpsa/(float)n;
+        if (fps < 0.0){
+            std::cout << "PRINTING FPS FRAMES BUF\n";
+            for (int i = 0; i < len; i++){
+                std::cout << "i-" << i << " = " << fd[i] << std::endl;
+            }
+        }
+        return fps;
+    }
+
     int periodic_tick(uint32_t period_ms){
+        static uint32_t tick = 0;
         while(run){
-            for(int i = 0; i<frames.size(); i++){
-                frames[i].nfailed++;
-                if(frames[i].nfailed >= FRAME_NOT_RECEIVED_THRESHOLD_MS){
-                    frames[i].nfailed = 0;
-                    src_handles[i]->restart = true;
-                }
+            tick++;
+            if (tick == 1000){
+                tick = 0;
+                update_fd();
+                std::cout << "Streammux Running at: " << get_fps() << " fps" << std::endl;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(period_ms));
         }
@@ -61,14 +127,15 @@ class StreamMuxer{
             n++;
             if (n == 1000){
                 n=0;
-                std::cout << "Muxer running. Frames read: "<< nfr <<std::endl;
+                //std::cout << "Muxer running. Frames read: "<< nfr <<std::endl;
             }
         }
     }
     public:
     StreamMuxer(void){
+        memset(fd, 0, sizeof(fd));
         mux_thread = std::thread([this](){muxer_thread();});
-        //tick_thread =std::thread([this](){periodic_tick(1);});
+        tick_thread =std::thread([this](){periodic_tick(STREAMMUX_MS);});
     };
 
     int link_stream(vstream *src, StreamCtrl *src_handle){
@@ -124,6 +191,7 @@ class StreamMuxer{
         //logic to return frames
         *data = frames[id].idata;
         *nbytes = frames[id].nbytes;
+        frames_returned++;
         //ret_i = src_handles[id]->index;
         //frames[id].read = true;
         return id;

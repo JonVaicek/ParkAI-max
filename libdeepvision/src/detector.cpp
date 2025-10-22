@@ -20,9 +20,9 @@
 
 int run_detector(bool *run, int index, ImgReader *inStream, bool visualize){
     std::string ce_name = "car-" + std::to_string(index);
-    OnnxDetector car_engine(ce_name.c_str(), VEHICLE_MODEL_PATH, VEHICLE_DET_CONFIDENCE_THRESHOLD);
+    OnnxDetector car_engine(ce_name.c_str(), VEHICLE_MODEL_PATH, 1, VEHICLE_DET_CONFIDENCE_THRESHOLD);
     std::string le_name = "lp-" + std::to_string(index);
-    OnnxDetector lp_engine(le_name.c_str(), LPD_MODEL_PATH, LPLATE_DET_CONFIDENCE_THRESHOLD);
+    OnnxDetector lp_engine(le_name.c_str(), LPD_MODEL_PATH, 1, LPLATE_DET_CONFIDENCE_THRESHOLD);
     std::string ocr_name = "ocr-" + std::to_string(index);
     LPRNetDetector ocr_engine(ocr_name.c_str(), LPR_MODEL_PATH);
 

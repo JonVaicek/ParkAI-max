@@ -44,6 +44,7 @@
 #define VEHICLE_MODEL_PATH "yolo11_indoor.onnx"
 #define VEHICLE_DET_CONFIDENCE_THRESHOLD 0.2
 #define LPD_MODEL_PATH "license_plate_detector.onnx"
+#define LPD_BATCH_SIZE 1
 #define LPLATE_DET_CONFIDENCE_THRESHOLD 0.5
 #define LPR_MODEL_PATH "us_lprnet_baseline18_deployable.onnx"
 
@@ -461,7 +462,7 @@ class OnnxDetector{
 
     public:
 
-    OnnxDetector(const char * name, const char * model_path, float threshold)
+    OnnxDetector(const char * name, const char * model_path, int batch_size ,float threshold)
         : name(name), 
         env(ORT_LOGGING_LEVEL_ERROR, name), 
         session_options(create_session_options()),
@@ -934,6 +935,7 @@ class Engine{
         const std::string visualize_dir = std::string(work_dir) + "visualize/";
         const std::string detai_dir = std::string(work_dir) + "detai/";
         std::vector<std::string> images;
+        int batch_size = 1; //1 by default
         bool visualize;
         const char * save_dir;
         std::thread thr;
@@ -1051,12 +1053,13 @@ class Engine{
          * and detections are to be saved
          * @return Pipeline class object
          */
-        Engine(int id, const char * work_dir)
+        Engine(int id, const char * work_dir, int batch_size)
             :id(id),
             work_dir(work_dir),
-            car_e("car", VEHICLE_MODEL_PATH, VEHICLE_DET_CONFIDENCE_THRESHOLD),
-            lpd_e("lpd", LPD_MODEL_PATH, LPLATE_DET_CONFIDENCE_THRESHOLD),
-            lpr_e("lpr", LPR_MODEL_PATH)
+            car_e("car", VEHICLE_MODEL_PATH, batch_size, VEHICLE_DET_CONFIDENCE_THRESHOLD),
+            lpd_e("lpd", LPD_MODEL_PATH, LPD_BATCH_SIZE, LPLATE_DET_CONFIDENCE_THRESHOLD),
+            lpr_e("lpr", LPR_MODEL_PATH),
+            batch_size(batch_size)
             {
                 connectModel(car_e, VEHICLE_MODEL);
                 connectModel(lpd_e, LP_MODEL);
@@ -1123,8 +1126,8 @@ class Engine{
             id = muxer->pull_valid_frame(&img, &nbytes);
             if (id == 0xFFFFFFFF){
                 nfailed++;
-                if (nfailed == 1000){
-                    std::cout << "cannot load new frames n=1000\n";
+                if (nfailed == 100000){
+                    //std::cout << "cannot load new frames n=1000\n";
                     nfailed=0;
                 }
                 //std::cout << "No valid frame pulled\n";
@@ -1202,7 +1205,7 @@ class Inference{
     };
     public:
     Inference(int nthreads, bool visualize):
-    engine(0, WORK_DIR),
+    engine(0, WORK_DIR, nthreads),
     visualize(visualize)
     {
     
@@ -1257,7 +1260,7 @@ class Detector{
             muxer.link_stream(&sources[i], &src_handles[i]);
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // add streams with a delay
         }
-        Inference inference (1, 1);
+        Inference inference (nthreads, visualize);
         inference.link_muxer(&muxer);
         int i = 0;
         while (true){
