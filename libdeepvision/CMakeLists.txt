@@ -32,6 +32,7 @@ add_subdirectory(camstream)
 # add_executable(detector detector.cpp)
 add_library(libdeepvision STATIC
     src/detector.cpp
+    src/streammuxer.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/libdeepvision)

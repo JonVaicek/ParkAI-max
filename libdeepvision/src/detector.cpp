@@ -113,3 +113,12 @@ void detections_task(bool *run, int nthreads, bool visualize){
 
 //     return 0;
 // }
+
+
+float Detector::get_fps(void){
+    return muxer.get_fps();
+}
+
+bool Detector::is_running(void){
+    return true;
+};

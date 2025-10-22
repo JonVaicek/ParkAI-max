@@ -226,15 +226,15 @@ void display_app_uptime(uint64_t uptime_ms){
     ImGui::Text("%s",timestr);
 }
 
-void display_fps_data(bool is_running, uint64_t fps_data){
-    const uint32_t timestr_len = 128;
-    char timestr[timestr_len];
+void display_fps_data(bool is_running, float fps_data){
+    const uint32_t strlen = 128;
+    char str[strlen];
     if (is_running)
-        snprintf(timestr, timestr_len, "Detections running at: %ld fps", fps_data);
+        snprintf(str, strlen, "Detections running at: %.1f fps", fps_data);
     else
-        snprintf(timestr, timestr_len, "Detections not running");
+        snprintf(str, strlen, "Detections not running");
 
-    ImGui::Text("%s",timestr);
+    ImGui::Text("%s", str);
 }
 
 void get_events_button(void){
@@ -326,7 +326,7 @@ int main(int argc, char* argv[]) {
 
     uint64_t uptime_ms = 0;
     int show = 0;
-
+    float fps_perf = 0.0;
     if (!init_application()){
         return 0;
     }
@@ -466,7 +466,7 @@ int main(int argc, char* argv[]) {
             //ImGui::SameLine();
             edit_settings_button();
             display_app_uptime(app_tick);
-            display_fps_data(detector.is_running() ,detector.get_perf_data());
+            display_fps_data(det.is_running(), fps_perf );
             button_add_camera(camList);
             ImGui::SameLine();
             imgui_AddCamerasFromFacilityPopup(pods);
@@ -503,21 +503,7 @@ int main(int argc, char* argv[]) {
         // ##### INSERT ANY ADDITIONAL RENDERING YOU WANT TO DO OVER THE GUI HERE #####
         nframe ++;
         if(nframe >= TARGET_IMGUI_FPS){ // update this every 1s
-            // if (show >= camList.size())
-            //     show = 0;
-            // std::cout << "Show image " << show << std::endl;
-            // det.get_frame(&img, show, &im_size);
-            // std::cout << "Bytes Read " << im_size << std::endl;
-            // rim = LoadImageFromMemory(".jpg", img, im_size);
-            // if (tex.id > 0) {
-            //     UnloadTexture(tex);
-            // }
-            // tex = LoadTextureFromImage(rim);
-            // UnloadImage(rim);  // You can free CPU memory now
-            // if (img)
-            //     free(img);
-            // img = nullptr;
-            // show++;
+            fps_perf = det.get_fps();
             nframe = 0;
         }
         EndDrawing();

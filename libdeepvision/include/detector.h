@@ -1283,7 +1283,7 @@ class Detector{
         }
 
         uint64_t get_perf_data(void){return perf_fps;}
-        bool is_running(void) {return running;}
+        
 
         int get_frame(uchar **img, uint32_t cid,  uint64_t *max_size){
             int ret = muxer.pull_frame(img, cid, max_size);
@@ -1310,6 +1310,8 @@ class Detector{
                 return 0;
             }
         }
+        float get_fps(void);
+        bool is_running(void);
 };
 
 
