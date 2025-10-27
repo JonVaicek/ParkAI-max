@@ -439,7 +439,7 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
         org_images.push_back(img);
         cv::Mat ims = img;
         if (img.empty()){
-            std::cout << "Image not loaded! Skipping..\n";
+            std::cout << im.id <<" - Image not loaded! Skipping..\n";
             return 0;
         }
         cv::Mat prep_img = ImgUtils::preprocess_image(img);
