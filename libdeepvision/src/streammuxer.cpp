@@ -103,24 +103,17 @@ int StreamMuxer::muxer_thread(void){
     }
 }
 
-int StreamMuxer::copy_frame(int id, cv::Mat &img, uint64_t *size){
+int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes){
     if (frames[id].nbytes == 0 || frames[id].idata == nullptr){
         std::cout << id << " - Frame Buffers empty\n";
         return 0;
     }
-    cv::Mat imgBuf(1, frames[id].nbytes, CV_8UC1, frames[id].idata);
-    *size = frames[id].nbytes;
-    if (imgBuf.empty()){
 
-        //std::cout << "JPEG not loaded! Skipping...\n";
-        return 0;
-    }
-    uint32_t index = get_src_index(id);
-    if(index == STREAMMUX_RET_ERROR){
-        return 0;
-    }
-    img = imgBuf;
-    int ret = clear_frame_buffers(id);
+    *nbytes = frames[id].nbytes;
+    *data = frames[id].idata;
+
+    //int ret = clear_frame_buffers(id);
+    int ret = true;
     if (ret){
         frames_returned++;
         return 1;
@@ -131,8 +124,9 @@ int StreamMuxer::copy_frame(int id, cv::Mat &img, uint64_t *size){
 }
 
 
-uint32_t StreamMuxer::pull_frames_batch(std::vector<cv::Mat> &img_batch, std::vector<uint32_t> &idx,
-                                    std::vector<uint64_t> &sizes, uint32_t batch_size){
+
+
+uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint32_t batch_size){
     
     /* Find frames with smallest nfr */
     uint32_t nready = 0;
@@ -167,17 +161,18 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<cv::Mat> &img_batch, std::ve
             return 0;
         }
         /* @todo: copy the frame to return vector */
-        cv::Mat im;
         uint64_t size;
-        int ret = copy_frame(i_erase, im, &size);
+        uchar *pdata = nullptr;
+
+        int ret = copy_frame(i_erase, &pdata, &size);
         if (ret){
-            img_batch.push_back(im);
-            idx.push_back(get_src_index(i_erase));
-            sizes.push_back(size);
+            uint32_t index = get_src_index(i_erase);
+            ImgData data = {pdata, size, i_erase, index};
+            batch_data.push_back(data);
         }
     }
 
-    if (img_batch.size() == batch_size)
+    if (batch_data.size() == batch_size)
         return 1;
     else
         return 0;

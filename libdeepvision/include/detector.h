@@ -54,11 +54,7 @@
 
 class ImgReader;
 
-struct ImgData{
-    cv::Mat data;
-    uint64_t nbytes = 0;
-    uint32_t id = 0xFFFFFFFF;
-};
+
 
 struct sdet{
     float xc;

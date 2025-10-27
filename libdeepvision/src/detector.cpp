@@ -418,16 +418,22 @@ int Engine::pull_batch(std::vector <ImgData> &input_batch, uint32_t timeout){
         std::cout << "Muxer not initialized\n";
         return 0;
     }
-    std::vector <uint32_t> indexes;
-    std::vector <cv::Mat> frames;
-    std::vector<uint64_t> sizes;
-    int ret = muxer->pull_frames_batch(frames, indexes, sizes, batch_size);
-    if (ret){
-        for (int b=0; b< batch_size; b++){
-            ImgData data = {frames[b], sizes[b], indexes[b]};
-            input_batch.push_back(data);
-        }
-    }
+    // std::vector <uint32_t> indexes;
+    // std::vector <cv::Mat> frames;
+    // std::vector<uint64_t> sizes;
+    // int ret = muxer->pull_frames_batch(frames, indexes, sizes, batch_size);
+    int ret = muxer->pull_frames_batch(input_batch, batch_size);
+    if (!ret)
+        return 0;
+    
+    // if (ret){
+    //     for (int b=0; b< batch_size; b++){
+    //         cv::Mat owned = frames[b].clone();
+    //         ImgData data = {std::move(owned), sizes[b], indexes[b]};
+    //         //input_batch.push_back(data);
+    //         input_batch.emplace_back(std::move(data));
+    //     }
+    // }
     
     if(input_batch.size() == batch_size)
         return 1;
@@ -440,7 +446,9 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
     std::vector <cv::Mat> input_batch;
     std::vector <cv::Mat> org_images;
     for (const auto & im:img_batch){
-        cv::Mat img = cv::imdecode(im.data, cv::IMREAD_COLOR);
+        cv::Mat imbuf(1, im.nbytes, CV_8UC1, im.data);
+
+        cv::Mat img = cv::imdecode(imbuf, cv::IMREAD_COLOR);
         org_images.push_back(img);
         cv::Mat ims = img;
         if (img.empty()){
@@ -500,10 +508,10 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
         std::cout << "Detections done\n";
         if (SAVE_INPUT_IMAGES){
             //save_input_image(img_batch[b].id, img_batch[b].data, IMG_DIR);
-            save_input_image(img_batch[b].id, org_images[b], IMG_DIR);
+            save_input_image(img_batch[b].index, org_images[b], IMG_DIR);
         }
         if (visualize){
-            save_visualize_img(img_batch[b].id, org_images[b], visualize_dir);
+            save_visualize_img(img_batch[b].index, org_images[b], visualize_dir);
         }
     }
     return 1;
@@ -537,9 +545,14 @@ void Engine::runn(bool visualize){
     }
     std::cout << "Pulled Batch Size : "<<img_batch.size() <<  std::endl;
     for(const auto & b:img_batch){
-        std::cout << "id - " << b.id << ", img_size: " << b.data.size()<< std::endl;
+        std::cout << "id - " << b.id << ", img_size: " << b.nbytes << std::endl;
     }
     ret = process(img_batch, b_dets);
+
+    for (int b=0; b< batch_size; b++){
+        ret = muxer->clear_frame_buffers(img_batch[b].id);
+    }
+
     if (ret){
         for (int b=0; b<batch_size; b++){
             std::vector<parknetDet> dets = b_dets[b];

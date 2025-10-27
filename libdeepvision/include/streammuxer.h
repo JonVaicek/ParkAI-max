@@ -12,6 +12,16 @@ typedef unsigned char uchar;
 
 #define STREAMMUX_RET_ERROR 0xFFFFFFFF
 
+
+struct ImgData{
+    //cv::Mat data;
+    uchar *data;
+    uint64_t nbytes = 0;
+    uint32_t id = STREAMMUX_RET_ERROR;
+    uint32_t index = STREAMMUX_RET_ERROR;
+};
+
+
 struct FrameInfo {
     uchar *idata = nullptr;
     uint64_t nbytes = 0;
@@ -106,11 +116,11 @@ class StreamMuxer{
     }
 
 
-    uint32_t pull_frames_batch(std::vector<cv::Mat> &img_batch, std::vector<uint32_t> &idx,
-                                    std::vector<uint64_t> &sizes, uint32_t batch_size);
+    uint32_t pull_frames_batch(std::vector<ImgData> &batch_data, uint32_t batch_size);
 
 
-    int copy_frame(int id, cv::Mat &img, uint64_t *size);
+    //int copy_frame(int id, cv::Mat &img, uint64_t *size);
+    int copy_frame(int id, uchar **data, uint64_t *nbytes);
 
     int clear_frame_buffers(uint32_t id){
         //std::cout << "ID - " << id << " Cleaning up.\n";
