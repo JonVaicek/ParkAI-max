@@ -125,11 +125,13 @@ CamType get_by_val(int val){
 int button_add_camera(std::vector<Camera_t> &camList){
     static int selected = 0;
     static Camera_t cam;
+    int c_index = camList.size() + 1;
     if(ImGui::Button("Add Camera")){
         selected = 0;
         memset(cam.ipaddr, 0, sizeof(cam.ipaddr));
         memset(cam.rtsp, 0, sizeof(cam.rtsp));
         ImGui::OpenPopup("Add Camera");
+        cam.index = c_index;
     }
     if (ImGui::BeginPopupModal("Add Camera", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Enter Camera Details:");

@@ -128,8 +128,10 @@ void imwrite_async(const std::string &filename, const cv::Mat &image,
                    const std::vector<int> &params = {}) {
     // Copy the data if image might go out of scope
     cv::Mat img_copy = image.clone();
-    std::thread([filename, img_copy, params]() {
-        cv::imwrite(filename, img_copy, params);
+    cv::Mat bgr;
+    cv::cvtColor(img_copy, bgr, cv::COLOR_RGB2BGR, 0);
+    std::thread([filename, bgr, params]() {
+        cv::imwrite(filename, bgr, params);
     }).detach(); // detached thread (fire-and-forget)
 }
 

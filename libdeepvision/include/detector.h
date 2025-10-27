@@ -1311,6 +1311,10 @@ class Detector{
         streams(streams)
         {
             int nsrc = streams.size();
+            if (nsrc == 0){
+                std::cout << "No Sources. Failed to create Detector\n";
+                return;
+            }
             if (nthreads > nsrc){
                 std::cout << "Batch Size can't be bigger than n_sources\n";
                 std::cout << "Setting Batch Size to n_sources " << nsrc << std::endl;
