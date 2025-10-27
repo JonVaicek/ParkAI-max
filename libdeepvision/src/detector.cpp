@@ -124,6 +124,16 @@ int draw_boxes(cv::Mat &img, bbox car){
     return 1;
 }
 
+void imwrite_async(const std::string &filename, const cv::Mat &image,
+                   const std::vector<int> &params = {}) {
+    // Copy the data if image might go out of scope
+    cv::Mat img_copy = image.clone();
+    std::thread([filename, img_copy, params]() {
+        cv::imwrite(filename, img_copy, params);
+    }).detach(); // detached thread (fire-and-forget)
+}
+
+
 int save_input_image(uint32_t id, cv::Mat &img, std::string dir){
     const char *f_ext = ".png";
     char fn[16]; 
@@ -131,9 +141,11 @@ int save_input_image(uint32_t id, cv::Mat &img, std::string dir){
     std::string outpath = dir + fn;
     std::cout << "Saving input image " << fn << std::endl;
     //std::cout << "Image size: " << img.size() << std::endl;
-    cv::imwrite(outpath, img);
+    //cv::imwrite(outpath, img);
+    imwrite_async(fn, img);
     return 1;
 }
+
 
 
 
@@ -465,7 +477,7 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
     std::cout << "TOTAL CAR DETECT TOOK: " << st_total_car_det.stop() <<std::endl;
     detl.resize(batch_size);
 
-    print_batch_detections(batch_dets);
+    // print_batch_detections(batch_dets);
 
     for (int b=0; b < batch_size; b++){
         //std::cout << "b = " << b << std::endl;
