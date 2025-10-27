@@ -452,19 +452,23 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
     std::vector <cv::Mat> input_batch;
     std::vector <cv::Mat> org_images;
     for (const auto & im:img_batch){
-        cv::Mat imbuf(1, im.nbytes, CV_8UC1, im.data);
+        //cv::Mat imbuf(1, im.nbytes, CV_8UC1, im.data);
+        //cv::Mat img = cv::imdecode(imbuf, cv::IMREAD_COLOR);
+        
+        cv::Mat img(im.height, im.width, CV_8UC3, im.data);
 
-        cv::Mat img = cv::imdecode(imbuf, cv::IMREAD_COLOR);
         org_images.push_back(img);
-        cv::Mat ims = img;
+
         if (img.empty()){
             std::cout << im.id <<" - Image not loaded! Skipping..\n";
             return 0;
         }
+
         cv::Mat prep_img = ImgUtils::preprocess_image(img);
         if(prep_img.empty()){
             return 0;
         }
+
         input_batch.push_back(prep_img);
     }
     std::cout << "PREP IMAGE TOOK: " << st_prep_img.stop() << std::endl;

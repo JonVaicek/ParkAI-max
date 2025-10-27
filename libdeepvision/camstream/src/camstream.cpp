@@ -306,6 +306,14 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
                 }
                 break;
             }
+            case RAW:{
+                std::cout << "Comes\n";
+                std::cout << "Copying: " << *max_size << " bytes\n";
+                std::cout << "Size: " << width*height*3 << std::endl;
+                memcpy(*img_buf, raw_data, *max_size);
+                
+                break;
+            }
             default:{
                 break;
             }

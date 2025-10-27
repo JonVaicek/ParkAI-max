@@ -17,6 +17,8 @@ struct ImgData{
     //cv::Mat data;
     uchar *data;
     uint64_t nbytes = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
     uint32_t id = STREAMMUX_RET_ERROR;
     uint32_t index = STREAMMUX_RET_ERROR;
 };
@@ -26,6 +28,8 @@ struct FrameInfo {
     uchar *idata = nullptr;
     uint64_t nbytes = 0;
     uint64_t fid = (uint64_t)-1;
+    uint32_t width = 0;
+    uint32_t height = 0;
     uint32_t age = 0;
     uint32_t nfailed = 0;
     bool ready = false;
@@ -70,7 +74,8 @@ class StreamMuxer{
     int update_frame(uint32_t id){
         uchar *img = nullptr;
         uint64_t nbytes;
-        uint32_t ret = pull_image(src_handles[id], PNG, &img, &nbytes);
+        //uint32_t ret = pull_image(src_handles[id], PNG, &img, &nbytes);
+        uint32_t ret = pull_image(src_handles[id], RAW, &img, &nbytes);
         if (!ret){
             return 0;
         }
@@ -78,6 +83,8 @@ class StreamMuxer{
         frames[id].nbytes = nbytes;
         frames[id].idata = (uchar *)malloc(nbytes);
         memcpy(frames[id].idata, img, nbytes);
+        frames[id].width = src_handles[id]->imgW;
+        frames[id].height = src_handles[id]->imgH;
         free(img);
         nbytes = 0;
         //std::cout << "ID - " << id << " Frame Copied Successfully\n";
@@ -114,7 +121,7 @@ class StreamMuxer{
 
 
     //int copy_frame(int id, cv::Mat &img, uint64_t *size);
-    int copy_frame(int id, uchar **data, uint64_t *nbytes);
+    int copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w, uint32_t *h);
 
     int clear_frame_buffers(uint32_t id){
         //std::cout << "ID - " << id << " Cleaning up.\n";

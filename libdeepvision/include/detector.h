@@ -113,9 +113,9 @@ namespace ImgUtils {/* Private function to load the image file*/
             return img;
     }
 
-    inline cv::Mat preprocess_image(cv::Mat src_img){
-            cv::Mat convRGB;
-            cv::cvtColor(src_img, convRGB, cv::COLOR_BGR2RGB, 0);
+    inline cv::Mat preprocess_image(cv::Mat &src_img){
+            cv::Mat convRGB = src_img.clone();
+            //cv::cvtColor(src_img, convRGB, cv::COLOR_BGR2RGB, 0);
             //cv::resize(convRGB, resized, cv::Size(dst_w, dst_h));
             convRGB.convertTo(convRGB, CV_32F, 1.0 / 255);
             return convRGB;

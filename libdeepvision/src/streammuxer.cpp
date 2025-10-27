@@ -103,7 +103,7 @@ int StreamMuxer::muxer_thread(void){
     }
 }
 
-int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes){
+int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w, uint32_t *h){
     if (id >= frames.size()){
         return 0;
     }
@@ -114,6 +114,8 @@ int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes){
 
     *nbytes = frames[id].nbytes;
     *data = frames[id].idata;
+    *w = frames[id].width;
+    *h = frames[id].height;
 
     //int ret = clear_frame_buffers(id);
     int ret = true;
@@ -177,11 +179,12 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
         /* @todo: copy the frame to return vector */
         uint64_t size;
         uchar *pdata = nullptr;
+        uint32_t w, h;
 
-        int ret = copy_frame(rid, &pdata, &size);
+        int ret = copy_frame(rid, &pdata, &size, &w, &h);
         if (ret){
             uint32_t index = get_src_index(rid);
-            ImgData data = {pdata, size, rid, index};
+            ImgData data = {pdata, size, w, h, rid, index};
             batch_data.push_back(data);
         }
         else{

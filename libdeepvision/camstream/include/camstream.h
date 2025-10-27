@@ -20,7 +20,8 @@ typedef enum{
 
 typedef enum{
     JPEG = 0,
-    PNG
+    PNG,
+    RAW
 }ImgFormat;
 
 struct StreamCtrl{
