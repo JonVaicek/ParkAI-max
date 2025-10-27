@@ -48,7 +48,7 @@
 #define LPLATE_DET_CONFIDENCE_THRESHOLD 0.5
 #define LPR_MODEL_PATH "us_lprnet_baseline18_deployable.onnx"
 
-#define VISUALIZE_DETECTIONS true
+#define VISUALIZE_DETECTIONS false
 
 #define ONDT_MILLISECOND std::chrono::milliseconds(1)
 
