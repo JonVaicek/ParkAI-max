@@ -509,8 +509,9 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
             parknetDet det = {car, plate, plate_text};
             det.lpr_found = pl_found;
             detl[b].push_back(det);
-            std::cout << "SECONDARY DET TOOK: " << st_secondary.stop() << std::endl;
+            
         }
+        std::cout << "SECONDARY DET TOOK: " << st_secondary.stop() << std::endl;
         //std::cout << "Detections done\n";
         if (SAVE_INPUT_IMAGES){
             StopWatch st_save_img;
