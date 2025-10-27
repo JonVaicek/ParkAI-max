@@ -160,7 +160,7 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
             }
         }
         if(i_erase < ids.size()){
-            std::cout << "Erasing " << ids[i_erase] << std::endl;
+            //std::cout << "Erasing " << ids[i_erase] << std::endl;
             ids.erase(ids.begin() + i_erase);
             //std::cout << "After erase ids: \n[";
             // for (const auto & id:ids){

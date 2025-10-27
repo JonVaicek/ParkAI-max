@@ -126,6 +126,7 @@ class StreamMuxer{
             free(frames[id].idata);
             frames[id].idata = nullptr;
             frames[id].nbytes = 0;
+            frames[id].fid = (uint64_t)-1;
             frames[id].ready = false;
             frames[id].read = true;
             std::cout << "Cleanup Success\n";
