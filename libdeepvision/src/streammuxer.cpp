@@ -108,7 +108,7 @@ int StreamMuxer::copy_frame(int id, cv::Mat &img, uint64_t *size){
     *size = frames[id].nbytes;
     if (imgBuf.empty()){
 
-        std::cout << "JPEG not loaded! Skipping...\n";
+        //std::cout << "JPEG not loaded! Skipping...\n";
         return 0;
     }
     uint32_t index = get_src_index(id);
