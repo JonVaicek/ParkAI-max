@@ -54,6 +54,8 @@
 
 #define ONDT_MILLISECOND std::chrono::milliseconds(1)
 
+
+
 class ImgReader;
 
 
@@ -186,8 +188,33 @@ namespace detector {
 };
 
 
+class StopWatch{
+    private:
+    using clock = std::chrono::high_resolution_clock;
+    std::chrono::time_point<clock> start_time;
+    std::chrono::time_point<clock> end_time;
+    bool running = false;
 
-
+    public:
+    StopWatch(void){
+        start();
+    }
+    void start(void){
+        start_time = clock::now();
+        running = true;
+    }
+    double stop(void){
+        if (running){
+            end_time = clock::now();
+            running = false;
+            return std::chrono::duration<double, std::milli>(end_time - start_time).count();
+        }
+        else{
+            std::cout << "StopWatch must be started first\n";
+            return 0.0;
+        }
+    }
+};
 
 /**
  * @class LPRNetDetector
@@ -1283,7 +1310,12 @@ class Detector{
         visualize(visualize),
         streams(streams)
         {
-
+            int nsrc = streams.size();
+            if (nthreads > nsrc){
+                std::cout << "Batch Size can't be bigger than n_sources\n";
+                std::cout << "Setting Batch Size to n_sources " << nsrc << std::endl;
+                this->nthreads = nsrc;
+            }
             //detection_task(&run, nthreads, visualize);
         }
 

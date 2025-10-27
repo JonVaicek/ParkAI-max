@@ -394,6 +394,7 @@ void OnnxRTDetector::clear_tensors(void){
 
 
 std::vector<std::vector<bbox>> OnnxRTDetector::detect(std::vector<cv::Mat> im_batch, bool visualize){
+    StopWatch st_load_input;
     orig_imgs = im_batch;
     std::vector<std::vector<bbox>> dets;
     std::vector <cv::Mat> ri_batch;
@@ -403,8 +404,14 @@ std::vector<std::vector<bbox>> OnnxRTDetector::detect(std::vector<cv::Mat> im_ba
     }
     //std::cout <<"batch ready. Size: " << ri_batch.size() << std::endl;
     Ort::Value input_tensor = load_input_tensor(ri_batch);
+    std::cout << "LOAD INPUT TENSOR: " << st_load_input.stop() << std::endl;
+    StopWatch st_run;
     run(input_tensor);
+    std::cout << "RUN INFERENCE TOOK: " << st_run.stop() << std::endl;
+
+    StopWatch st_pp;
     dets = post_process();
+    std::cout << "POST_PROCESS TOOK: " << st_pp.stop() <<std::endl;
     clear_tensors();
     return dets;
 }
@@ -432,6 +439,7 @@ int Engine::pull_batch(std::vector <ImgData> &input_batch, uint32_t timeout){
 
 int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<parknetDet>> &detl){
 
+    StopWatch st_prep_img;
     std::vector <cv::Mat> input_batch;
     std::vector <cv::Mat> org_images;
     for (const auto & im:img_batch){
@@ -450,7 +458,11 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
         }
         input_batch.push_back(prep_img);
     }
+    std::cout << "PREP IMAGE TOOK: " << st_prep_img.stop() << std::endl;
+
+    StopWatch st_total_car_det;
     std::vector<std::vector<bbox>> batch_dets =  car_det->detect(input_batch);
+    std::cout << "TOTAL CAR DETECT TOOK: " << st_total_car_det.stop() <<std::endl;
     detl.resize(batch_size);
 
     print_batch_detections(batch_dets);
