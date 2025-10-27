@@ -149,9 +149,10 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
     }
 
     /* pull oldest frames */
-    for (int b = 0; b<batch_size; b++){
+    for (int b = 0; b < batch_size; b++){
         uint64_t nfr_min = (uint64_t)-1;
         uint32_t i_erase = (uint32_t)-1;
+        uint32_t rid = (uint32_t)-1;
         //std::cout << "ids_size = " << i_erase << std::endl;
         for (int i = 0; i < ids.size(); i++){
             if(frames[ids[i]].fid <= nfr_min){
@@ -161,6 +162,7 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
         }
         if(i_erase < ids.size()){
             //std::cout << "Erasing " << ids[i_erase] << std::endl;
+            rid = ids[i_erase];
             ids.erase(ids.begin() + i_erase);
             //std::cout << "After erase ids: \n[";
             // for (const auto & id:ids){
@@ -176,7 +178,7 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
         uint64_t size;
         uchar *pdata = nullptr;
 
-        int ret = copy_frame(i_erase, &pdata, &size);
+        int ret = copy_frame(rid, &pdata, &size);
         if (ret){
             uint32_t index = get_src_index(i_erase);
             ImgData data = {pdata, size, i_erase, index};
