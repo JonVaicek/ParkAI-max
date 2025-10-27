@@ -142,12 +142,9 @@ int save_input_image(uint32_t id, cv::Mat &img, std::string dir){
     std::cout << "Saving input image " << fn << std::endl;
     //std::cout << "Image size: " << img.size() << std::endl;
     //cv::imwrite(outpath, img);
-    imwrite_async(fn, img);
+    imwrite_async(outpath, img);
     return 1;
 }
-
-
-
 
 int save_visualize_img(uint32_t id, cv::Mat &img, std::string dir){
     std::string f_ext = ".png";
