@@ -469,6 +469,7 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
 
     for (int b=0; b < batch_size; b++){
         //std::cout << "b = " << b << std::endl;
+        StopWatch st_secondary;
         for(const auto & car : batch_dets[b]){
             //std::cout << "Processing car\n";
             std::string plate_text;
@@ -508,10 +509,13 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
             parknetDet det = {car, plate, plate_text};
             det.lpr_found = pl_found;
             detl[b].push_back(det);
+            std::cout << "SECONDARY DET TOOK: " << st_secondary.stop() << std::endl;
         }
         //std::cout << "Detections done\n";
         if (SAVE_INPUT_IMAGES){
+            StopWatch st_save_img;
             save_input_image(img_batch[b].index, org_images[b], IMG_DIR);
+            std::cout << "SAVE INPUT IMG TOOK: " << st_save_img.stop() << std::endl;
             //save_input_image_async(img_batch[b].index, org_images[b], IMG_DIR);
         }
         if (visualize){
