@@ -376,9 +376,9 @@ std::vector<std::vector<bbox>> OnnxRTDetector::post_process(void){
             bb.cid = 0;
             bboxes.push_back(bb);
         }
-        std::cout << "Cars pre NMS: " << bboxes.size() << std::endl;
+        //std::cout << "Cars pre NMS: " << bboxes.size() << std::endl;
         std::vector<bbox> postNMS = non_max_suppression(bboxes);
-        std::cout << "Cars Found: " << postNMS.size() << std::endl;
+        //std::cout << "Cars Found: " << postNMS.size() << std::endl;
         ret.push_back(postNMS);
     }
     free(transposed);
@@ -399,7 +399,7 @@ std::vector<std::vector<bbox>> OnnxRTDetector::detect(std::vector<cv::Mat> im_ba
         cv::Mat fit_img = ImgUtils::resize_image(im, INPUT_W, INPUT_H);
         ri_batch.push_back(fit_img);
     }
-    std::cout <<"batch ready. Size: " << ri_batch.size() << std::endl;
+    //std::cout <<"batch ready. Size: " << ri_batch.size() << std::endl;
     Ort::Value input_tensor = load_input_tensor(ri_batch);
     run(input_tensor);
     dets = post_process();
@@ -454,9 +454,9 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
     print_batch_detections(batch_dets);
 
     for (int b=0; b < batch_size; b++){
-        std::cout << "b = " << b << std::endl;
+        //std::cout << "b = " << b << std::endl;
         for(const auto & car : batch_dets[b]){
-            std::cout << "Processing car\n";
+            //std::cout << "Processing car\n";
             cv::Mat car_img = ImgUtils::crop_image(input_batch[b], (int)car.x1,(int) car.y1,
                                                         (int)car.x2, (int)car.y2);
             if (car_img.cols == 0 || car_img.rows == 0){
@@ -465,7 +465,7 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
             if (visualize){
                 draw_boxes(org_images[b], car);
             }
-            std::cout << "Looking for license plates\n";
+            //std::cout << "Looking for license plates\n";
             std::vector<bbox> plates = lp_det->detect_preproc(car_img);
             bbox fplate, plate;
             std::string plate_text;
@@ -479,9 +479,9 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
                 pl_found = true;
                 plate = {(float)x0, (float)x1, (float)y0, (float)y1, fplate.conf, fplate.cid};
                 cv::Mat lp_img = ImgUtils::crop_image(input_batch[b], x0, y0, x1, y1);
-                std::cout << "Reading License Plate\n";
+                //std::cout << "Reading License Plate\n";
                 plate_text = ocr_eng->detect_preproc(lp_img);
-                std::cout << "Plate Read\n";
+                //std::cout << "Plate Read\n";
                 if (visualize){
                     cv::rectangle(org_images[b], cv::Point(x0, y0), cv::Point(x1, y1), cv::Scalar(255, 255, 0), 3);
                     cv::putText(org_images[b], plate_text, cv::Point(x0 + (x1-x0)/2, y0 -10), cv::FONT_HERSHEY_SIMPLEX, 1.5, cv::Scalar(0, 255, 255), 2);
@@ -492,7 +492,7 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
             det.lpr_found = pl_found;
             detl[b].push_back(det);
         }
-        std::cout << "Detections done\n";
+        //std::cout << "Detections done\n";
         if (SAVE_INPUT_IMAGES){
             //save_input_image(img_batch[b].id, img_batch[b].data, IMG_DIR);
             save_input_image(img_batch[b].index, org_images[b], IMG_DIR);

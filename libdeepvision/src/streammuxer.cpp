@@ -104,6 +104,9 @@ int StreamMuxer::muxer_thread(void){
 }
 
 int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes){
+    if (id >= frames.size()){
+        return 0;
+    }
     if (frames[id].nbytes == 0 || frames[id].idata == nullptr){
         //std::cout << id << " - Frame Buffers empty\n";
         return 0;
@@ -115,7 +118,7 @@ int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes){
     //int ret = clear_frame_buffers(id);
     int ret = true;
     if (ret){
-        frames_returned++;
+        //frames_returned++;
         return 1;
     }
     else{

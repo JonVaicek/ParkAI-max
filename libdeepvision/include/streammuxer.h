@@ -74,13 +74,7 @@ class StreamMuxer{
         if (!ret){
             return 0;
         }
-        // if (frames[id].idata != nullptr){
 
-        //     free(img);
-        //     nbytes = 0;
-        //     return 0;
-        // }
-        //std::cout << "ID - " << id << " Frame Pulled Successfully\n";
         frames[id].nbytes = nbytes;
         frames[id].idata = (uchar *)malloc(nbytes);
         memcpy(frames[id].idata, img, nbytes);
