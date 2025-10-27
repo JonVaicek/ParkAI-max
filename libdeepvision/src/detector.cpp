@@ -457,37 +457,40 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
         //std::cout << "b = " << b << std::endl;
         for(const auto & car : batch_dets[b]){
             //std::cout << "Processing car\n";
-            cv::Mat car_img = ImgUtils::crop_image(input_batch[b], (int)car.x1,(int) car.y1,
-                                                        (int)car.x2, (int)car.y2);
-            if (car_img.cols == 0 || car_img.rows == 0){
-                continue;
-            }
-            if (visualize){
-                draw_boxes(org_images[b], car);
-            }
-            //std::cout << "Looking for license plates\n";
-            std::vector<bbox> plates = lp_det->detect_preproc(car_img);
-            bbox fplate, plate;
             std::string plate_text;
             bool pl_found = false;
-            if (!plates.empty()){
-                fplate = detector::max_bbox(plates);
-                int x0 = (int)car.x1 + (int)fplate.x1;
-                int y0 = (int) car.y1 + (int)fplate.y1;
-                int x1 = (int)car.x1 + (int)fplate.x2;
-                int y1 = (int)car.y1 + (int)fplate.y2;
-                pl_found = true;
-                plate = {(float)x0, (float)x1, (float)y0, (float)y1, fplate.conf, fplate.cid};
-                cv::Mat lp_img = ImgUtils::crop_image(input_batch[b], x0, y0, x1, y1);
-                //std::cout << "Reading License Plate\n";
-                plate_text = ocr_eng->detect_preproc(lp_img);
-                //std::cout << "Plate Read\n";
+            bbox fplate, plate;
+            if(DETECT_LPD){
+                cv::Mat car_img = ImgUtils::crop_image(input_batch[b], (int)car.x1,(int) car.y1,
+                                                            (int)car.x2, (int)car.y2);
+                if (car_img.cols == 0 || car_img.rows == 0){
+                    continue;
+                }
                 if (visualize){
-                    cv::rectangle(org_images[b], cv::Point(x0, y0), cv::Point(x1, y1), cv::Scalar(255, 255, 0), 3);
-                    cv::putText(org_images[b], plate_text, cv::Point(x0 + (x1-x0)/2, y0 -10), cv::FONT_HERSHEY_SIMPLEX, 1.5, cv::Scalar(0, 255, 255), 2);
+                    draw_boxes(org_images[b], car);
+                }
+                //std::cout << "Looking for license plates\n";
+                std::vector<bbox> plates = lp_det->detect_preproc(car_img);
+                
+
+                if (!plates.empty()){
+                    fplate = detector::max_bbox(plates);
+                    int x0 = (int)car.x1 + (int)fplate.x1;
+                    int y0 = (int) car.y1 + (int)fplate.y1;
+                    int x1 = (int)car.x1 + (int)fplate.x2;
+                    int y1 = (int)car.y1 + (int)fplate.y2;
+                    pl_found = true;
+                    plate = {(float)x0, (float)x1, (float)y0, (float)y1, fplate.conf, fplate.cid};
+                    cv::Mat lp_img = ImgUtils::crop_image(input_batch[b], x0, y0, x1, y1);
+                    //std::cout << "Reading License Plate\n";
+                    plate_text = ocr_eng->detect_preproc(lp_img);
+                    //std::cout << "Plate Read\n";
+                    if (visualize){
+                        cv::rectangle(org_images[b], cv::Point(x0, y0), cv::Point(x1, y1), cv::Scalar(255, 255, 0), 3);
+                        cv::putText(org_images[b], plate_text, cv::Point(x0 + (x1-x0)/2, y0 -10), cv::FONT_HERSHEY_SIMPLEX, 1.5, cv::Scalar(0, 255, 255), 2);
+                    }
                 }
             }
-            
             parknetDet det = {car, plate, plate_text};
             det.lpr_found = pl_found;
             detl[b].push_back(det);
