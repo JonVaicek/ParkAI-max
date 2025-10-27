@@ -105,7 +105,7 @@ int StreamMuxer::muxer_thread(void){
 
 int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes){
     if (frames[id].nbytes == 0 || frames[id].idata == nullptr){
-        std::cout << id << " - Frame Buffers empty\n";
+        //std::cout << id << " - Frame Buffers empty\n";
         return 0;
     }
 
@@ -169,6 +169,9 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
             uint32_t index = get_src_index(i_erase);
             ImgData data = {pdata, size, i_erase, index};
             batch_data.push_back(data);
+        }
+        else{
+            continue;
         }
     }
 

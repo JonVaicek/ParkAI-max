@@ -418,22 +418,9 @@ int Engine::pull_batch(std::vector <ImgData> &input_batch, uint32_t timeout){
         std::cout << "Muxer not initialized\n";
         return 0;
     }
-    // std::vector <uint32_t> indexes;
-    // std::vector <cv::Mat> frames;
-    // std::vector<uint64_t> sizes;
-    // int ret = muxer->pull_frames_batch(frames, indexes, sizes, batch_size);
     int ret = muxer->pull_frames_batch(input_batch, batch_size);
     if (!ret)
         return 0;
-    
-    // if (ret){
-    //     for (int b=0; b< batch_size; b++){
-    //         cv::Mat owned = frames[b].clone();
-    //         ImgData data = {std::move(owned), sizes[b], indexes[b]};
-    //         //input_batch.push_back(data);
-    //         input_batch.emplace_back(std::move(data));
-    //     }
-    // }
     
     if(input_batch.size() == batch_size)
         return 1;
