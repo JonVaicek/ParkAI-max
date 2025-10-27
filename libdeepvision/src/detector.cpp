@@ -135,22 +135,7 @@ int save_input_image(uint32_t id, cv::Mat &img, std::string dir){
     return 1;
 }
 
-int save_input_imagee(uint32_t id, cv::Mat *img, std::string dir){
-    const char *f_ext = ".png";
-    char fn[16]; 
-    sprintf(fn, "%05d%s", id, f_ext);
-    std::string outpath = dir + fn;
-    std::cout << "Saving input image " << fn << std::endl;
-    //std::cout << "Image size: " << img.size() << std::endl;
-    cv::imwrite(outpath, *img);
-    return 1;
-}
 
-int save_input_image_async(uint32_t id, cv::Mat &img, std::string dir){
-   auto th = std::thread(save_input_imagee, id, &img, dir);
-   th.detach();
-   return 1;
-};
 
 int save_visualize_img(uint32_t id, cv::Mat &img, std::string dir){
     std::string f_ext = ".png";
@@ -514,8 +499,8 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
         }
         //std::cout << "Detections done\n";
         if (SAVE_INPUT_IMAGES){
-            //save_input_image(img_batch[b].index, org_images[b], IMG_DIR);
-            save_input_image_async(img_batch[b].index, org_images[b], IMG_DIR);
+            save_input_image(img_batch[b].index, org_images[b], IMG_DIR);
+            //save_input_image_async(img_batch[b].index, org_images[b], IMG_DIR);
         }
         if (visualize){
             save_visualize_img(img_batch[b].index, org_images[b], visualize_dir);
