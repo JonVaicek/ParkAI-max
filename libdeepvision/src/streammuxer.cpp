@@ -180,8 +180,8 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
 
         int ret = copy_frame(rid, &pdata, &size);
         if (ret){
-            uint32_t index = get_src_index(i_erase);
-            ImgData data = {pdata, size, i_erase, index};
+            uint32_t index = get_src_index(rid);
+            ImgData data = {pdata, size, rid, index};
             batch_data.push_back(data);
         }
         else{
