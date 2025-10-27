@@ -380,7 +380,7 @@ int main(int argc, char* argv[]) {
     uint64_t im_size = 0;
 
 
-    Detector det(4, VISUALIZE_DETECTIONS, streams);
+    Detector det(2, VISUALIZE_DETECTIONS, streams);
     det.start();
 
     std::thread th_heartbeat = std::thread(send_periodic_hb, &app_settings, &det,
