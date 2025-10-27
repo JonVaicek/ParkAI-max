@@ -41,14 +41,32 @@
 #define DETAI_DIR  "/mnt/c/p/detai/"
 #define VISUALIZE_DIR "/mnt/c/p/visualize/"
 
-#define VEHICLE_MODEL_PATH "yolo11_indoor.onnx"
-#define VEHICLE_DET_CONFIDENCE_THRESHOLD 0.2
+#define VEHICLE_MODEL_PATH "yolo11_indoor_s.onnx"
+#define VEHICLE_DET_CONFIDENCE_THRESHOLD 0.3
 #define LPD_MODEL_PATH "license_plate_detector.onnx"
 #define LPD_BATCH_SIZE 1
 #define LPLATE_DET_CONFIDENCE_THRESHOLD 0.5
 #define LPR_MODEL_PATH "us_lprnet_baseline18_deployable.onnx"
 
+#define VISUALIZE_DETECTIONS true
+
+#define ONDT_MILLISECOND std::chrono::milliseconds(1)
+
 class ImgReader;
+
+struct ImgData{
+    cv::Mat data;
+    uint64_t nbytes = 0;
+    uint32_t id = 0xFFFFFFFF;
+};
+
+struct sdet{
+    float xc;
+    float yc;
+    float w;
+    float h;
+    float conf;
+};
 
 struct bbox{
     float x1;
@@ -526,6 +544,64 @@ class OnnxDetector{
     }
 };
 
+/* Onnx Runtime Detector With Dynamic Batch Input*/
+class OnnxRTDetector{
+    private:
+    /* onnx-runtime classes*/
+    Ort::Env env;
+    Ort::SessionOptions session_options;
+    Ort::Session session;
+    Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+    Ort::AllocatorWithDefaultOptions allocator = Ort::AllocatorWithDefaultOptions();
+
+    /* model input */
+    const int INPUT_W = YOLO_INPUT_W;
+    const int INPUT_H = YOLO_INPUT_H;
+    const int IN_CH = 3;
+    int batch_size = 1; //default
+
+    std::vector<float> input_tensor_values;
+    std::vector<Ort::Value> output_tensors;
+    std::array<int64_t, 4> input_shape;
+    std::string input_names;
+    std::string output_names;
+    std::vector<const char*> input_names_raw;
+    std::vector<const char*> output_names_raw;
+
+    /* Detections Threshold */
+    float threshold;
+
+    /* Original image storage */
+    std::vector<cv::Mat> orig_imgs;
+
+    /* Private Class Methods */
+    static Ort::SessionOptions create_session_options();
+    void init();
+    Ort::Value load_input_tensor(std::vector<cv::Mat> img_batch);
+    void run(Ort::Value &input_tensor);
+    std::vector<std::vector<bbox>> post_process(void);
+    void clear_tensors(void);
+
+    //void display_output(std::vector<bbox> detections);
+    //void visualize_bboxes(std::vector<bbox> detections);
+
+    public:
+#ifdef WIN32   
+    OnnxRTDetector(const char * name, const wchar_t * model_path, float threshold, int batchsize);
+#elif __linux__
+    OnnxRTDetector(const char * name, const char * model_path, float threshold, int batchsize);
+#endif
+    /**
+     * @brief Run preprocessed (must be RGB and normalized to 1.0/255) image
+     * through the model
+     * @param src_i preprocessed image
+     * @param visualize save visualization of the detection
+     * @return vector of detected bboxes
+     */
+    std::vector<std::vector<bbox>> detect(std::vector<cv::Mat> im_batch, bool visualize = false);
+
+
+};
 
 
 namespace wdet{
@@ -940,7 +1016,7 @@ class Engine{
         const char * save_dir;
         std::thread thr;
 
-        OnnxDetector *car_det = nullptr, car_e;
+        OnnxRTDetector *car_det = nullptr, car_e;
         OnnxDetector *lp_det = nullptr, lpd_e;
         LPRNetDetector *ocr_eng = nullptr, lpr_e;
 
@@ -952,80 +1028,9 @@ class Engine{
         static std::string make_name(std::string txt, int id){
             return txt + "-" + std::to_string(id);
         }
+        int process(std::vector <ImgData> &img_batch, std::vector<std::vector<parknetDet>> &detl);
+        int pipeline_run(uchar *imgbuf, uint64_t nbytes, uint32_t img_uid, std::vector<parknetDet> &detl);
 
-        int pipeline_run(uchar *imgbuf, uint64_t nbytes, uint32_t img_uid, std::vector<parknetDet> &detl){
-            //std::cout << "Running Inference on "<< img_uid << std::endl;
-            cv::Mat jpegBuf(1, nbytes, CV_8UC1, imgbuf);
-            if (jpegBuf.empty()){
-                std::cout << "JPEG not loaded! Skipping...\n";
-                return 0;
-            }
-            cv::Mat img = cv::imdecode(jpegBuf, cv::IMREAD_COLOR);
-            cv::Mat im = img;
-            // cv::Mat img = ImgUtils::load_image(img_file.c_str());
-            if (img.empty()){
-                std::cout << "Image not loaded! Skipping..\n";
-                return 0;
-            }
-            cv::Mat prep_img = ImgUtils::preprocess_image(img);
-
-            std::vector<bbox> cars = car_det->detect_preproc(prep_img);
-            
-            for (const auto & car:cars){
-                cv::Mat car_img = ImgUtils::crop_image(prep_img, (int)car.x1,(int) car.y1,
-                                                                (int)car.x2, (int)car.y2);
-                if (car_img.cols == 0 || car_img.rows == 0){
-                    continue;
-                }
-                if (visualize){
-                    cv::rectangle(img, cv::Point(car.x1, car.y1), cv::Point(car.x2, car.y2), cv::Scalar(255, 0, 0), 3);
-                    if (car.y1 > 15)
-                        cv::putText(img, std::to_string(car.conf), cv::Point(car.x1, car.y1 - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
-                    else
-                        cv::putText(img, std::to_string(car.conf), cv::Point(car.x1, car.y2 - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
-                }
-                std::vector<bbox> plates = lp_det->detect_preproc(car_img);
-                bbox fplate, plate;
-                std::string plate_text;
-                bool pl_found = false;
-                if (!plates.empty()){
-
-                    fplate = detector::max_bbox(plates);
-                    int x0 = (int)car.x1 + (int)fplate.x1;
-                    int y0 = (int) car.y1 + (int)fplate.y1;
-                    int x1 = (int)car.x1 + (int)fplate.x2;
-                    int y1 = (int)car.y1 + (int)fplate.y2;
-                    pl_found = true;
-                    plate = {(float)x0, (float)x1, (float)y0, (float)y1, fplate.conf, fplate.cid};
-                    cv::Mat lp_img = ImgUtils::crop_image(prep_img, x0, y0, x1, y1);
-                    plate_text = ocr_eng->detect_preproc(lp_img);
-                    if (visualize){
-                        cv::rectangle(img, cv::Point(x0, y0), cv::Point(x1, y1), cv::Scalar(255, 255, 0), 3);
-                        cv::putText(img, plate_text, cv::Point(x0 + (x1-x0)/2, y0 -10), cv::FONT_HERSHEY_SIMPLEX, 1.5, cv::Scalar(0, 255, 255), 2);
-                    }
-                }
-                parknetDet det = {car, plate, plate_text};
-                det.lpr_found = pl_found;
-                
-                detl.push_back(det);
-            }
-            if (SAVE_INPUT_IMAGES){
-                const char *f_ext = ".png";
-                char fn[16]; 
-                sprintf(fn, "%05d%s", img_uid, f_ext);
-                std::string outpath = IMG_DIR + fn;
-                std::cout << "Saving input image " << fn << std::endl;
-                cv::imwrite(outpath, im);
-            }
-            if (visualize){
-                std::string f_ext = ".png";
-                std::string name = std::to_string(img_uid);
-                std::string outname = visualize_dir + name + "-vis" + ".png";
-                std::cout << "Saving visualize image " << outname << std::endl;
-                cv::imwrite(outname, img);
-            }
-            return 1;
-        }
         int init(void){
             if (SAVE_INPUT_IMAGES){
                 if(!wdet::dir_exists(IMG_DIR)){
@@ -1044,6 +1049,10 @@ class Engine{
             }
             return 1;
         }
+        std::string get_name(const char * pref, int id){
+            std::string ret = std::string(pref) + "-" + std::to_string(id); 
+            return ret;
+        }
     
     public:
         /**
@@ -1056,26 +1065,23 @@ class Engine{
         Engine(int id, const char * work_dir, int batch_size)
             :id(id),
             work_dir(work_dir),
-            car_e("car", VEHICLE_MODEL_PATH, batch_size, VEHICLE_DET_CONFIDENCE_THRESHOLD),
-            lpd_e("lpd", LPD_MODEL_PATH, LPD_BATCH_SIZE, LPLATE_DET_CONFIDENCE_THRESHOLD),
-            lpr_e("lpr", LPR_MODEL_PATH),
+            car_e(get_name("car", id).c_str(), VEHICLE_MODEL_PATH, VEHICLE_DET_CONFIDENCE_THRESHOLD, batch_size),
+            lpd_e(get_name("lpd", id).c_str(), LPD_MODEL_PATH, LPD_BATCH_SIZE, LPLATE_DET_CONFIDENCE_THRESHOLD),
+            lpr_e(get_name("lpr", id).c_str(), LPR_MODEL_PATH),
             batch_size(batch_size)
             {
-                connectModel(car_e, VEHICLE_MODEL);
+                linkModel(car_e);
                 connectModel(lpd_e, LP_MODEL);
                 connectModel(lpr_e, OCR_MODEL);
                 int ret = init();
             }
         
+        void linkModel(OnnxRTDetector &dt){
+            car_det = &dt;
+        }
+        
         void connectModel(OnnxDetector &detector, model_t mod_type){
-            if (mod_type == VEHICLE_MODEL){
-                if (car_det != nullptr){
-                    std::cout << "Vehicle model is already connected\n";
-                    return;
-            }
-            car_det = &detector;
-            }
-            else if(mod_type == LP_MODEL){
+            if(mod_type == LP_MODEL){
                 if (lp_det != nullptr){
                     std::cout << "License plate model is already connected\n";
                     return;
@@ -1097,6 +1103,8 @@ class Engine{
         void connectSource(StreamMuxer *src){
             muxer = src;
         }
+        int pull_batch(std::vector <ImgData> &input_batch, uint32_t timeout);
+        void runn(bool visualize);
 
         void run(bool visualize){
             static int nfailed = 0;
@@ -1125,12 +1133,6 @@ class Engine{
 
             id = muxer->pull_valid_frame(&img, &nbytes);
             if (id == 0xFFFFFFFF){
-                nfailed++;
-                if (nfailed == 100000){
-                    //std::cout << "cannot load new frames n=1000\n";
-                    nfailed=0;
-                }
-                //std::cout << "No valid frame pulled\n";
                 return;
             }
             nfailed = 0;
@@ -1138,7 +1140,6 @@ class Engine{
             if (ind == 0xFFFFFFFF){
                 return;
             }
-
             if (nbytes == 0 || img == nullptr){
                 //std::cout << "ID - " << id << "img size = 0\n"; 
                 return;
@@ -1148,7 +1149,6 @@ class Engine{
             if (!ret){
                 //std::cout << "ID = " << id << " Detection failed\n";
             }
-
 
             muxer->clear_frame_buffers(id);
             nframes ++;
@@ -1178,11 +1178,14 @@ class Inference{
     std::vector <std::thread> lthreads;
     std::thread app;
     uint64_t perf_fps = 0;
+    int nthreads = 0;
     bool running = false;
     bool runth = true;
     bool visualize;
     StreamMuxer *muxer;
     Engine engine;
+
+    //std::vector <Engine> engines;
 
 
     void inference_engine(bool *run, int nthreads, bool visualize){
@@ -1206,10 +1209,15 @@ class Inference{
     public:
     Inference(int nthreads, bool visualize):
     engine(0, WORK_DIR, nthreads),
-    visualize(visualize)
+    visualize(visualize),
+    nthreads(nthreads)
     {
-    
+        // engines.reserve(nthreads);
+        // for (int i=0; i < nthreads; i++){
+        //     engines.emplace_back(Engine(i, WORK_DIR, 1));
+        // }
     }
+
     void stop(void){
         runth = false;
         if(app.joinable()){
@@ -1222,9 +1230,11 @@ class Inference{
         }
     };
 
-    void run(bool visualize, int id){
-        engine.run(visualize);
+    void run(int id){
+        //engine.run(visualize);
+        engine.runn(visualize);
     }
+
 
     int link_muxer(StreamMuxer *mux){
         muxer = mux;
@@ -1264,11 +1274,8 @@ class Detector{
         inference.link_muxer(&muxer);
         int i = 0;
         while (true){
-            //std::cout << "###############\n";
-            //std::cout << "ITERATION - " << i << std::endl;
-            inference.run(false, 0);
-            //i++;
-            //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            inference.run(0);
+
         }
     };
 

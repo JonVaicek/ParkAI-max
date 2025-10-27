@@ -90,6 +90,7 @@ int StreamMuxer::muxer_thread(void){
                     frames[i].ready = true;
                     frames[i].read = false;
                     frames[i].age = 0;
+                    frames[i].fid = nfr;
                     nfr ++ ;
                 }
             }
@@ -100,4 +101,80 @@ int StreamMuxer::muxer_thread(void){
             n=0;
         }
     }
+}
+
+int StreamMuxer::copy_frame(int id, cv::Mat &img, uint64_t *size){
+    cv::Mat imgBuf(1, frames[id].nbytes, CV_8UC1, frames[id].idata);
+    *size = frames[id].nbytes;
+    if (imgBuf.empty()){
+
+        std::cout << "JPEG not loaded! Skipping...\n";
+        return 0;
+    }
+    uint32_t index = get_src_index(id);
+    if(index == STREAMMUX_RET_ERROR){
+        return 0;
+    }
+    img = imgBuf;
+    int ret = clear_frame_buffers(id);
+    if (ret){
+        frames_returned++;
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+
+uint32_t StreamMuxer::pull_frames_batch(std::vector<cv::Mat> &img_batch, std::vector<uint32_t> &idx,
+                                    std::vector<uint64_t> &sizes, uint32_t batch_size){
+    
+    /* Find frames with smallest nfr */
+    uint32_t nready = 0;
+    std::vector<uint32_t> ids;
+    for (int i = 0; i < frames.size(); i++){
+        if (frames[i].ready == true && frames[i].read == false){
+            nready++;
+            ids.push_back(i);
+        }
+    }
+
+    if (nready < batch_size){
+        return 0; //Not enough frames are ready 
+    }
+
+    /* pull oldest frames */
+    for (int b = 0; b<batch_size; b++){
+        uint64_t nfr_min = (uint64_t)-1;
+        uint32_t i_erase =ids.size();
+
+        for (int i = 0; i < ids.size(); i++){
+            if(frames[ids[i]].fid <= nfr_min){
+                nfr_min = frames[ids[i]].fid;
+                i_erase = i;
+            }
+        }
+        if(i_erase < ids.size()){
+            ids.erase(ids.begin() + i_erase);
+        }
+        else{
+            std::cout << "Failed to find oldest frames\n";
+            return 0;
+        }
+        /* @todo: copy the frame to return vector */
+        cv::Mat im;
+        uint64_t size;
+        int ret = copy_frame(i_erase, im, &size);
+        if (ret){
+            img_batch.push_back(im);
+            idx.push_back(get_src_index(i_erase));
+            sizes.push_back(size);
+        }
+    }
+
+    if (img_batch.size() == batch_size)
+        return 1;
+    else
+        return 0;
 }

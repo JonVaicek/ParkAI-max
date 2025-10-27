@@ -3,14 +3,19 @@
 
 #include "camstream.h"
 #include <iostream>
+#include <opencv2/opencv.hpp>
 
 typedef unsigned char uchar;
 
 #define STREAMMUX_MS 1
 #define FRAME_NOT_RECEIVED_THRESHOLD_MS 10000
+
+#define STREAMMUX_RET_ERROR 0xFFFFFFFF
+
 struct FrameInfo {
     uchar *idata = nullptr;
     uint64_t nbytes = 0;
+    uint64_t fid = 0;
     uint32_t age = 0;
     uint32_t nfailed = 0;
     bool ready = false;
@@ -76,7 +81,7 @@ class StreamMuxer{
     }
 
     uint32_t pull_valid_frame(uchar **data, uint64_t *nbytes){
-        uint32_t id=0xFFFFFFFF;
+        uint32_t id=STREAMMUX_RET_ERROR;
         //priority for oldest frames
         uint32_t age = 0;
         for (int i = 0; i < frames.size(); i++){
@@ -89,7 +94,7 @@ class StreamMuxer{
             }
         }
         if (id >= frames.size()){
-            return 0xFFFFFFFF;
+            return STREAMMUX_RET_ERROR;
         }
         //logic to return frames
         *data = frames[id].idata;
@@ -99,6 +104,13 @@ class StreamMuxer{
         //frames[id].read = true;
         return id;
     }
+
+
+    uint32_t pull_frames_batch(std::vector<cv::Mat> &img_batch, std::vector<uint32_t> &idx,
+                                    std::vector<uint64_t> &sizes, uint32_t batch_size);
+
+
+    int copy_frame(int id, cv::Mat &img, uint64_t *size);
 
     int clear_frame_buffers(uint32_t id){
         //std::cout << "ID - " << id << " Cleaning up.\n";
