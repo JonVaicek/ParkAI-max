@@ -383,7 +383,7 @@ int main(int argc, char* argv[]) {
     Detector det(2, VISUALIZE_DETECTIONS, streams);
     det.start();
 
-    std::thread th_heartbeat = std::thread(send_periodic_hb, &app_settings, &detector,
+    std::thread th_heartbeat = std::thread(send_periodic_hb, &app_settings, &det,
                                         hostname, HEARTBEAT_PERIOD_SEC, &run_heartbeat);
     // Initialization
     int screenWidth = 450;
@@ -435,7 +435,7 @@ int main(int argc, char* argv[]) {
             }
             if (ImGui::BeginMenu("Debug Tools")){
                 if (ImGui::MenuItem("Send Heartbeat")){
-                    send_heartbeat_debug(&app_settings, hostname, &detector);
+                    send_heartbeat_debug(&app_settings, hostname, &det);
                 }
                 ImGui::EndMenu();
             }
@@ -552,7 +552,6 @@ int main(int argc, char* argv[]) {
     //     detections.join();
     //     std::cout << "Detections thread Closed\n";
     // }
-    detector.stop();
     //free(img);
 
     return EXIT_SUCCESS;
