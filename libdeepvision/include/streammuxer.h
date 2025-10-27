@@ -25,7 +25,7 @@ struct ImgData{
 struct FrameInfo {
     uchar *idata = nullptr;
     uint64_t nbytes = 0;
-    uint64_t fid = 0;
+    uint64_t fid = (uint64_t)-1;
     uint32_t age = 0;
     uint32_t nfailed = 0;
     bool ready = false;
