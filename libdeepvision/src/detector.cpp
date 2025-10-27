@@ -537,7 +537,7 @@ void Engine::runn(bool visualize){
     ret = process(img_batch, b_dets);
 
     for (int b=0; b< batch_size; b++){
-        ret = muxer->clear_frame_buffers(img_batch[b].id);
+        muxer->clear_frame_buffers(img_batch[b].id);
     }
 
     if (ret){

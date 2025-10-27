@@ -134,7 +134,7 @@ class StreamMuxer{
             frames[id].nbytes = 0;
             frames[id].ready = false;
             frames[id].read = true;
-            //std::cout << "Cleanup Success\n";
+            std::cout << "Cleanup Success\n";
             return 1;
         }
         // else{
