@@ -127,6 +127,7 @@ class StreamMuxer{
         //std::cout << "idata = " <<  (uint8_t*)frames[id].idata << std::endl;
         //std::cout << "nbytes = " << frames[id].nbytes << std::endl;
         if (frames[id].idata != nullptr){
+            std::cout << "Clearing buffers - " << id << std::endl;
             //std::cout << "ID = "<< id<< " Clearing Buffers\n";
             free(frames[id].idata);
             frames[id].idata = nullptr;
