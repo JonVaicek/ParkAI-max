@@ -104,6 +104,10 @@ int StreamMuxer::muxer_thread(void){
 }
 
 int StreamMuxer::copy_frame(int id, cv::Mat &img, uint64_t *size){
+    if (frames[id].nbytes == 0 || frames[id].idata == nullptr){
+        std::cout << id << " - Frame Buffers empty\n";
+        return 0;
+    }
     cv::Mat imgBuf(1, frames[id].nbytes, CV_8UC1, frames[id].idata);
     *size = frames[id].nbytes;
     if (imgBuf.empty()){

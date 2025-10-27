@@ -283,7 +283,7 @@ void periodic_upload_outages(bool *run){
     }
 }
 
-void send_periodic_hb(AppSettings *app_settings, ImageDetector *detector, char *host, int timeout_s, bool *run){
+void send_periodic_hb(AppSettings *app_settings, Detector *detector, char *host, int timeout_s, bool *run){
     static int tick = timeout_s * 10;
     std::string route;
     route = "/heartbeat";
@@ -295,7 +295,7 @@ void send_periodic_hb(AppSettings *app_settings, ImageDetector *detector, char *
             //send_heartbeat(hb_url.c_str(), host, app_settings->facility_name.c_str(), SERVER_TYPE, app_settings->sys_boot.c_str());
             server_data_t s_data = {host, app_settings->facility_name.c_str(), SERVER_TYPE, app_settings->sys_boot.c_str()};
             perf_data["running"] = detector->is_running();
-            perf_data["fps"] = detector->get_perf_data();
+            perf_data["fps"] = detector->get_fps();
             send_heartbeat_ai(hb_url.c_str(), s_data, perf_data);
             tick = 0;
         }
@@ -305,14 +305,14 @@ void send_periodic_hb(AppSettings *app_settings, ImageDetector *detector, char *
 }
 
 
-void send_heartbeat_debug(AppSettings *app_settings, char *host, ImageDetector *detector){
+void send_heartbeat_debug(AppSettings *app_settings, char *host, Detector *detector){
     server_data_t s_data = {host, app_settings->facility_name.c_str(), SERVER_TYPE, app_settings->sys_boot.c_str()};
     nlohmann::json perf_data;
     std::string hb_url;
     std::string route = "/heartbeat";
     hb_url = app_settings->cloud_settings.gatedataURL + route;
     perf_data["running"] = detector->is_running();
-    perf_data["fps"] = detector->get_perf_data();
+    perf_data["fps"] = detector->get_fps();
     send_heartbeat_ai(hb_url.c_str(), s_data, perf_data);
 }
 
@@ -360,10 +360,10 @@ int main(int argc, char* argv[]) {
     std::thread th_upload_outages= std::thread(periodic_upload_outages, &run);
 
     //std::thread detections = std::thread(detections_task, &run, 4, 0);
-    ImageDetector detector(4, 0);
-    if(!START_AI_ENGINE){
-       detector.stop();
-    }
+    //ImageDetector detector(4, 0);
+    // if(!START_AI_ENGINE){
+    //    detector.stop();
+    // }
     std::vector <stream_info> streams;
     for (const auto & cam:camList){
         std::string ip = cam.ipaddr;
