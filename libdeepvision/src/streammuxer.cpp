@@ -131,12 +131,15 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
     /* Find frames with smallest nfr */
     uint32_t nready = 0;
     std::vector<uint32_t> ids;
+    std::cout << "Available ids:\n[";
     for (int i = 0; i < frames.size(); i++){
         if (frames[i].ready == true && frames[i].read == false){
             nready++;
             ids.push_back(i);
+            std::cout << i << ", ";
         }
     }
+    std::cout << "]\n";
 
     if (nready < batch_size){
         return 0; //Not enough frames are ready 
@@ -156,6 +159,11 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
         if(i_erase < ids.size()){
             std::cout << "Erasing " << i_erase << std::endl;
             ids.erase(ids.begin() + i_erase);
+            std::cout << "After erase ids: \n[";
+            for (const auto & id:ids){
+                std::cout << id << ", ";
+            }
+            std::cout << "]\n";
         }
         else{
             std::cout << "Failed to find oldest frames\n";
