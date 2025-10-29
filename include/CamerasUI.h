@@ -11,6 +11,8 @@
 
 #define CAMERAS_LIST_DB "cams.db"
 
+#define MINUTE 60
+
 typedef enum {
  HIKVISION = 0,
  DAHUA,
@@ -22,6 +24,8 @@ typedef enum {
 extern std::vector<std::string> CamTypeNames;
 
 CamType get_by_val(int val);
+
+
 
 
 struct Camera_t{

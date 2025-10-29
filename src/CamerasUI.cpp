@@ -4,6 +4,17 @@
 #include <sstream>
 #include "db_manage.h"
 
+#define IM_COL_GREEN IM_COL32(0, 200, 0, 50)
+#define IM_COL_RED IM_COL32(200, 0, 0, 50)
+#define IM_COL_YELLOW IM_COL32(200, 0, 200, 50)
+
+
+// typedef struct{
+//    ImU32 RED = IM_COL32(200, 0, 0, 50);
+//    ImU32 GREEN = IM_COL32(0, 200, 0, 50);
+//    ImU32 YELLOW = IM_COL32(200, 200, 0, 50);
+// }status_colors_t;
+
 
 std::vector <std::string> CamTypeNames = {"Hikvision", "Dahua", "Uniview", "Parksol"};
 
@@ -190,6 +201,7 @@ int imgui_cams_table(std::vector<Camera_t> clist, std::vector<stream_info> &str_
         ImGui::TableSetupColumn("ID");
         ImGui::TableSetupColumn("IP");
         ImGui::TableSetupColumn("TYPE");
+        ImGui::TableSetupColumn("FRAME TIME, S");
         ImGui::TableSetupColumn("ACTION");
         ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
         for (int column = 0; column < cols; column++)
@@ -205,6 +217,24 @@ int imgui_cams_table(std::vector<Camera_t> clist, std::vector<stream_info> &str_
         }
         for (int row = 0; row < rows; row ++ ){
             ImGui::TableNextRow();
+            int index = clist[row].index;
+            time_t ts = 0;
+            for (const auto & s:str_data){
+                if (s.index == index){
+                    ts = s.ts;
+                }
+            } //get ts;
+            time_t td = tdelta_from_now(ts);
+            if (td < MINUTE){
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, IM_COL_GREEN);
+            }
+            else if(td > MINUTE && td < 15*MINUTE){
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, IM_COL_YELLOW);
+            }
+            else{
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, IM_COL_RED);
+            }
+
             for(int col = 0; col < cols; col++){
                 ImGui::TableSetColumnIndex(col);
                 
@@ -222,13 +252,6 @@ int imgui_cams_table(std::vector<Camera_t> clist, std::vector<stream_info> &str_
                         break;
                     }
                     case 3:{
-                        int index = clist[row].index;
-                        time_t ts = 0;
-                        for (const auto & s:str_data){
-                            if (s.index == index){
-                                ts = s.ts;
-                            }
-                        }
                         ImGui::Text("%ld", tdelta_from_now(ts));
                         
                         break;
