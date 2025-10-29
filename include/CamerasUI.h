@@ -7,6 +7,7 @@
 #include "rlImGuiColors.h"
 #include <vector>
 #include <iostream>
+#include "detector.h"
 
 #define CAMERAS_LIST_DB "cams.db"
 
@@ -27,10 +28,13 @@ struct Camera_t{
     char ipaddr[17];
     char rtsp[128];
     char img_pull_url[128];
+    time_t ts=0;
     int index;
     int id;
     CamType type;
 };
+
+
 
 struct Pod{
     int id;
@@ -41,7 +45,7 @@ struct Pod{
 };
 
 int button_add_camera(std::vector<Camera_t> &camList);
-int imgui_cams_table(std::vector<Camera_t> clist);
+int imgui_cams_table(std::vector<Camera_t> clist, std::vector<stream_info> &str_data);
 
 
 int load_facility_file(std::string path, std::vector<Pod> &dest);

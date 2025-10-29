@@ -17,7 +17,7 @@
 #include <thread>
 #include <sys/stat.h>
 #include <filesystem>
-#include <measure_time.h>
+#include "measure_time.h"
 
 #include "camstream.h"
 #include "streammuxer.h"
@@ -99,7 +99,10 @@ typedef enum {
 
 struct stream_info{
     std::string url;
+    time_t ts;
     int index;
+    int id;
+
 };
 
 namespace ImgUtils {/* Private function to load the image file*/
@@ -188,33 +191,7 @@ namespace detector {
 };
 
 
-class StopWatch{
-    private:
-    using clock = std::chrono::high_resolution_clock;
-    std::chrono::time_point<clock> start_time;
-    std::chrono::time_point<clock> end_time;
-    bool running = false;
 
-    public:
-    StopWatch(void){
-        start();
-    }
-    void start(void){
-        start_time = clock::now();
-        running = true;
-    }
-    double stop(void){
-        if (running){
-            end_time = clock::now();
-            running = false;
-            return std::chrono::duration<double, std::milli>(end_time - start_time).count();
-        }
-        else{
-            std::cout << "StopWatch must be started first\n";
-            return 0.0;
-        }
-    }
-};
 
 /**
  * @class LPRNetDetector
@@ -1269,6 +1246,7 @@ class Inference{
 };
 
 
+
 class Detector{
     uint64_t perf_fps = 0;
     bool running = false;
@@ -1353,6 +1331,8 @@ class Detector{
         }
         float get_fps(void);
         bool is_running(void);
+        time_t get_stream_ts(int index);
+        int read_timestamps(std::vector<stream_info> &streams);
 };
 
 

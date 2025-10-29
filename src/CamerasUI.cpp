@@ -4,6 +4,7 @@
 #include <sstream>
 #include "db_manage.h"
 
+
 std::vector <std::string> CamTypeNames = {"Hikvision", "Dahua", "Uniview", "Parksol"};
 
 int load_facility_file(std::string path, std::vector<Pod> &dest){
@@ -172,10 +173,17 @@ int button_add_camera(std::vector<Camera_t> &camList){
 }
 
 
+time_t tdelta_from_now(time_t ts){
+    time_t tn = std::time(nullptr);
+    time_t td = tn - ts;
+    //std::cout << "ts = " << ts << std::endl;
+    return td;
+}
 
-int imgui_cams_table(std::vector<Camera_t> clist){
+
+int imgui_cams_table(std::vector<Camera_t> clist, std::vector<stream_info> &str_data){
     int rows = clist.size();
-    int cols = 4;
+    int cols = 5;
     const char * tb_name = "Cameras";
 
     if(ImGui::BeginTable(tb_name, cols, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders)){
@@ -214,6 +222,18 @@ int imgui_cams_table(std::vector<Camera_t> clist){
                         break;
                     }
                     case 3:{
+                        int index = clist[row].index;
+                        time_t ts = 0;
+                        for (const auto & s:str_data){
+                            if (s.index == index){
+                                ts = s.ts;
+                            }
+                        }
+                        ImGui::Text("%ld", tdelta_from_now(ts));
+                        
+                        break;
+                    }
+                    case 4:{
                         ImGui::PushID(row); // makes IDs unique per row
                         if(ImGui::Button("View")){
                             ImGui::OpenPopup("Camera View");

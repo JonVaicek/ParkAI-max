@@ -1,6 +1,20 @@
 #include "streammuxer.h"
 
 
+
+
+
+
+
+
+
+/* Stream Muxer Helper Functions Begin*/
+
+
+
+/* Stream Muxer Helper Functions End*/
+
+
 float StreamMuxer::get_fps(void){
     float fps = 0.0;
     int fpsa = 0;
@@ -91,6 +105,7 @@ int StreamMuxer::muxer_thread(void){
                     frames[i].read = false;
                     frames[i].age = 0;
                     frames[i].fid = nfr;
+                    src_handles[i]->timestamp = std::time(nullptr);
                     nfr ++ ;
                 }
             }
@@ -196,4 +211,28 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
         return 1;
     else
         return 0;
+}
+
+/**
+ * @param index - camera/stream index
+ * @return time_t - timestamp of last frame
+ */
+time_t StreamMuxer::get_stream_ts(int index){
+    for(const auto & src:src_handles){
+        if (src->index == index){
+            return src->timestamp;
+        }
+    }
+    return 0;
+};
+
+time_t StreamMuxer::get_stream_td(int index){
+    time_t tn = std::time(nullptr);
+    time_t td;
+    for (const auto & src:src_handles){
+        if (src->index == index){
+            return  tn - src->timestamp;
+        }
+    }
+    return tn;
 }

@@ -4,28 +4,32 @@
 #include <chrono>
 
 
-// class StopWatch{
-//     private:
-//     std::chrono::high_resolution_clock::time_point strt;
-//     bool running = false;
+class StopWatch{
+    private:
+    using clock = std::chrono::high_resolution_clock;
+    std::chrono::time_point<clock> start_time;
+    std::chrono::time_point<clock> end_time;
+    bool running = false;
 
-//     public:
-//     void start(void){
-//         strt = std::chrono::high_resolution_clock::now();
-//         running = true;
-//     }
-    
-//     double stop(void){
-//         double ms = 0.0;
-//         if (!running){
-//             return ms;
-//         }
-//         auto end = std::chrono::high_resolution_clock::now();
-//         std::chrono::duration<double, std::milli> diff = end - strt;
-//         strt = end;
-//         ms = diff.count();
-//         return ms;
-//     }
-// };
+    public:
+    StopWatch(void){
+        start();
+    }
+    void start(void){
+        start_time = clock::now();
+        running = true;
+    }
+    double stop(void){
+        if (running){
+            end_time = clock::now();
+            running = false;
+            return std::chrono::duration<double, std::milli>(end_time - start_time).count();
+        }
+        else{
+            std::cout << "StopWatch must be started first\n";
+            return 0.0;
+        }
+    }
+};
 
 #endif

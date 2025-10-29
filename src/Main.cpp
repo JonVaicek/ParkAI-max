@@ -347,11 +347,6 @@ int main(int argc, char* argv[]) {
     std::thread runtime_ts_thread = std::thread(runtime_ts, &run);
 
 
-    // std::thread th_heartbeat = std::thread(periodic_heartbeat, app_settings.cloud_settings.gatedataURL.c_str(),
-    //                                     hostname, app_settings.facility_name.c_str(), 
-    //                                     SERVER_TYPE, HEARTBEAT_PERIOD_SEC, &run_heartbeat, app_settings.sys_boot.c_str());
-
-
     std::thread uploadData = std::thread(upload_events_threaded, DATA_UPLOAD_CHECK_TIMEOUT, &run,
                                                 app_settings.cloud_settings.gatedataURL.c_str(),
                                                 hostname, app_settings.facility_name.c_str(), 
@@ -359,11 +354,7 @@ int main(int argc, char* argv[]) {
 
     std::thread th_upload_outages= std::thread(periodic_upload_outages, &run);
 
-    //std::thread detections = std::thread(detections_task, &run, 4, 0);
-    //ImageDetector detector(4, 0);
-    // if(!START_AI_ENGINE){
-    //    detector.stop();
-    // }
+
     std::vector <stream_info> streams;
     for (const auto & cam:camList){
         std::string ip = cam.ipaddr;
@@ -372,10 +363,11 @@ int main(int argc, char* argv[]) {
             continue;
         }
         else{
-            stream_info str = {cam.rtsp, cam.index};
+            stream_info str = {cam.rtsp, 0, cam.index, cam.id};
             streams.push_back(str);
         }
     }
+    
     uchar *img = nullptr;
     uint64_t im_size = 0;
 
@@ -475,7 +467,7 @@ int main(int argc, char* argv[]) {
                 get_all_cameras_db("cams.db",camList);
             }
             ImGui::Text("Cameras in list: %ld", camList.size());
-            imgui_cams_table(camList);
+            imgui_cams_table(camList, streams);
             
             rlImGuiImageSize(&tex, tex.width /4, tex.height/4);
 
@@ -505,6 +497,7 @@ int main(int argc, char* argv[]) {
         if(nframe >= TARGET_IMGUI_FPS){ // update this every 1s
             fps_perf = det.get_fps();
             nframe = 0;
+            det.read_timestamps(streams);
         }
         EndDrawing();
     }

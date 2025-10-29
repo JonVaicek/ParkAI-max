@@ -84,6 +84,9 @@ void detections_task(bool *run, int nthreads, bool visualize){
 
 /* Helpers Begin */
 
+
+
+
 float IoU(const bbox& a, const bbox& b) {
     float inter_x1 = std::max(a.x1, b.x1);
     float inter_y1 = std::max(a.y1, b.y1);
@@ -647,5 +650,21 @@ float Detector::get_fps(void){
 bool Detector::is_running(void){
     return true;
 };
+
+time_t Detector::get_stream_ts(int index){
+    return muxer.get_stream_ts(index);
+}
+
+
+
+int Detector::read_timestamps(std::vector<stream_info> &streams){
+    for (auto & s:streams){
+        s.ts = muxer.get_stream_ts(s.index);
+        //std::cout << "s.ts = " << s.ts << std::endl;
+    }
+    return 1;
+}
+
+
 
 /* Detector Methods End */

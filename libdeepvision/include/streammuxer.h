@@ -1,9 +1,18 @@
+/**
+ * @file streammuxer.h
+ * @brief Streammux class providing frames from multi-streams to detector
+ * @author Jonas Vaicekauskas
+ * @date 2025-10-29
+ * @details Contains classes and helper functions for frame supply to ONNX-Detector
+ */
+
 #ifndef STREAMMUXER_H
 #define STREAMMUXER_H
 
 #include "camstream.h"
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include "time.h"
 
 typedef unsigned char uchar;
 
@@ -35,6 +44,8 @@ struct FrameInfo {
     bool ready = false;
     bool read=true;
 };
+
+
 
 class StreamMuxer{
 
@@ -75,7 +86,7 @@ class StreamMuxer{
         uchar *img = nullptr;
         uint64_t nbytes;
         //uint32_t ret = pull_image(src_handles[id], PNG, &img, &nbytes);
-        uint32_t ret = pull_image(src_handles[id], RAW, &img, &nbytes);
+        uint32_t ret = pull_image(src_handles[id], RAW, &img, &nbytes); // Use raw RGB data
         if (!ret){
             return 0;
         }
@@ -87,7 +98,6 @@ class StreamMuxer{
         frames[id].height = src_handles[id]->imgH;
         free(img);
         nbytes = 0;
-        //std::cout << "ID - " << id << " Frame Copied Successfully\n";
         return 1;
     }
 
@@ -124,9 +134,6 @@ class StreamMuxer{
     int copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w, uint32_t *h);
 
     int clear_frame_buffers(uint32_t id){
-        //std::cout << "ID - " << id << " Cleaning up.\n";
-        //std::cout << "idata = " <<  (uint8_t*)frames[id].idata << std::endl;
-        //std::cout << "nbytes = " << frames[id].nbytes << std::endl;
         if (frames[id].idata != nullptr){
             std::cout << "Clearing buffers - " << id << std::endl;
             //std::cout << "ID = "<< id<< " Clearing Buffers\n";
@@ -139,14 +146,6 @@ class StreamMuxer{
             std::cout << "Cleanup Success\n";
             return 1;
         }
-        // else{
-        //     //std::cout << "ID = "<< id << " idata is unallocated\n";
-        //     free(frames[id].idata);
-        //     frames[id].idata = nullptr;
-        //     frames[id].nbytes = 0;
-        //     frames[id].ready = false;
-        // }
-        //std::cout << "Cleanup Skipped\n";
         return 0;
     }
     
@@ -172,6 +171,8 @@ class StreamMuxer{
     }
     
     float get_fps(void);
+    time_t get_stream_ts(int index);
+    time_t get_stream_td(int index);
 };
 
 
