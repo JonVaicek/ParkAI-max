@@ -6,7 +6,7 @@
 
 #define IM_COL_GREEN IM_COL32(0, 200, 0, 50)
 #define IM_COL_RED IM_COL32(200, 0, 0, 50)
-#define IM_COL_YELLOW IM_COL32(200, 0, 200, 50)
+#define IM_COL_YELLOW IM_COL32(200, 200, 0, 50)
 
 
 // typedef struct{

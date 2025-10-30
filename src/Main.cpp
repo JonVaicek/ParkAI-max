@@ -334,7 +334,6 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-
     uint64_t app_tick = 0;
     uint64_t *tick_ptr = &app_tick;
     std::vector<Camera_t> camList;
@@ -434,8 +433,6 @@ int main(int argc, char* argv[]) {
 			ImGui::EndMainMenuBar();
 		}
 
-
-
         // This is the main display area, that fills the app's window
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -472,14 +469,6 @@ int main(int argc, char* argv[]) {
             rlImGuiImageSize(&tex, tex.width /4, tex.height/4);
 
             
-            // if (tex.id > 0) {
-            //     UnloadTexture(tex);
-            // }
-            //ImGui::Image((ImTextureID)(intptr_t)tex.id, ImVec2((float)tex.width, (float)tex.height));
-            //std::cout << "Camera list len: " << camList.size() << std::endl;
-            //ImGui::NewLine();
-            //get_events_button();
-            
             ImGui::EndChild();
             //ImGui::SameLine();
         }
@@ -509,6 +498,7 @@ int main(int argc, char* argv[]) {
     if (tex.id > 0) {
         UnloadTexture(tex);
     }
+    
     CloseWindow();
 
     /* Close running threads*/

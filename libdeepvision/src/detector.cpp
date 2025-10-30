@@ -584,7 +584,7 @@ void Engine::runn(bool visualize){
         for (int b=0; b<batch_size; b++){
             std::vector<parknetDet> dets = b_dets[b];
             char fn[16];
-            sprintf(fn, "%05d.txt", img_batch[b].id);
+            sprintf(fn, "%05d.txt", img_batch[b].index);
             wdet::WriteDetectionInfo(dets, wdet::get_filename(fn, detai_dir));
             std::cout << "in image " << fn << " detected " << dets.size() << " objects\n";
             if (dets.size() != 0){
