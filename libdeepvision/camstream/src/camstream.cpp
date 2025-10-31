@@ -412,6 +412,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
     int width = 640;
     int height = 480;
     ctl->frame_rd = true;
+    ctl->timestamp = std::time(nullptr);
     ctl->state = VSTREAM_RUNNING;
     if (true) {
         return GST_FLOW_OK;
