@@ -1206,8 +1206,8 @@ class Inference{
         }
     };
     public:
-    Inference(int nthreads, bool visualize):
-    engine(0, WORK_DIR, nthreads),
+    Inference(int nthreads, bool visualize, std::string workdir):
+    engine(0, workdir.c_str(), nthreads),
     visualize(visualize),
     nthreads(nthreads)
     {
@@ -1255,6 +1255,8 @@ class Detector{
     std::vector <stream_info> streams;
     std::vector <std::thread> task;
 
+    std::string WORKDIR;
+
     StreamMuxer muxer;
 
     void detection_task(bool *run, int nthreads, bool visualize){
@@ -1270,20 +1272,20 @@ class Detector{
             muxer.link_stream(&sources[i], &src_handles[i]);
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // add streams with a delay
         }
-        Inference inference (nthreads, visualize);
+        Inference inference (nthreads, visualize, WORKDIR);
         inference.link_muxer(&muxer);
         int i = 0;
         while (true){
             inference.run(0);
-
         }
     };
 
     public:
-        Detector(int nthreads, bool visualize, std::vector<stream_info> streams):
+        Detector(int nthreads, bool visualize, std::vector<stream_info> streams, std::string work_dir):
         nthreads(nthreads),
         visualize(visualize),
-        streams(streams)
+        streams(streams),
+        WORKDIR(work_dir)
         {
             int nsrc = streams.size();
             if (nsrc == 0){
