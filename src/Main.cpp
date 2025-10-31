@@ -283,7 +283,20 @@ void periodic_upload_outages(bool *run){
     }
 }
 
-void send_periodic_hb(AppSettings *app_settings, Detector *detector, char *host, int timeout_s, bool *run){
+json format_sensor_data(std::vector <stream_info> &sensors){
+    json ret;
+    for( const auto & s:sensors){
+        json sj;
+        sj["index"] = s.index;
+        sj["ts"] = s.ts;
+        sj["ip"] = s.ip;
+        ret.push_back(sj);
+    }
+
+    return ret;
+}
+
+void send_periodic_hb(AppSettings *app_settings, Detector *detector, char *host, int timeout_s, bool *run, std::vector<stream_info> *sensors){
     static int tick = timeout_s * 10;
     std::string route;
     route = "/heartbeat";
@@ -296,6 +309,7 @@ void send_periodic_hb(AppSettings *app_settings, Detector *detector, char *host,
             server_data_t s_data = {host, app_settings->facility_name.c_str(), SERVER_TYPE, app_settings->sys_boot.c_str()};
             perf_data["running"] = detector->is_running();
             perf_data["fps"] = detector->get_fps();
+            perf_data["sensors"] = format_sensor_data(*sensors);
             send_heartbeat_ai(hb_url.c_str(), s_data, perf_data);
             tick = 0;
         }
@@ -305,7 +319,8 @@ void send_periodic_hb(AppSettings *app_settings, Detector *detector, char *host,
 }
 
 
-void send_heartbeat_debug(AppSettings *app_settings, char *host, Detector *detector){
+
+void send_heartbeat_debug(AppSettings *app_settings, char *host, Detector *detector, std::vector <stream_info> &data){
     server_data_t s_data = {host, app_settings->facility_name.c_str(), SERVER_TYPE, app_settings->sys_boot.c_str()};
     nlohmann::json perf_data;
     std::string hb_url;
@@ -313,6 +328,7 @@ void send_heartbeat_debug(AppSettings *app_settings, char *host, Detector *detec
     hb_url = app_settings->cloud_settings.gatedataURL + route;
     perf_data["running"] = detector->is_running();
     perf_data["fps"] = detector->get_fps();
+    perf_data["sensors"] = format_sensor_data(data);
     send_heartbeat_ai(hb_url.c_str(), s_data, perf_data);
 }
 
@@ -362,7 +378,7 @@ int main(int argc, char* argv[]) {
             continue;
         }
         else{
-            stream_info str = {cam.rtsp, 0, cam.index, cam.id};
+            stream_info str = {cam.rtsp, cam.ipaddr, 0, cam.index, cam.id};
             streams.push_back(str);
         }
     }
@@ -375,7 +391,7 @@ int main(int argc, char* argv[]) {
     det.start();
 
     std::thread th_heartbeat = std::thread(send_periodic_hb, &app_settings, &det,
-                                        hostname, HEARTBEAT_PERIOD_SEC, &run_heartbeat);
+                                        hostname, HEARTBEAT_PERIOD_SEC, &run_heartbeat, &streams);
     // Initialization
     int screenWidth = 450;
     int screenHeight = 128;
@@ -426,7 +442,7 @@ int main(int argc, char* argv[]) {
             }
             if (ImGui::BeginMenu("Debug Tools")){
                 if (ImGui::MenuItem("Send Heartbeat")){
-                    send_heartbeat_debug(&app_settings, hostname, &det);
+                    send_heartbeat_debug(&app_settings, hostname, &det, streams);
                 }
                 ImGui::EndMenu();
             }
@@ -498,6 +514,7 @@ int main(int argc, char* argv[]) {
     if (tex.id > 0) {
         UnloadTexture(tex);
     }
+    
     
     CloseWindow();
 

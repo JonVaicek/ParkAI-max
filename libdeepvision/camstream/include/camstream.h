@@ -24,6 +24,13 @@ typedef enum{
     RAW
 }ImgFormat;
 
+typedef enum{
+    VSTREAM_NULL = 0,
+    VSTREAM_STARTUP,
+    VSTREAM_RUNNING,
+    VSTREAM_RELOAD
+}StreamState;
+
 struct StreamCtrl{
     GstElement *pipeline = NULL;
     GstElement *appsink = NULL;
@@ -33,11 +40,14 @@ struct StreamCtrl{
     uint32_t imgW = 0;
     uint32_t imgH = 0;
     uint32_t index;
+    StreamState state = VSTREAM_NULL;
     bool run = true;
     bool noframe = false;
     bool restart = false;
     bool frame_rd = false;
 };
+
+
 
 
 void init_camstream(void);
@@ -49,5 +59,13 @@ vstream load_stream(const char *rtsp_url, unsigned char *img, bool *run, StreamC
 vstream load_manual_stream(const char *rtsp_url, StreamCtrl *ctrl);
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size);
 
+class VideoSource{
+    StreamCtrl ctrl;
+    vstream stream;
+
+    public:
+    VideoSource(uint32_t id, const char *rtsp_url):
+    stream(load_manual_stream(rtsp_url, &ctrl)){}
+};
 
 #endif

@@ -82,6 +82,17 @@ void detections_task(bool *run, int nthreads, bool visualize){
 }
 
 
+void print_detections(std::string imgfn, std::vector<parknetDet> &dets){
+    std::cout << "in image " << imgfn << " detected " << dets.size() << " objects\n";
+    if (dets.size() != 0){
+        std::cout << "[";
+        for (int i=0; i < dets.size()-1; i++){
+            std::cout << dets[i].plText << ", ";
+        }
+        std::cout << dets[dets.size()-1].plText << "]\n";
+    }
+}
+
 /* Helpers Begin */
 
 
@@ -144,7 +155,7 @@ int save_input_image(uint32_t id, cv::Mat &img, std::string dir){
     char fn[16]; 
     sprintf(fn, "%05d%s", id, f_ext);
     std::string outpath = dir + fn;
-    std::cout << "Saving input image " << fn << std::endl;
+    //std::cout << "Saving input image " << fn << std::endl;
     //std::cout << "Image size: " << img.size() << std::endl;
     //cv::imwrite(outpath, img);
     imwrite_async(outpath, img);
@@ -418,14 +429,14 @@ std::vector<std::vector<bbox>> OnnxRTDetector::detect(std::vector<cv::Mat> im_ba
     }
     //std::cout <<"batch ready. Size: " << ri_batch.size() << std::endl;
     Ort::Value input_tensor = load_input_tensor(ri_batch);
-    std::cout << "LOAD INPUT TENSOR: " << st_load_input.stop() << std::endl;
+    //std::cout << "LOAD INPUT TENSOR: " << st_load_input.stop() << std::endl;
     StopWatch st_run;
     run(input_tensor);
-    std::cout << "RUN INFERENCE TOOK: " << st_run.stop() << std::endl;
+    //std::cout << "RUN INFERENCE TOOK: " << st_run.stop() << std::endl;
 
     StopWatch st_pp;
     dets = post_process();
-    std::cout << "POST_PROCESS TOOK: " << st_pp.stop() <<std::endl;
+    //std::cout << "POST_PROCESS TOOK: " << st_pp.stop() <<std::endl;
     clear_tensors();
     return dets;
 }
@@ -476,11 +487,11 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
 
         input_batch.push_back(prep_img);
     }
-    std::cout << "PREP IMAGE TOOK: " << st_prep_img.stop() << std::endl;
+    //std::cout << "PREP IMAGE TOOK: " << st_prep_img.stop() << std::endl;
 
     StopWatch st_total_car_det;
     std::vector<std::vector<bbox>> batch_dets =  car_det->detect(input_batch);
-    std::cout << "TOTAL CAR DETECT TOOK: " << st_total_car_det.stop() <<std::endl;
+    //std::cout << "TOTAL CAR DETECT TOOK: " << st_total_car_det.stop() <<std::endl;
     detl.resize(batch_size);
 
     // print_batch_detections(batch_dets);
@@ -529,13 +540,12 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
             detl[b].push_back(det);
             
         }
-        std::cout << "SECONDARY DET TOOK: " << st_secondary.stop() << std::endl;
+        //std::cout << "SECONDARY DET TOOK: " << st_secondary.stop() << std::endl;
         //std::cout << "Detections done\n";
         if (SAVE_INPUT_IMAGES){
             StopWatch st_save_img;
             save_input_image(img_batch[b].index, org_images[b], IMG_DIR);
-            std::cout << "SAVE INPUT IMG TOOK: " << st_save_img.stop() << std::endl;
-            //save_input_image_async(img_batch[b].index, org_images[b], IMG_DIR);
+            //std::cout << "SAVE INPUT IMG TOOK: " << st_save_img.stop() << std::endl;
         }
         if (visualize){
             save_visualize_img(img_batch[b].index, org_images[b], visualize_dir);
@@ -570,10 +580,10 @@ void Engine::runn(bool visualize){
     if(!ret){
         return;
     }
-    std::cout << "Pulled Batch Size : "<<img_batch.size() <<  std::endl;
-    for(const auto & b:img_batch){
-        std::cout << "id - " << b.id << ", img_size: " << b.nbytes << std::endl;
-    }
+    // std::cout << "Pulled Batch Size : "<<img_batch.size() <<  std::endl;
+    // for(const auto & b:img_batch){
+    //     std::cout << "id - " << b.id << ", img_size: " << b.nbytes << std::endl;
+    // }
     ret = process(img_batch, b_dets);
 
     for (int b=0; b< batch_size; b++){
@@ -586,20 +596,22 @@ void Engine::runn(bool visualize){
             char fn[16];
             sprintf(fn, "%05d.txt", img_batch[b].index);
             wdet::WriteDetectionInfo(dets, wdet::get_filename(fn, detai_dir));
-            std::cout << "in image " << fn << " detected " << dets.size() << " objects\n";
-            if (dets.size() != 0){
-                std::cout << "[";
-                for (int i=0; i < dets.size()-1; i++){
-                    std::cout << dets[i].plText << ", ";
-                }
-                std::cout << dets[dets.size()-1].plText << "]\n";
-            }
+            //print_detections(fn, dets);
+            // std::cout << "in image " << fn << " detected " << dets.size() << " objects\n";
+            // if (dets.size() != 0){
+            //     std::cout << "[";
+            //     for (int i=0; i < dets.size()-1; i++){
+            //         std::cout << dets[i].plText << ", ";
+            //     }
+            //     std::cout << dets[dets.size()-1].plText << "]\n";
+            // }
         }
     }
     else{
         std::cout << "Failed to do inference" << std::endl; 
     }
 }
+
 
 int Engine::pipeline_run(uchar *imgbuf, uint64_t nbytes, uint32_t img_uid, std::vector<parknetDet> &detl){
             //std::cout << "Running Inference on "<< img_uid << std::endl;
@@ -623,7 +635,7 @@ int Engine::pipeline_run(uchar *imgbuf, uint64_t nbytes, uint32_t img_uid, std::
                 char fn[16]; 
                 sprintf(fn, "%05d%s", img_uid, f_ext);
                 std::string outpath = IMG_DIR + fn;
-                std::cout << "Saving input image " << fn << std::endl;
+                //std::cout << "Saving input image " << fn << std::endl;
                 cv::imwrite(outpath, im);
             }
             if (visualize){

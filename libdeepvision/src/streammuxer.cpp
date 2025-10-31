@@ -78,9 +78,9 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
             update_fd();
             //std::cout << "Streammux Running at: " << get_fps() << " fps" << std::endl;
             for (auto & s:src_handles){
-                if (std::time(nullptr) - s->timestamp > 1*60 && s->timestamp != 0){
-                    s->timestamp = 0;
+                if (std::time(nullptr) - s->timestamp > 1*60 && s->state == VSTREAM_RUNNING){
                     s->restart = true;
+                    s->state = VSTREAM_RELOAD;
                 }
             }
         }

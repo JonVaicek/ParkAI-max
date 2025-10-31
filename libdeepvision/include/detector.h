@@ -99,11 +99,13 @@ typedef enum {
 
 struct stream_info{
     std::string url;
+    std::string ip;
     time_t ts;
     int index;
     int id;
-
 };
+
+void print_detections(std::string imgfn, std::vector<parknetDet> &dets);
 
 namespace ImgUtils {/* Private function to load the image file*/
     inline cv::Mat load_image(const char * img_path){
@@ -803,6 +805,8 @@ class Pipeline{
                 ocr_eng = &detector;
             }
         }
+        
+
         /**
         * @brief Runs image through the pipeline
         * @param imgfn - text string of image file
@@ -835,15 +839,8 @@ class Pipeline{
             }
             if (!ret){
                 wdet::WriteDetectionInfo(dets, wdet::get_filename(imgfn, detai_dir));
-                std::cout << "in image " << imgfn << " detected " << dets.size() << " objects\n";
-                if (dets.size() != 0){
-                    std::cout << "[";
-                    for (int i=0; i < dets.size()-1; i++){
-                        std::cout << dets[i].plText << ", ";
-                    }
-                    std::cout << dets[dets.size()-1].plText << "]\n";
-                }
-                }
+                //print_detections(imgfn, dets);
+            }
             else{
                 std::cout << "Failed to load img " << imgfn << std::endl; 
             }

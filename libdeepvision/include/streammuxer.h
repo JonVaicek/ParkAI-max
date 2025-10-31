@@ -135,7 +135,7 @@ class StreamMuxer{
 
     int clear_frame_buffers(uint32_t id){
         if (frames[id].idata != nullptr){
-            std::cout << "Clearing buffers - " << id << std::endl;
+            // std::cout << "Clearing buffers - " << id << std::endl;
             //std::cout << "ID = "<< id<< " Clearing Buffers\n";
             free(frames[id].idata);
             frames[id].idata = nullptr;
@@ -143,7 +143,7 @@ class StreamMuxer{
             frames[id].fid = (uint64_t)-1;
             frames[id].ready = false;
             frames[id].read = true;
-            std::cout << "Cleanup Success\n";
+            // std::cout << "Cleanup Success\n";
             return 1;
         }
         return 0;

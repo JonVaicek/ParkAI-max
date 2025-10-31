@@ -307,11 +307,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
                 break;
             }
             case RAW:{
-                std::cout << "Comes\n";
-                std::cout << "Copying: " << *max_size << " bytes\n";
-                std::cout << "Size: " << width*height*3 << std::endl;
                 memcpy(*img_buf, raw_data, *max_size);
-                
                 break;
             }
             default:{
@@ -416,7 +412,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
     int width = 640;
     int height = 480;
     ctl->frame_rd = true;
-    ctl->n_ftim = 0;
+    ctl->state = VSTREAM_RUNNING;
     if (true) {
         return GST_FLOW_OK;
     }
@@ -480,28 +476,14 @@ static gboolean periodic_tick_continious(gpointer user_data){
   StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
   static int no_frame_cnt = 0;
   const int THRESHOLD_NOT_RECEIVED = 100;
-  if (ctrl->noframe ){
-    no_frame_cnt++;
-    if (no_frame_cnt >= THRESHOLD_NOT_RECEIVED){
-        std::cout << "RESTARTING COUSE OF NOFRAMECNT\n";
-        ctrl->restart = true;
-        no_frame_cnt = 0;
-    }
-  }
-  else{
-    no_frame_cnt = 0;
-  }
-//   ctrl->n_ftim ++;
-//   if (ctrl->n_ftim > THRESHOLD_NOT_RECEIVED){
-//     std::cout << "RESTARTING COUSE OF N_FTIM\n";
-//     ctrl->restart = true;
-//   }
-  // std::cout << "Running: " << *(ctrl->run) << std::endl;
+
+
   if (! ctrl->run || ctrl->restart == true) {
         //std::cout << "Cam " << ctrl->ip << "Playback is closing!\n";
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         g_main_loop_quit(ctrl->loop);
         ctrl->restart = false;
+        
         // Returning FALSE removes this timeout
         return false;
     }
@@ -567,6 +549,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     ctrl->pipeline = gst_parse_launch(gst_launch.c_str(), NULL);
     ctrl->appsink = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "sink");
     ctrl->loop = g_main_loop_new(NULL, FALSE);
+    ctrl->state = VSTREAM_STARTUP;
     g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
 
     if (!ctrl->pipeline || !ctrl->appsink) {
