@@ -13,7 +13,7 @@
 #define SERVER_TYPE         "ParkAI"
 #define WINDOW_TITLE        "ParkAI Server"
 
-#define TARGET_IMGUI_FPS 60
+#define TARGET_IMGUI_FPS 30
 
 #define HEARTBEAT_PERIOD_SEC 60 //1 minute
 #define DATA_UPLOAD_CHECK_TIMEOUT 60 * 10 //10 minutes

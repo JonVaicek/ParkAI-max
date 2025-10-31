@@ -69,6 +69,7 @@ int StreamMuxer::update_fd(void){
     return bi;
 }
 
+
 int StreamMuxer::periodic_tick(uint32_t period_ms){
     static uint32_t tick = 0;
     while(run){
