@@ -78,9 +78,17 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
             update_fd();
             //std::cout << "Streammux Running at: " << get_fps() << " fps" << std::endl;
             for (auto & s:src_handles){
-                if (std::time(nullptr) - s->timestamp > 2*60 && s->state == VSTREAM_RUNNING){
+                if (std::time(nullptr) - s->timestamp > 2*60 && s->state == VSTREAM_RUNNING){ // restart stream after 2 minutes of failure to receive frame
                     s->restart = true;
                     s->state = VSTREAM_RELOAD;
+                }
+
+                if (s->state == VSTREAM_STARTUP || s->state == VSTREAM_RELOAD){ // try restarting stream after 5 minutes of failed loading
+                    if (std::time(nullptr) - s->rel_time > 5*60){
+                        s->rel_time = std::time(nullptr);
+                        s->restart = true;
+                        s->state = VSTREAM_RELOAD;
+                    }
                 }
             }
         }

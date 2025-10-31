@@ -466,6 +466,7 @@ static gboolean periodic_tick(gpointer user_data){
         std::cout << "Stopping Cam Preview!\n";
         //gst_element_set_state(lpctl->pipeline, GST_STATE_NULL);
         g_main_loop_quit(lpctl->loop);
+
         // Returning FALSE removes this timeout
         return false;
     }
@@ -551,6 +552,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     ctrl->appsink = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "sink");
     ctrl->loop = g_main_loop_new(NULL, FALSE);
     ctrl->state = VSTREAM_STARTUP;
+    ctrl->rel_time = std::time(nullptr);
     g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
 
     if (!ctrl->pipeline || !ctrl->appsink) {

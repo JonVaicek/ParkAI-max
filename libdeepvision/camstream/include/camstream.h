@@ -36,6 +36,7 @@ struct StreamCtrl{
     GstElement *appsink = NULL;
     GMainLoop *loop = NULL;
     time_t timestamp = 0;
+    time_t rel_time = 0;
     uint64_t n_ftim = 0; //fail timer. to time how long pipeline did not produce new frames
     uint32_t imgW = 0;
     uint32_t imgH = 0;
