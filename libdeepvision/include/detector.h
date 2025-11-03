@@ -1250,6 +1250,7 @@ class Inference{
 
 
 class Detector{
+    int MAX_STREAMS = 128;
     uint64_t perf_fps = 0;
     bool running = false;
     bool run = true;
