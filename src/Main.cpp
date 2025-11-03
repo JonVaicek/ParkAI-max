@@ -387,8 +387,16 @@ int main(int argc, char* argv[]) {
     uint64_t im_size = 0;
 
     const char* user = std::getenv("USER");
-    std::string path = "/home/" + std::string(user) + "/shared/output/";
+    std::string path = "/home/" + std::string(user) + "/shared/";
+    if (!wdet::dir_exists(path)){
+        wdet::create_dirs(path);
+    }
+    path = path + "output/";
+    if (!wdet::dir_exists(path)){
+        wdet::create_dirs(path);
+    }
     std::cout << "Workdir is " << path << std::endl;
+
 
     Detector det(4, VISUALIZE_DETECTIONS, streams, path);
     det.start();

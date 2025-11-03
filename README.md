@@ -44,6 +44,16 @@ sudo apt install -y \
   gstreamer1.0-plugins-ugly \
   gstreamer1.0-libav
 ```
+## Install opencv
+```bash
+sudo apt-get install libopencv-dev
+```
+
+## Install sqlite3
+```bash
+sudo apt-get install libsqlite3-dev
+```
+
 ### Download ONNX-Runtime prebuilt libraries
 ```bash
 wget https://github.com/microsoft/onnxruntime/releases/download/v1.19.2/onnxruntime-linux-x64-gpu-1.19.2.tgz
@@ -51,6 +61,8 @@ tar -xzf onnxruntime-linux-x64-gpu-1.19.2.tgz
 cp -r onnxruntime-linux-x64-gpu-1.19.2/include ./libdeepvision
 cp -r onnxruntime-linux-x64-gpu-1.19.2/lib ./libdeepvision
 ```
+
+
 
 ## build
 ```bash

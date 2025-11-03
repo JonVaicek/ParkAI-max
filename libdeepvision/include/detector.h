@@ -609,6 +609,11 @@ class OnnxRTDetector{
 
 
 namespace wdet{
+
+    inline bool create_dirs(std::string path){
+        std::filesystem::create_directory(path);
+        return true;
+    }
     inline bool dir_exists(std::string dir){
         struct stat info;
         if( stat( dir.c_str(), &info ) != 0 ){
