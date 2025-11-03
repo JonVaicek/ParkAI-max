@@ -51,7 +51,7 @@ struct FrameInfo {
 
 class StreamMuxer{
 
-    const static int MAX_STREAMS = 128;
+    const static int MAX_STREAMS = 254;
     std::vector<vstream *> sources;
     std::vector<StreamCtrl *> src_handles;
     std::vector<FrameInfo> frames;

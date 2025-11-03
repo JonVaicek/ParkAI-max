@@ -398,7 +398,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Workdir is " << path << std::endl;
 
 
-    Detector det(2, VISUALIZE_DETECTIONS, streams, path);
+    Detector det(4, VISUALIZE_DETECTIONS, streams, path);
     det.start();
 
     std::thread th_heartbeat = std::thread(send_periodic_hb, &app_settings, &det,
