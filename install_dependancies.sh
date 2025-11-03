@@ -2,6 +2,8 @@
 
 sudo apt install -y cmake build-essential
 
+sudo apt install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+
 sudo apt install -y libcurl4-openssl-dev
 
 sudo apt install -y \
