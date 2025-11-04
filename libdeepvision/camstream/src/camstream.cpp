@@ -478,7 +478,7 @@ static gboolean periodic_tick_continious(gpointer user_data){
   StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
 
   if (! ctrl->run || ctrl->restart == true) {
-        //std::cout << "Cam " << ctrl->ip << "Playback is closing!\n";
+        std::cout << "Cam " << ctrl->index << "Playback is closing!\n";
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         g_main_loop_quit(ctrl->loop);
         ctrl->restart = false;
