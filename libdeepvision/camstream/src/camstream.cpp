@@ -476,9 +476,6 @@ static gboolean periodic_tick(gpointer user_data){
 
 static gboolean periodic_tick_continious(gpointer user_data){
   StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
-  static int no_frame_cnt = 0;
-  const int THRESHOLD_NOT_RECEIVED = 100;
-
 
   if (! ctrl->run || ctrl->restart == true) {
         //std::cout << "Cam " << ctrl->ip << "Playback is closing!\n";

@@ -79,9 +79,11 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
             update_fd();
             //std::cout << "Streammux Running at: " << get_fps() << " fps" << std::endl;
             for (auto & s:src_handles){
-                if (std::time(nullptr) - s->timestamp > 2*60 && s->state == VSTREAM_RUNNING){ // restart stream after 2 minutes of failure to receive frame
+                if (std::time(nullptr) - s->timestamp > 3*60 && s->state == VSTREAM_RUNNING){ // restart stream after 3 minutes of failure to receive frame
                     s->restart = true;
                     s->state = VSTREAM_RELOAD;
+                    std::cout << "Stream stopped playing\n";
+                    std::cout << "Reloading stream: " << s->index << std::endl;
                 }
 
                 if (s->state == VSTREAM_STARTUP || s->state == VSTREAM_RELOAD){ // try restarting stream after 5 minutes of failed loading
@@ -89,6 +91,8 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
                         s->rel_time = std::time(nullptr);
                         s->restart = true;
                         s->state = VSTREAM_RELOAD;
+                        std::cout << "Stream failed to start\n";
+                        std::cout << "Reloading stream: " << s->index << std::endl;
                     }
                 }
             }
@@ -99,7 +103,6 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
 }
 
 int StreamMuxer::muxer_thread(void){
-    uint64_t n=0;
     uint64_t nfr = 0;
     int ret = 0;
     while (true){
@@ -107,22 +110,14 @@ int StreamMuxer::muxer_thread(void){
             if(frames[i].ready == false && frames[i].read == true){
                 ret = update_frame(i);
                 if(ret){
-                    //src_handles[i]->noframe = false;
-                    frames[i].nfailed = 0;
-                    //std::cout << i <<" - New Frame\n";
                     frames[i].ready = true;
                     frames[i].read = false;
-                    frames[i].age = 0;
                     frames[i].fid = nfr;
-                    nfr ++ ;
+                    nfr ++;
                 }
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        n++;
-        if (n == 1000){
-            n=0;
-        }
     }
 }
 
