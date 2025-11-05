@@ -170,6 +170,7 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
     //std::cout << "]\n";
 
     if (nready < batch_size){
+        std::cout << "Not enough frames ready\n";
         return 0; //Not enough frames are ready 
     }
 
@@ -217,8 +218,10 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
 
     if (batch_data.size() == batch_size)
         return 1;
-    else
+    else{
+        std::cout << "Failed to load batch\n";
         return 0;
+    }
 }
 
 /**

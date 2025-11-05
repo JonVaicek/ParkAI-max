@@ -18,3 +18,5 @@ libdeepvision/lib/
 
 sources.json
 .gitlab-ci.yml
+
+upload_debug_code.sh

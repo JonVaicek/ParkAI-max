@@ -468,6 +468,7 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
     std::vector <cv::Mat> input_batch;
     std::vector <cv::Mat> org_images;
     for (const auto & im:img_batch){
+        std::cout << "Processing: " << im.index << std::endl;
         //cv::Mat imbuf(1, im.nbytes, CV_8UC1, im.data);
         //cv::Mat img = cv::imdecode(imbuf, cv::IMREAD_COLOR);
         

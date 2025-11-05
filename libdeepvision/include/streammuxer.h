@@ -150,6 +150,12 @@ class StreamMuxer{
             // std::cout << "Cleanup Success\n";
             return 1;
         }
+        else{
+            std::cout <<id << " - Buffers not empty\n";
+            frames[id].fid = (uint64_t)-1;
+            frames[id].ready = false;
+            frames[id].read = true;
+        }
         return 0;
     }
     
