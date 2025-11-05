@@ -90,6 +90,7 @@ class StreamMuxer{
         //uint32_t ret = pull_image(src_handles[id], PNG, &img, &nbytes);
         uint32_t ret = pull_image(src_handles[id], RAW, &img, &nbytes); // Use raw RGB data
         if (!ret){
+            std::cout << id << " - Frame Failed To Update\n";
             return 0;
         }
 
