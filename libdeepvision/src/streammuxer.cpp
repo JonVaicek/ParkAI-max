@@ -84,6 +84,7 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
                     s->state = VSTREAM_RELOAD;
                     std::cout << "Stream stopped playing\n";
                     std::cout << "Reloading stream: " << s->index << std::endl;
+                    restart_stream(s);
                     continue;
                 }
 
@@ -94,6 +95,7 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
                         s->state = VSTREAM_RELOAD;
                         std::cout << "Stream failed to start\n";
                         std::cout << "Reloading stream: " << s->index << std::endl;
+                        restart_stream(s);
                         continue;
                     }
                 }

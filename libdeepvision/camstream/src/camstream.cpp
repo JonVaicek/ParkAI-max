@@ -228,6 +228,14 @@ std::vector<unsigned char> encode_jpeg(unsigned char *raw_data, int width, int h
 }
 
 
+uint32_t restart_stream(StreamCtrl *ctrl){
+    gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+    g_main_loop_quit(ctrl->loop);
+    ctrl->restart = false;
+
+    return 1;
+}
+
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size){
     GstStateChangeReturn ret;
     ctrl->frame_rd = false;
