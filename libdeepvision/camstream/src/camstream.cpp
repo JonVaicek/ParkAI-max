@@ -232,7 +232,6 @@ uint32_t restart_stream(StreamCtrl *ctrl){
     gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
     g_main_loop_quit(ctrl->loop);
     ctrl->restart = false;
-
     return 1;
 }
 
