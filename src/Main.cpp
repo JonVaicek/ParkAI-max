@@ -378,6 +378,7 @@ int main(int argc, char* argv[]) {
             continue;
         }
         else{
+            //time_t ts = std::time(nullptr);
             stream_info str = {cam.rtsp, cam.ipaddr, 0, cam.index, cam.id};
             streams.push_back(str);
         }

@@ -110,6 +110,7 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
 int StreamMuxer::muxer_thread(void){
     uint64_t nfr = 0;
     int ret = 0;
+    int n = 0;
     while (true){
         for (int i = 0; i < src_handles.size(); i++){
             if(frames[i].ready == false && frames[i].read == true){
@@ -123,6 +124,12 @@ int StreamMuxer::muxer_thread(void){
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        n++;
+        if (n >= 1000){
+            n = 0;
+            std::cout << "STREAMMUX: Thread reached n = 1000\n";
+        }
+
     }
 }
 
@@ -170,7 +177,7 @@ uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint3
     //std::cout << "]\n";
 
     if (nready < batch_size){
-        std::cout << "Not enough frames ready\n";
+        //std::cout << "Not enough frames ready\n";
         return 0; //Not enough frames are ready 
     }
 
