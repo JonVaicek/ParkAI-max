@@ -72,6 +72,7 @@ int StreamMuxer::update_fd(void){
 
 int StreamMuxer::periodic_tick(uint32_t period_ms){
     static uint32_t tick = 0;
+    try{
     while(run){
         tick++;
         if (tick >= 1000){
@@ -104,13 +105,20 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(period_ms));
     }
+    } catch (const std::exception &e){
+        std::cerr << "periodic_tick exception: " << e.what() << '\n';
+    } catch (...){
+        std::cerr << "periodic_tick unknown exception\n";
+    }
     return 1;
 }
 
 int StreamMuxer::muxer_thread(void){
+    try{
     uint64_t nfr = 0;
     int ret = 0;
     int n = 0;
+    
     while (true){
         for (int i = 0; i < src_handles.size(); i++){
             if(frames[i].ready == false && frames[i].read == true){
@@ -131,6 +139,12 @@ int StreamMuxer::muxer_thread(void){
         }
 
     }
+    } catch (const std::exception &e){
+        std::cerr << "muxer_thread exception: " << e.what() << '\n';
+    } catch (...){
+        std::cerr << "muxer_thread unknown exception\n";
+    }
+    return 1;
 }
 
 int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w, uint32_t *h){
