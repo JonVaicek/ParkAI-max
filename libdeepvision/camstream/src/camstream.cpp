@@ -248,21 +248,6 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     
     GstSample* sample = nullptr;
 
-    // gst_element_get_state(ctrl->pipeline, &current_state, &pending_state, 10*GST_MSECOND);
-
-    // if (current_state == GST_STATE_PAUSED){
-    //     std::cout << "State is Paused\n";
-    // }
-    // else if(current_state == GST_STATE_NULL){
-    //     std::cout << "State is Null\n";
-    // }
-    // else if (current_state == GST_STATE_READY){
-    //     std::cout << "State is ready\n";
-    // }
-    // else if(current_state == GST_STATE_VOID_PENDING){
-    //     std::cout << "State is void\n";
-    // }
-
     int n = 0;
     while(ctrl->frame_rd != true){
         if (n>= 10){
@@ -485,11 +470,10 @@ static gboolean periodic_tick_continious(gpointer user_data){
   StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
 
   if (! ctrl->run || ctrl->restart == true) {
-        std::cout << "Cam " << ctrl->index << "Playback is closing!\n";
+        std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         g_main_loop_quit(ctrl->loop);
         ctrl->restart = false;
-        
         // Returning FALSE removes this timeout
         return false;
     }
@@ -651,8 +635,6 @@ int pipeline_manual(const char *rtsp_url, StreamCtrl *ctrl){
         create_pipeline_multi_frame_manual(rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
         std::this_thread::sleep_for(std::chrono::seconds(10));
-        ctrl->restart = false;
-        ctrl->n_ftim = 0;
     }
     return 1;
 }

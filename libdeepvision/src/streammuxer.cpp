@@ -124,7 +124,7 @@ int StreamMuxer::muxer_thread(void){
             if(frames[i].ready == false && frames[i].read == true){
                 ret = update_frame(i);
                 if(ret){
-                    frames[i].ready = true;
+                    frames[i].ready = true; // if frame.ready == true there is allocated memory;
                     frames[i].read = false;
                     frames[i].fid = nfr;
                     nfr ++;

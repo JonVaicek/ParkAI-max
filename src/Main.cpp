@@ -452,6 +452,7 @@ int main(int argc, char* argv[]) {
 				// 	showDemoWindow = !showDemoWindow;
                 ImGui::EndMenu();
             }
+            
             if (ImGui::BeginMenu("Debug Tools")){
                 if (ImGui::MenuItem("Send Heartbeat")){
                     send_heartbeat_debug(&app_settings, hostname, &det, streams);

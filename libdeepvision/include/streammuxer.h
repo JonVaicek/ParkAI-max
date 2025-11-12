@@ -43,6 +43,7 @@ struct FrameInfo {
     uint32_t height = 0;
     uint32_t age = 0;
     uint32_t nfailed = 0;
+    bool allocated = false;
     bool ready = false;
     bool read=true;
 };
