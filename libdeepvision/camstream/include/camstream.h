@@ -32,6 +32,7 @@ typedef enum{
 }StreamState;
 
 struct StreamCtrl{
+    std::string stream_ip;
     GstElement *pipeline = NULL;
     GstElement *appsink = NULL;
     GMainLoop *loop = NULL;

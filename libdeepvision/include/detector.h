@@ -1275,6 +1275,7 @@ class Detector{
             std::cout << "Creating srcbin "<< streams[i].index << " - " << streams[i].url << std::endl;
             StreamCtrl ctrl;
             ctrl.index = streams[i].index;
+            ctrl.stream_ip = streams[i].ip;
             src_handles.emplace_back(ctrl);
             sources.emplace_back(load_manual_stream(streams[i].url.c_str(), &src_handles[i]));
             muxer.link_stream(&sources[i], &src_handles[i]);
