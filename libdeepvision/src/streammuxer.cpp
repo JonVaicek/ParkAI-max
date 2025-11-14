@@ -79,29 +79,7 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
             std::cout << "STREAMMUX: Tick Reached 1000\n";
             tick = 0;
             update_fd();
-            //std::cout << "Streammux Running at: " << get_fps() << " fps" << std::endl;
-            for (auto & s:src_handles){
-                if (std::time(nullptr) - s->timestamp > 3*60 && s->state == VSTREAM_RUNNING){ // restart stream after 3 minutes of failure to receive frame
-                    s->restart = true;
-                    s->state = VSTREAM_RELOAD;
-                    std::cout << "Stream stopped playing\n";
-                    std::cout << "Reloading stream: " << s->stream_ip << std::endl;
-                    restart_stream(s);
-                    continue;
-                }
-
-                if (s->state == VSTREAM_STARTUP || s->state == VSTREAM_RELOAD){ // try restarting stream after 5 minutes of failed loading
-                    if (std::time(nullptr) - s->rel_time > 5*60){
-                        s->rel_time = std::time(nullptr);
-                        s->restart = true;
-                        s->state = VSTREAM_RELOAD;
-                        std::cout << "Stream failed to start\n";
-                        std::cout << "Reloading stream: " << s->stream_ip << std::endl;
-                        restart_stream(s);
-                        continue;
-                    }
-                }
-            }
+            std::cout << "Streammux Running at: " << get_fps() << " fps" << std::endl;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(period_ms));
     }
@@ -109,6 +87,29 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
         std::cerr << "periodic_tick exception: " << e.what() << '\n';
     } catch (...){
         std::cerr << "periodic_tick unknown exception\n";
+    }
+    return 1;
+}
+
+int check_stream_states(StreamCtrl * ctrl){
+
+    if (std::time(nullptr) - ctrl->timestamp > 3*60 && ctrl->state == VSTREAM_RUNNING){ // restart stream after 3 minutes of failure to receive frame
+        ctrl->restart = true;
+        ctrl->state = VSTREAM_RELOAD;
+        std::cout << "Stream stopped playing\n";
+        std::cout << "Reloading stream: " << ctrl->stream_ip << std::endl;
+        restart_stream(ctrl);
+    }
+
+    if (ctrl->state == VSTREAM_STARTUP || ctrl->state == VSTREAM_RELOAD){ // try restarting stream after 5 minutes of failed loading
+        if (std::time(nullptr) - ctrl->rel_time > 5*60){
+            ctrl->rel_time = std::time(nullptr);
+            ctrl->restart = true;
+            ctrl->state = VSTREAM_RELOAD;
+            std::cout << "Stream failed to start\n";
+            std::cout << "Reloading stream: " << ctrl->stream_ip << std::endl;
+            restart_stream(ctrl);
+        }
     }
     return 1;
 }
@@ -129,6 +130,7 @@ int StreamMuxer::muxer_thread(void){
                     nfr ++;
                 }
             }
+            check_stream_states(src_handles[i]);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         n++;
