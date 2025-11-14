@@ -427,14 +427,6 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             gst_message_parse_error(msg, &err, &debug);
             std::cerr << "Error from element " << GST_OBJECT_NAME(msg->src)
                       << ": " << err->message << std::endl;
-            // Print detailed error information
-            // std::cerr << "=== GStreamer Error ===" << std::endl;
-            // std::cerr << "Element: " << GST_OBJECT_NAME(msg->src) << std::endl;
-            // std::cerr << "Error: " << err->message << std::endl;
-            // std::cerr << "Debug: " << (debug ? debug : "No debug info") << std::endl;
-            // std::cerr << "Error Domain: " << g_quark_to_string(err->domain) << std::endl;
-            // std::cerr << "Error Code: " << err->code << std::endl;
-            // std::cerr << "======================" << std::endl;
             g_error_free(err);
             g_free(debug);
             break;
@@ -444,7 +436,7 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             std::cout << "End of Stream received — restarting pipeline" << std::endl;
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             //g_main_loop_quit(ctrl->loop);
-            //return FALSE;
+            return FALSE;
             break;
 
         default:
