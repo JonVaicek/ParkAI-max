@@ -57,7 +57,7 @@ class StreamMuxer{
     std::vector<StreamCtrl *> src_handles;
     std::vector<FrameInfo> frames;
     std::thread mux_thread;
-    std::thread tick_thread;
+    //std::thread tick_thread;
     uint64_t frames_returned = 0;
     uint64_t fd[10];
     bool run=true;
@@ -71,7 +71,7 @@ class StreamMuxer{
     StreamMuxer(void){
         memset(fd, 0, sizeof(fd));
         mux_thread = std::thread([this](){muxer_thread();});
-        tick_thread =std::thread([this](){periodic_tick(STREAMMUX_MS);});
+        //tick_thread =std::thread([this](){periodic_tick(STREAMMUX_MS);});
     };
 
     int link_stream(vstream *src, StreamCtrl *src_handle){

@@ -118,7 +118,6 @@ int StreamMuxer::muxer_thread(void){
     uint64_t nfr = 0;
     int ret = 0;
     int n = 0;
-    
     while (true){
         for (int i = 0; i < src_handles.size(); i++){
             if(frames[i].ready == false && frames[i].read == true){
@@ -137,7 +136,6 @@ int StreamMuxer::muxer_thread(void){
             n = 0;
             std::cout << "STREAMMUX: Thread reached n = 1000\n";
         }
-
     }
     } catch (const std::exception &e){
         std::cerr << "muxer_thread exception: " << e.what() << '\n';

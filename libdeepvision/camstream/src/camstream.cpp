@@ -238,6 +238,8 @@ uint32_t restart_stream(StreamCtrl *ctrl){
     return 1;
 }
 
+
+
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size){
     GstStateChangeReturn ret;
     ctrl->frame_rd = false;
