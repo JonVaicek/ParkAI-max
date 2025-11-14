@@ -131,7 +131,7 @@ int StreamMuxer::muxer_thread(void){
             }
             check_stream_states(src_handles[i]);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         std::cout << "STREAMMUX: Iterated through all streams\n";
 
     }
