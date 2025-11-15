@@ -1258,6 +1258,7 @@ class Detector{
     bool run = true;
     int nthreads = 0;
     bool visualize = false;
+    time_t start_t=0;
     std::vector <vstream> sources;
     std::vector <StreamCtrl> src_handles;
     std::vector <stream_info> streams;
@@ -1296,6 +1297,7 @@ class Detector{
         streams(streams),
         WORKDIR(work_dir)
         {
+            start_t = std::time(nullptr);
             int nsrc = streams.size();
             if (nsrc == 0){
                 std::cout << "No Sources. Failed to create Detector\n";
@@ -1306,6 +1308,7 @@ class Detector{
                 std::cout << "Setting Batch Size to n_sources " << nsrc << std::endl;
                 this->nthreads = nsrc;
             }
+            
             //detection_task(&run, nthreads, visualize);
         }
 
@@ -1338,6 +1341,7 @@ class Detector{
             }
         }
         float get_fps(void);
+        time_t get_start_time(void);
         bool is_running(void);
         time_t get_stream_ts(int index);
         int read_timestamps(std::vector<stream_info> &streams);

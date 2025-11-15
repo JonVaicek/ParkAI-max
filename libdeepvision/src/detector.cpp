@@ -660,6 +660,10 @@ float Detector::get_fps(void){
     return muxer.get_fps();
 }
 
+time_t Detector::get_start_time(void){
+    return start_t;
+}
+
 bool Detector::is_running(void){
     return true;
 };

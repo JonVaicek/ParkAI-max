@@ -308,6 +308,7 @@ void send_periodic_hb(AppSettings *app_settings, Detector *detector, char *host,
             //send_heartbeat(hb_url.c_str(), host, app_settings->facility_name.c_str(), SERVER_TYPE, app_settings->sys_boot.c_str());
             server_data_t s_data = {host, app_settings->facility_name.c_str(), SERVER_TYPE, app_settings->sys_boot.c_str()};
             perf_data["running"] = detector->is_running();
+            perf_data["start-ts"] = detector->get_start_time();
             perf_data["fps"] = detector->get_fps();
             perf_data["sensors"] = format_sensor_data(*sensors);
             send_heartbeat_ai(hb_url.c_str(), s_data, perf_data);
@@ -328,6 +329,7 @@ void send_heartbeat_debug(AppSettings *app_settings, char *host, Detector *detec
     hb_url = app_settings->cloud_settings.gatedataURL + route;
     perf_data["running"] = detector->is_running();
     perf_data["fps"] = detector->get_fps();
+    perf_data["start-ts"] = detector->get_start_time();
     perf_data["sensors"] = format_sensor_data(data);
     send_heartbeat_ai(hb_url.c_str(), s_data, perf_data);
 }
