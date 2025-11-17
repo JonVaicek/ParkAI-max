@@ -177,12 +177,8 @@ int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w,
 
 
 uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint32_t batch_size){
-    if (mlock.try_lock()){
 
-    }
-    else{
-        return 0;
-    }
+    std::lock_guard<std::mutex> lock(mlock);
     /* Find frames with smallest nfr */
     uint32_t nready = 0;
     std::vector<uint32_t> ids;
