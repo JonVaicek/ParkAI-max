@@ -11,6 +11,7 @@
 
 #include "camstream.h"
 #include <iostream>
+#include <mutex>
 #include <opencv2/opencv.hpp>
 #include "time.h"
 
@@ -56,6 +57,7 @@ class StreamMuxer{
     std::vector<vstream *> sources;
     std::vector<StreamCtrl *> src_handles;
     std::vector<FrameInfo> frames;
+    std::mutex mlock;
     std::thread mux_thread;
     std::thread tick_thread;
     uint64_t frames_returned = 0;

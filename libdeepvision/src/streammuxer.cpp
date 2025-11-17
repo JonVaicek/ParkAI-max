@@ -2,6 +2,7 @@
 
 
 
+
 /* Stream Muxer Helper Functions Begin*/
 
 
@@ -119,6 +120,8 @@ int StreamMuxer::muxer_thread(void){
     uint64_t nfr = 0;
     int ret = 0;
     while (true){
+        // mutex lock
+        std::lock_guard<std::mutex> lock(mlock);
         for (int i = 0; i < src_handles.size(); i++){
             if(frames[i].ready == false && frames[i].read == true){
                 ret = update_frame(i);
@@ -172,7 +175,7 @@ int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w,
 
 
 uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint32_t batch_size){
-    
+    std::lock_guard<std::mutex> lock(mlock);
     /* Find frames with smallest nfr */
     uint32_t nready = 0;
     std::vector<uint32_t> ids;
