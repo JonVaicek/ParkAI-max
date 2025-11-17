@@ -121,18 +121,20 @@ int StreamMuxer::muxer_thread(void){
     int ret = 0;
     while (true){
         // mutex lock
-        std::lock_guard<std::mutex> lock(mlock);
         for (int i = 0; i < src_handles.size(); i++){
-            if(frames[i].ready == false && frames[i].read == true){
-                ret = update_frame(i);
-                if(ret){
-                    frames[i].ready = true; // if frame.ready == true there is allocated memory;
-                    frames[i].read = false;
-                    frames[i].fid = nfr;
-                    nfr ++;
+            if (mlock.try_lock()){
+                if(frames[i].ready == false && frames[i].read == true){
+                    ret = update_frame(i);
+                    if(ret){
+                        frames[i].ready = true; // if frame.ready == true there is allocated memory;
+                        frames[i].read = false;
+                        frames[i].fid = nfr;
+                        nfr ++;
+                    }
                 }
+                check_stream_states(src_handles[i]);
+                mlock.unlock();
             }
-            check_stream_states(src_handles[i]);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         std::cout << "STREAMMUX: Iterated through all streams\n";
@@ -175,7 +177,12 @@ int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w,
 
 
 uint32_t StreamMuxer::pull_frames_batch(std::vector<ImgData> &batch_data,  uint32_t batch_size){
-    std::lock_guard<std::mutex> lock(mlock);
+    if (mlock.try_lock()){
+
+    }
+    else{
+        return 0;
+    }
     /* Find frames with smallest nfr */
     uint32_t nready = 0;
     std::vector<uint32_t> ids;
