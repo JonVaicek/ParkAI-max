@@ -465,9 +465,10 @@ static gboolean periodic_tick(gpointer user_data){
 static gboolean periodic_tick_continious(gpointer user_data){
   StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
 
-  std::lock_guard<std::mutex> lock(*(ctrl->lock));
+  
 
   if (! ctrl->run || ctrl->restart == true) {
+    std::lock_guard<std::mutex> lock(*(ctrl->lock));
         std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         g_main_loop_quit(ctrl->loop);
