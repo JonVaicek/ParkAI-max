@@ -241,6 +241,7 @@ uint32_t restart_stream(StreamCtrl *ctrl){
 
 
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size){
+    std::lock_guard<std::mutex> lock(*(ctrl->lock));
     GstStateChangeReturn ret;
     ctrl->frame_rd = false;
     GstState current_state, pending_state;
@@ -405,9 +406,7 @@ GstFlowReturn new_sample_pipeline_callback(GstElement *sink, gpointer user_data)
 GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
-    GstSample *sample = NULL;
-    int width = 640;
-    int height = 480;
+    std::lock_guard<std::mutex> lock(*(ctl->lock));
     ctl->frame_rd = true;
     ctl->timestamp = std::time(nullptr);
     ctl->state = VSTREAM_RUNNING;
@@ -465,6 +464,8 @@ static gboolean periodic_tick(gpointer user_data){
 
 static gboolean periodic_tick_continious(gpointer user_data){
   StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
+
+  std::lock_guard<std::mutex> lock(*(ctrl->lock));
 
   if (! ctrl->run || ctrl->restart == true) {
         std::cout << "Cam " << ctrl->index << " Playback is closing!\n";

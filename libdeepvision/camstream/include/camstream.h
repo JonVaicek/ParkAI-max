@@ -5,6 +5,7 @@
 #include <thread>
 #include <gst/gst.h>
 #include <glib.h>
+#include <mutex>
 #define TEST_RTSP_URL "rtsp://admin:Mordoras512_@192.168.0.13:554/live0"
 #define TEST_PARKSOL_RTSP_URL "rtsp://admin:1234@192.168.0.20:554/h.264"
 
@@ -36,6 +37,7 @@ struct StreamCtrl{
     GstElement *pipeline = NULL;
     GstElement *appsink = NULL;
     GMainLoop *loop = NULL;
+    std::mutex *lock = nullptr;
     time_t timestamp = 0;
     time_t rel_time = 0;
     uint32_t imgW = 0;

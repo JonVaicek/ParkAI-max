@@ -17,6 +17,7 @@
 #include <thread>
 #include <sys/stat.h>
 #include <filesystem>
+#include <deque>
 #include "measure_time.h"
 
 #include "camstream.h"
@@ -1263,6 +1264,7 @@ class Detector{
     std::vector <StreamCtrl> src_handles;
     std::vector <stream_info> streams;
     std::vector <std::thread> task;
+    std::deque <std::mutex> locks;
 
     std::string WORKDIR;
 
@@ -1272,9 +1274,11 @@ class Detector{
         init_camstream();
         src_handles.reserve(streams.size());
         sources.reserve(streams.size());
+        locks.resize(streams.size()); //constructs all mutexes at this point
         for (int i=0; i<streams.size(); i++){
             std::cout << "Creating srcbin "<< streams[i].index << " - " << streams[i].url << std::endl;
             StreamCtrl ctrl;
+            ctrl.lock = &locks[i];
             ctrl.index = streams[i].index;
             ctrl.stream_ip = streams[i].ip;
             src_handles.emplace_back(ctrl);

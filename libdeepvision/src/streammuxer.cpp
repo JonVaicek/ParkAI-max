@@ -93,7 +93,7 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
 }
 
 int check_stream_states(StreamCtrl * ctrl){
-
+    std::lock_guard<std::mutex> lock(*(ctrl->lock));
     if (std::time(nullptr) - ctrl->timestamp > 3*60 && ctrl->state == VSTREAM_RUNNING){ // restart stream after 3 minutes of failure to receive frame
         ctrl->restart = true;
         ctrl->state = VSTREAM_RELOAD;
@@ -138,7 +138,6 @@ int StreamMuxer::muxer_thread(void){
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         std::cout << "STREAMMUX: Iterated through all streams\n";
-
     }
     } catch (const std::exception &e){
         std::cerr << "muxer_thread exception: " << e.what() << '\n';

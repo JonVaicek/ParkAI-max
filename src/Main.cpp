@@ -20,6 +20,7 @@
 #include <fstream>
 #include <thread>
 #include <chrono>
+
 #include "json.hpp"
 #include "detector.h"
 #include "CamerasUI.h"
