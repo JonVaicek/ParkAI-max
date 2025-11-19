@@ -333,6 +333,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         gst_sample_unref(sample);
 
         gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
+        gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
         ctrl->frame_rd = false;
         return 1;
     }
