@@ -239,29 +239,51 @@ uint32_t restart_stream(StreamCtrl *ctrl){
 }
 
 
+// Callback to process new samples from appsink
+GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
+
+    StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+    //std::lock_guard<std::mutex> lock(*(ctl->lock));
+    std::mutex *mutex = (ctl->lock);
+    mutex->lock();
+    std::cout << "LOCKED BY SAMPLE_READY\n";
+    ctl->frame_rd = true;
+    ctl->timestamp = std::time(nullptr);
+    ctl->state = VSTREAM_RUNNING;
+    //gst_element_set_state(ctl->pipeline, GST_STATE_PAUSED);
+    mutex->unlock();
+    std::cout << "UNLOCKED BY SAMPLE_READY\n";
+    if (true) {
+        return GST_FLOW_OK;
+    }
+    return GST_FLOW_ERROR;
+}
 
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size){
     std::lock_guard<std::mutex> lock(*(ctrl->lock));
+    std::cout << "LOCKED BY PULL_IMAGE\n";
     GstStateChangeReturn ret;
-    ctrl->frame_rd = false;
+    //ctrl->frame_rd = false;
     GstState current_state, pending_state;
-    if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->appsink)){
-        gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
-    }
-    else{
-        return 0;
-    }
-    
-    GstSample* sample = nullptr;
-
-    int n = 0;
-    while(ctrl->frame_rd != true){
-        if (n>= 10){
+    if (ctrl->frame_rd == false){
+        if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->appsink)){
+            gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+        }
+        else{
             return 0;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        n++;
+        return 0;
     }
+
+    GstSample* sample = nullptr;
+    int n = 0;
+    // while(ctrl->frame_rd != true){
+    //     if (n>= 10){
+    //         return 0;
+    //     }
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    //     n++;
+    // }
     g_signal_emit_by_name(ctrl->appsink, "pull-sample", &sample);
     if (sample) {
         
@@ -402,19 +424,7 @@ GstFlowReturn new_sample_pipeline_callback(GstElement *sink, gpointer user_data)
 }
 
 
-// Callback to process new samples from appsink
-GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
-    StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
-    std::lock_guard<std::mutex> lock(*(ctl->lock));
-    ctl->frame_rd = true;
-    ctl->timestamp = std::time(nullptr);
-    ctl->state = VSTREAM_RUNNING;
-    if (true) {
-        return GST_FLOW_OK;
-    }
-    return GST_FLOW_ERROR;
-}
 
 // Bus message handler
 static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
@@ -469,6 +479,7 @@ static gboolean periodic_tick_continious(gpointer user_data){
 
   if (! ctrl->run || ctrl->restart == true) {
     std::lock_guard<std::mutex> lock(*(ctrl->lock));
+    std::cout << "LOCKED BY TICK\n";
         std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         g_main_loop_quit(ctrl->loop);
