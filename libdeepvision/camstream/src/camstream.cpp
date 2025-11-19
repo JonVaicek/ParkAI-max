@@ -228,6 +228,14 @@ std::vector<unsigned char> encode_jpeg(unsigned char *raw_data, int width, int h
 }
 
 
+// idle handler: do blocking state changes on main loop thread
+static gboolean pause_pipeline_idle(gpointer user_data){
+    StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+    if (!ctl || !GST_IS_ELEMENT(ctl->pipeline)) return G_SOURCE_REMOVE;
+    gst_element_set_state(ctl->pipeline, GST_STATE_PAUSED);
+    return G_SOURCE_REMOVE; // run once
+}
+
 uint32_t restart_stream(StreamCtrl *ctrl){
     if(GST_IS_ELEMENT(ctrl->pipeline))
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
@@ -335,9 +343,10 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         gst_buffer_unmap(buffer, &map);
         gst_sample_unref(sample);
         std::cout << "SETTING TO PAUSED\n";
-        gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
-        gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
+        // gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
+        // gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
         ctrl->frame_rd = false;
+        g_idle_add(pause_pipeline_idle, ctrl);
         std::cout << "ENDING\n";
         return 1;
     }

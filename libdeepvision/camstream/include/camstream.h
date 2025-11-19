@@ -47,6 +47,7 @@ struct StreamCtrl{
     unsigned char *image = nullptr;
     bool allocated = false;
     bool run = true;
+    bool paused = false;
     bool noframe = false;
     bool restart = false;
     bool frame_rd = false;
