@@ -96,7 +96,7 @@ class StreamMuxer{
             //std::cout << id << " - Frame Failed To Update\n";
             return 0;
         }
-
+        std::cout << id << " - Copying frame\n";
         frames[id].nbytes = nbytes;
         frames[id].idata = (uchar *)malloc(nbytes);
         memcpy(frames[id].idata, img, nbytes);

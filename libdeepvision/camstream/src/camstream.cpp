@@ -277,13 +277,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
 
     GstSample* sample = nullptr;
     int n = 0;
-    // while(ctrl->frame_rd != true){
-    //     if (n>= 10){
-    //         return 0;
-    //     }
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    //     n++;
-    // }
+
     g_signal_emit_by_name(ctrl->appsink, "pull-sample", &sample);
     if (sample) {
         
