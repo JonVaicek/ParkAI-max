@@ -228,13 +228,21 @@ std::vector<unsigned char> encode_jpeg(unsigned char *raw_data, int width, int h
 }
 
 
-// idle handler: do blocking state changes on main loop thread
+// idle handlers: do blocking state changes on main loop thread
 static gboolean pause_pipeline_idle(gpointer user_data){
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
     if (!ctl || !GST_IS_ELEMENT(ctl->pipeline)) return G_SOURCE_REMOVE;
     gst_element_set_state(ctl->pipeline, GST_STATE_PAUSED);
     return G_SOURCE_REMOVE; // run once
 }
+
+static gboolean start_pipeline_idle(gpointer user_data){
+    StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+    if (!ctl || !GST_IS_ELEMENT(ctl->pipeline)) return G_SOURCE_REMOVE;
+    gst_element_set_state(ctl->pipeline, GST_STATE_PLAYING);
+    return G_SOURCE_REMOVE; // run once
+}
+
 
 uint32_t restart_stream(StreamCtrl *ctrl){
     if(GST_IS_ELEMENT(ctrl->pipeline))
@@ -275,7 +283,10 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     GstState current_state, pending_state;
     if (ctrl->frame_rd == false){
         if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->appsink)){
-            gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+            std::cout << "STARTING PIPELINE\n";
+            g_idle_add(start_pipeline_idle, ctrl);
+            //gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+            std::cout << "PIPELINE STARTED\n";
         }
         else{
             return 0;
