@@ -7,7 +7,7 @@
 #include <chrono>
 #include <iostream>
 #include <fstream>
-
+#include <gst/app/gstappsink.h>  // add if not included
 /*File Includes End*/
 
 /* Definitions Start*/
@@ -289,6 +289,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
             std::cout << "PIPELINE STARTED\n";
         }
         else{
+            std::cout << "NOT ELEMENT\n";
             return 0;
         }
         std::cout << "FRAME NOT READY\n";
@@ -298,7 +299,10 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     GstSample* sample = nullptr;
     int n = 0;
 
-    g_signal_emit_by_name(ctrl->appsink, "pull-sample", &sample);
+    //g_signal_emit_by_name(ctrl->appsink, "pull-sample", &sample);
+    std::cout << "PULLING SAMPLE\n";
+    sample = gst_app_sink_try_pull_sample(GST_APP_SINK(ctrl->appsink), 10 * GST_MSECOND);
+    std::cout << "SAMPLE PULLED\n";
     if (sample) {
         std::cout << "VALID SAMPLE\n";
         GstBuffer *buffer = gst_sample_get_buffer(sample);
