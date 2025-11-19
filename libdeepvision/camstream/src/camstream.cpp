@@ -272,6 +272,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         else{
             return 0;
         }
+        std::cout << "FRAME NOT READY\n";
         return 0;
     }
 
@@ -280,7 +281,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
 
     g_signal_emit_by_name(ctrl->appsink, "pull-sample", &sample);
     if (sample) {
-        
+        std::cout << "VALID SAMPLE\n";
         GstBuffer *buffer = gst_sample_get_buffer(sample);
         GstMapInfo map;
         gst_buffer_map(buffer, &map, GST_MAP_READ);
@@ -290,6 +291,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
             g_printerr("raw_data is NULL\n");
             gst_buffer_unmap(buffer, &map);
             gst_sample_unref(sample);
+            std::cout << "NOT RAW_DATA\n";
             return 0;
         }
 
@@ -298,13 +300,13 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         int width = 0, height = 0;
         gst_structure_get_int(structure, "width", &width);
         gst_structure_get_int(structure, "height", &height);
-        //std::cout << "Image WH = " << width << "x" << height <<std::endl;
+        std::cout << "Image WH = " << width << "x" << height <<std::endl;
         
         *img_buf = (unsigned char*)malloc(map.size);
         *max_size = (uint64_t) map.size;
         ctrl->imgW = width;
         ctrl->imgH = height;
-
+        std::cout << "DONE MALLOC\n";
         switch (format){
             case JPEG:{
                 uint32_t size = encode_jpeg_to_buffer(raw_data, width, height , *img_buf, *max_size);
@@ -322,6 +324,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
             }
             case RAW:{
                 memcpy(*img_buf, raw_data, *max_size);
+                std::cout << "COPIED\n";
                 break;
             }
             default:{
@@ -331,12 +334,14 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         
         gst_buffer_unmap(buffer, &map);
         gst_sample_unref(sample);
-
+        std::cout << "SETTING TO PAUSED\n";
         gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
         gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
         ctrl->frame_rd = false;
+        std::cout << "ENDING\n";
         return 1;
     }
+    std::cout << "NOT SAMPLE\n";
     return 0;
 }
 
