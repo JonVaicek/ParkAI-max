@@ -54,8 +54,6 @@ struct StreamCtrl{
 };
 
 
-
-
 void init_camstream(void);
 void save_jpeg_to_file(const std::vector<unsigned char>& jpeg_data, const std::string& filename);
 void save_jpeg_to_file_new(const unsigned char * jpeg_data, const std::string& filename);

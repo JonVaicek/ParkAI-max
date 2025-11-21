@@ -245,12 +245,15 @@ static gboolean start_pipeline_idle(gpointer user_data){
 
 
 uint32_t restart_stream(StreamCtrl *ctrl){
-    if(GST_IS_ELEMENT(ctrl->pipeline))
-        gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+    // if(GST_IS_ELEMENT(ctrl->pipeline))
+    //     gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
     
-    if(GST_IS_ELEMENT(ctrl->loop))
-        g_main_loop_quit(ctrl->loop);
+    // if(GST_IS_ELEMENT(ctrl->loop))
+    //     g_main_loop_quit(ctrl->loop);
+    std::mutex *mutex = (ctrl->lock);
+    mutex->lock();
     ctrl->restart = false;
+    mutex->unlock();
     return 1;
 }
 
@@ -502,8 +505,8 @@ static gboolean periodic_tick_continious(gpointer user_data){
   
 
   if (! ctrl->run || ctrl->restart == true) {
-    std::lock_guard<std::mutex> lock(*(ctrl->lock));
-    std::cout << "LOCKED BY TICK\n";
+        std::lock_guard<std::mutex> lock(*(ctrl->lock));
+        std::cout << "LOCKED BY TICK\n";
         std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         g_main_loop_quit(ctrl->loop);
