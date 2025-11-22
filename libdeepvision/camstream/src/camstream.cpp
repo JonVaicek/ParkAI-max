@@ -252,7 +252,7 @@ uint32_t restart_stream(StreamCtrl *ctrl){
     //     g_main_loop_quit(ctrl->loop);
     std::mutex *mutex = (ctrl->lock);
     mutex->lock();
-    ctrl->restart = false;
+    ctrl->restart = true;
     mutex->unlock();
     return 1;
 }

@@ -100,7 +100,7 @@ int check_stream_states(StreamCtrl * ctrl){
         ctrl->state = VSTREAM_RELOAD;
         std::cout << "Stream stopped playing\n";
         std::cout << "Reloading stream: " << ctrl->stream_ip << std::endl;
-        restart_stream(ctrl);
+        //restart_stream(ctrl);
     }
 
     if (ctrl->state == VSTREAM_STARTUP || ctrl->state == VSTREAM_RELOAD){ // try restarting stream after 5 minutes of failed loading
@@ -110,7 +110,7 @@ int check_stream_states(StreamCtrl * ctrl){
             ctrl->state = VSTREAM_RELOAD;
             std::cout << "Stream failed to start\n";
             std::cout << "Reloading stream: " << ctrl->stream_ip << std::endl;
-            restart_stream(ctrl);
+            //restart_stream(ctrl);
         }
     }
     return 1;
