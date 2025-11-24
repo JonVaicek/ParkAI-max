@@ -471,7 +471,7 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
         case GST_MESSAGE_EOS:
             std::cout << "End of Stream received — restarting pipeline" << std::endl;
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-            //g_main_loop_quit(ctrl->loop);
+            g_main_loop_quit(ctrl->loop);
             return FALSE;
             break;
 
@@ -502,15 +502,14 @@ static gboolean periodic_tick(gpointer user_data){
 static gboolean periodic_tick_continious(gpointer user_data){
   StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
 
-  
-
   if (! ctrl->run || ctrl->restart == true) {
         std::lock_guard<std::mutex> lock(*(ctrl->lock));
         std::cout << "LOCKED BY TICK\n";
         std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
+        gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
         //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         //gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
-        g_main_loop_quit(ctrl->loop);
+        //g_main_loop_quit(ctrl->loop);
         ctrl->restart = false;
         // Returning FALSE removes this timeout
         return false;
