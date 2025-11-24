@@ -508,7 +508,8 @@ static gboolean periodic_tick_continious(gpointer user_data){
         std::lock_guard<std::mutex> lock(*(ctrl->lock));
         std::cout << "LOCKED BY TICK\n";
         std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
-        gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+        //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+        //gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
         g_main_loop_quit(ctrl->loop);
         ctrl->restart = false;
         // Returning FALSE removes this timeout
@@ -585,13 +586,13 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         return;
     }
     std::cout << "Pipeline created!\n";
-    g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
+    guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
 
     /* Uncomment if preroll to be done before the first pull*/
     // gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
     // gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
     gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
-    g_timeout_add(100, periodic_tick_continious, ctrl);
+    guint timeout_id = g_timeout_add(100, periodic_tick_continious, ctrl);
 
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
     guint bus_watch_id = gst_bus_add_watch(bus, bus_call, ctrl); 
@@ -600,12 +601,26 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     g_main_loop_run(ctrl->loop);
     
     //cleanup
-    g_source_remove(bus_watch_id);
-    gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+    if (bus_watch_id)
+        g_source_remove(bus_watch_id);
+    if(timeout_id)
+        g_source_remove(timeout_id);
 
-    gst_object_unref(ctrl->pipeline);
-    gst_object_unref(ctrl->appsink);
-    g_main_loop_unref(ctrl->loop);
+    if(ctrl->appsink && sample_handler_id)
+        g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
+    
+    if(GST_IS_ELEMENT(ctrl->pipeline)){
+        gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+        gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
+    }
+
+    
+    if(ctrl->appsink)
+        gst_object_unref(ctrl->appsink);
+    if(ctrl->pipeline)
+        gst_object_unref(ctrl->pipeline);
+    if(ctrl->loop)
+        g_main_loop_unref(ctrl->loop);
     return;
 }
 
