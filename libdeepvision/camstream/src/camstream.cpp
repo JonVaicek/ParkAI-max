@@ -608,10 +608,15 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
 
     if(ctrl->appsink && sample_handler_id)
         g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
-    
+
+        
+    if (ctrl->lock) {
+        std::lock_guard<std::mutex> guard(*(ctrl->lock));
+    }
+
     if(GST_IS_ELEMENT(ctrl->pipeline)){
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-        gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
+        gst_element_get_state(ctrl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
     }
 
     
