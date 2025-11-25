@@ -451,8 +451,6 @@ GstFlowReturn new_sample_pipeline_callback(GstElement *sink, gpointer user_data)
 }
 
 
-
-
 // Bus message handler
 static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
     StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
@@ -471,6 +469,8 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
         case GST_MESSAGE_EOS:
             std::cout << "End of Stream received — restarting pipeline" << std::endl;
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+            gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+            gst_element_get_state(ctrl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
             g_main_loop_quit(ctrl->loop);
             return FALSE;
             break;
