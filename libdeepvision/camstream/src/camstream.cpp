@@ -262,16 +262,12 @@ uint32_t restart_stream(StreamCtrl *ctrl){
 GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
-    //std::lock_guard<std::mutex> lock(*(ctl->lock));
     std::mutex *mutex = (ctl->lock);
     mutex->lock();
-    std::cout << "LOCKED BY SAMPLE_READY\n";
     ctl->frame_rd = true;
     ctl->timestamp = std::time(nullptr);
     ctl->state = VSTREAM_RUNNING;
-    //gst_element_set_state(ctl->pipeline, GST_STATE_PAUSED);
     mutex->unlock();
-    std::cout << "UNLOCKED BY SAMPLE_READY\n";
     if (true) {
         return GST_FLOW_OK;
     }
@@ -280,22 +276,15 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size){
     std::lock_guard<std::mutex> lock(*(ctrl->lock));
-    std::cout << "LOCKED BY PULL_IMAGE\n";
     GstStateChangeReturn ret;
-    //ctrl->frame_rd = false;
     GstState current_state, pending_state;
     if (ctrl->frame_rd == false){
         if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->appsink)){
-            std::cout << "STARTING PIPELINE\n";
             g_idle_add(start_pipeline_idle, ctrl);
-            //gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
-            std::cout << "PIPELINE STARTED\n";
         }
         else{
-            std::cout << "NOT ELEMENT\n";
             return 0;
         }
-        std::cout << "FRAME NOT READY\n";
         return 0;
     }
 
@@ -303,21 +292,17 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     int n = 0;
 
     //g_signal_emit_by_name(ctrl->appsink, "pull-sample", &sample);
-    std::cout << "PULLING SAMPLE\n";
+
     sample = gst_app_sink_try_pull_sample(GST_APP_SINK(ctrl->appsink), 10 * GST_MSECOND);
-    std::cout << "SAMPLE PULLED\n";
     if (sample) {
-        std::cout << "VALID SAMPLE\n";
+
         GstBuffer *buffer = gst_sample_get_buffer(sample);
         GstMapInfo map;
         gst_buffer_map(buffer, &map, GST_MAP_READ);
-
         unsigned char *raw_data = map.data;
         if (!raw_data) {
-            g_printerr("raw_data is NULL\n");
             gst_buffer_unmap(buffer, &map);
             gst_sample_unref(sample);
-            std::cout << "NOT RAW_DATA\n";
             return 0;
         }
 
@@ -326,13 +311,12 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         int width = 0, height = 0;
         gst_structure_get_int(structure, "width", &width);
         gst_structure_get_int(structure, "height", &height);
-        std::cout << "Image WH = " << width << "x" << height <<std::endl;
+        //std::cout << "Image WH = " << width << "x" << height <<std::endl;
         
         *img_buf = (unsigned char*)malloc(map.size);
         *max_size = (uint64_t) map.size;
         ctrl->imgW = width;
         ctrl->imgH = height;
-        std::cout << "DONE MALLOC\n";
         switch (format){
             case JPEG:{
                 uint32_t size = encode_jpeg_to_buffer(raw_data, width, height , *img_buf, *max_size);
@@ -350,7 +334,6 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
             }
             case RAW:{
                 memcpy(*img_buf, raw_data, *max_size);
-                std::cout << "COPIED\n";
                 break;
             }
             default:{
@@ -360,15 +343,12 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         
         gst_buffer_unmap(buffer, &map);
         gst_sample_unref(sample);
-        std::cout << "SETTING TO PAUSED\n";
-        // gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
-        // gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
+
         ctrl->frame_rd = false;
+        //setting pipeline to paused
         g_idle_add(pause_pipeline_idle, ctrl);
-        std::cout << "ENDING\n";
         return 1;
     }
-    std::cout << "NOT SAMPLE\n";
     return 0;
 }
 
@@ -470,7 +450,7 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             std::cout << "End of Stream received — restarting pipeline" << std::endl;
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-            gst_element_get_state(ctrl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+            gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
             g_main_loop_quit(ctrl->loop);
             return FALSE;
             break;
@@ -504,7 +484,7 @@ static gboolean periodic_tick_continious(gpointer user_data){
 
   if (! ctrl->run || ctrl->restart == true) {
         std::lock_guard<std::mutex> lock(*(ctrl->lock));
-        std::cout << "LOCKED BY TICK\n";
+        //std::cout << "LOCKED BY TICK\n";
         std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
         gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
         //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);

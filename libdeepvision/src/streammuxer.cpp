@@ -76,7 +76,7 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
     try{
     while(run){
         tick++;
-        if (tick >= 1000){
+        if (tick >= 10000){
             std::cout << "STREAMMUX: Tick Reached 1000\n";
             tick = 0;
             update_fd();
@@ -138,7 +138,7 @@ int StreamMuxer::muxer_thread(void){
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        std::cout << "STREAMMUX: Iterated through all streams\n";
+        //std::cout << "STREAMMUX: Iterated through all streams\n";
     }
     } catch (const std::exception &e){
         std::cerr << "muxer_thread exception: " << e.what() << '\n';
