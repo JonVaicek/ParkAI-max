@@ -100,27 +100,29 @@ std::string get_sys_boottime_s(bool writefile, const char * filepath){
     std::cout << "System boot time (UTC): " << output << "\n";
     
 #elif __linux__
-    struct sysinfo info;
-    if (sysinfo(&info) != 0) {
-        std::cerr << "Failed to get sysinfo\n";
-        std::string ret;
-        return ret;
-    }
 
-    std::time_t now = std::time(nullptr);
-    std::time_t boot_time = now - info.uptime;
-    std::tm* gmt = std::gmtime(&boot_time);
 
-    size_t str_size = strftime(output, sizeof(output), DATETIME_STRING_FORMAT, gmt);
-    if(str_size != 0 && writefile){
-        write_timestamp(filepath, output);
+    timespec bts, tsn;
+    clock_gettime(CLOCK_BOOTTIME, &bts);
+    clock_gettime(CLOCK_REALTIME, &tsn);
+
+    std::time_t btime = tsn.tv_sec - bts.tv_sec;
+    long bnsec = tsn.tv_nsec - bts.tv_nsec;
+    if (bnsec < 0){
+        bnsec += 1000000000L;
+        btime -= 1;
     }
+    std::tm gmtr;
+    gmtime_r(&btime, &gmtr);
+    char timestr[64];
+    strftime(timestr, sizeof(timestr), DATETIME_STRING_FORMAT, &gmtr);
+
     std::cout << "System boot time (UTC): "
-              << output << "\n";
+              << timestr << "\n";
 #else
     std::cout << "Unknown Operating System\n"
 #endif
-    return output;
+    return timestr;
 }
 
 nlohmann::json clear_old_events(nlohmann::json events){
