@@ -76,11 +76,11 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
     try{
     while(run){
         tick++;
-        if (tick >= 10000){
-            std::cout << "STREAMMUX: Tick Reached 1000\n";
+        if (tick >= 1000){
+            //std::cout << "STREAMMUX: Tick Reached 1000\n";
             tick = 0;
             update_fd();
-            std::cout << "Streammux Running at: " << get_fps() << " fps" << std::endl;
+            //std::cout << "Streammux Running at: " << get_fps() << " fps" << std::endl;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(period_ms));
     }
