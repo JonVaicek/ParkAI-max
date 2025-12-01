@@ -557,17 +557,20 @@ void init_camstream(void){
  * @param ctrl reference to pipeline control structure
  */
 void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
-    std::cout << "Creating Cam Preview Pipeline\n";
+    std::cout << "Creating Streamer Pipeline\n";
     //gst_init(NULL, NULL);
     std::string gst_launch =
         //"rtspsrc location=" + rtsp_url + " protocols=tcp latency=2000 retry=3 "
         "rtspsrc location=" + rtsp_url + " protocols=tcp "
         "! rtph264depay ! h264parse ! decodebin "
         "! videoconvert ! video/x-raw,format=RGB ! queue leaky=2 max-size-buffers=1 ! appsink name=sink emit-signals=true sync=false";
-
+    std::cout << "Get Pipeline pointer\n";
     ctrl->pipeline = gst_parse_launch(gst_launch.c_str(), NULL);
+    std::cout << "Get Appsink pointer\n";
     ctrl->appsink = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "sink");
+    std::cout << "Get main loop pointer\n";
     ctrl->loop = g_main_loop_new(NULL, FALSE);
+    std::cout << "Set State to STARTUP\n";
     ctrl->state = VSTREAM_STARTUP;
     ctrl->rel_time = std::time(nullptr);
     g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
