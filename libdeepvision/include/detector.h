@@ -139,6 +139,7 @@ namespace ImgUtils {/* Private function to load the image file*/
     }
 
     inline cv::Mat crop_image(cv::Mat src_img, int x0, int y0, int x1, int y1){
+        cv::Mat empty;
         if (x0 < 0)
         x0=0;
         if(y0 < 0)
@@ -148,6 +149,13 @@ namespace ImgUtils {/* Private function to load the image file*/
             x1 = src_img.cols -1;
         if(y1 > src_img.rows)
             y1 = src_img.rows -1;
+        
+        if (x1 - x0 <= 0){
+            return empty;
+        }
+        if (y1 - y0 <= 0){
+            return empty;
+        }
         cv::Rect roi(x0, y0, x1-x0, y1-y0);
         cv::Mat ret = src_img(roi);
         return ret;
