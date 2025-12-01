@@ -463,7 +463,7 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
-            g_main_loop_quit(ctrl->loop);
+            //g_main_loop_quit(ctrl->loop);
             //return FALSE;
             break;
 

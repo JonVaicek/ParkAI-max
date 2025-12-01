@@ -95,7 +95,7 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
 int check_stream_states(StreamCtrl * ctrl){
     std::lock_guard<std::mutex> lock(*(ctrl->lock));
     
-    if (std::time(nullptr) - ctrl->timestamp > 3*60 && ctrl->state == VSTREAM_RUNNING){ // restart stream after 3 minutes of failure to receive frame
+    if (std::time(nullptr) - ctrl->timestamp > 3* 2 *30 && ctrl->state == VSTREAM_RUNNING){ // restart stream after 3 minutes of failure to receive frame
         ctrl->restart = true;
         ctrl->state = VSTREAM_RELOAD;
         std::cout << "Stream stopped playing\n";
@@ -106,7 +106,7 @@ int check_stream_states(StreamCtrl * ctrl){
     }
 
     if (ctrl->state == VSTREAM_STARTUP || ctrl->state == VSTREAM_RELOAD){ // try restarting stream after 5 minutes of failed loading
-        if (std::time(nullptr) - ctrl->rel_time > 5*60){
+        if (std::time(nullptr) - ctrl->rel_time > 5 * 2* 30){
             ctrl->rel_time = std::time(nullptr);
             ctrl->restart = true;
             ctrl->state = VSTREAM_RELOAD;
