@@ -145,9 +145,9 @@ namespace ImgUtils {/* Private function to load the image file*/
         y0=0;
         //std::cout << "("<<x0<<","<<y0<<") "<< "("<<x1<<","<<y1<<")\n";
         if (x1 > src_img.cols)
-            x1 = src_img.cols;
+            x1 = src_img.cols -1;
         if(y1 > src_img.rows)
-            y1 = src_img.rows;
+            y1 = src_img.rows -1;
         cv::Rect roi(x0, y0, x1-x0, y1-y0);
         cv::Mat ret = src_img(roi);
         return ret;
