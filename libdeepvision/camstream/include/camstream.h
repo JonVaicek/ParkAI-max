@@ -64,6 +64,7 @@ vstream load_manual_stream(const char *rtsp_url, StreamCtrl *ctrl);
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size);
 
 uint32_t restart_stream(StreamCtrl *ctrl);
+int quit_pipeline(StreamCtrl *ctrl);
 
 class VideoSource{
     StreamCtrl ctrl;

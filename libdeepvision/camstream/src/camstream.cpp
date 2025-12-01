@@ -257,6 +257,18 @@ uint32_t restart_stream(StreamCtrl *ctrl){
     return 1;
 }
 
+int quit_pipeline(StreamCtrl *ctrl){
+    if(GST_IS_ELEMENT(ctrl->pipeline)){
+        gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+        gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
+    }
+
+    if (ctrl->loop){
+        std::cout << "quitting\n";
+        g_main_loop_quit(ctrl->loop);
+    }
+    return 1;
+}
 
 // Callback to process new samples from appsink
 GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
@@ -452,7 +464,7 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
             g_main_loop_quit(ctrl->loop);
-            return FALSE;
+            //return FALSE;
             break;
 
         default:
