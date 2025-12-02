@@ -144,7 +144,7 @@ namespace ImgUtils {/* Private function to load the image file*/
         x0=0;
         if(y0 < 0)
         y0=0;
-        std::cout << "("<<x0<<","<<y0<<") "<< "("<<x1<<","<<y1<<")\n";
+        //std::cout << "("<<x0<<","<<y0<<") "<< "("<<x1<<","<<y1<<")\n";
         if (x1 > src_img.cols)
             x1 = src_img.cols -1;
         if(y1 > src_img.rows)
