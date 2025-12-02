@@ -41,7 +41,15 @@ std::thread func;
 std::vector<unsigned char> latest_frame;
 /* Global Variables End*/
 
-
+void reset_stream_control(StreamCtrl *ctrl){
+    ctrl->restart = false;
+    ctrl->timestamp = 0;
+    ctrl->rel_time = 0;
+    ctrl->imgW = 0;
+    ctrl->imgH = 0;
+    ctrl->state = VSTREAM_NULL;
+    ctrl->image = nullptr;
+};
 
 void save_jpeg_to_file(const std::vector<unsigned char>& jpeg_data, const std::string& filename) {
     std::ofstream outfile(filename, std::ios::binary);
@@ -291,6 +299,10 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     std::lock_guard<std::mutex> lock(*(ctrl->lock));
     GstStateChangeReturn ret;
     GstState current_state, pending_state;
+    if (ctrl->restart == true){
+        std::cout << "Stream is restarting\n";
+        return 0;
+    }
     if (ctrl->frame_rd == false){
         if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->appsink)){
             g_idle_add(start_pipeline_idle, ctrl);
@@ -503,7 +515,7 @@ static gboolean periodic_tick_continious(gpointer user_data){
         //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         //gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
         //g_main_loop_quit(ctrl->loop);
-        ctrl->restart = false;
+        //ctrl->restart = false;
         // Returning FALSE removes this timeout
         return false;
     }
@@ -572,8 +584,11 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     std::cout << "Get main loop pointer\n";
     ctrl->loop = g_main_loop_new(NULL, FALSE);
     std::cout << "Set State to STARTUP\n";
+
+    reset_stream_control(ctrl);
     ctrl->state = VSTREAM_STARTUP;
     ctrl->rel_time = std::time(nullptr);
+    
     g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
 
     if (!ctrl->pipeline || !ctrl->appsink) {
@@ -592,6 +607,8 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
     guint bus_watch_id = gst_bus_add_watch(bus, bus_call, ctrl); 
     gst_object_unref(bus);
+
+
 
     g_main_loop_run(ctrl->loop);
     std::cout << "Loop Returned\n";
