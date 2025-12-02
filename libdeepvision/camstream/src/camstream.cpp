@@ -252,6 +252,17 @@ static gboolean start_pipeline_idle(gpointer user_data){
     return G_SOURCE_REMOVE; // run once
 }
 
+static gboolean stop_pipeline_idle(gpointer user_data){
+    StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+    if (!ctl || !GST_IS_ELEMENT(ctl->pipeline)) return G_SOURCE_REMOVE;
+    gst_element_set_state(ctl->pipeline, GST_STATE_NULL);
+    gst_element_get_state(ctl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+    if(!ctl->loop) return G_SOURCE_REMOVE;
+    g_main_loop_quit(ctl->loop);
+    return G_SOURCE_REMOVE; // run once
+
+}
+
 
 uint32_t restart_stream(StreamCtrl *ctrl){
     // if(GST_IS_ELEMENT(ctrl->pipeline))
@@ -267,17 +278,19 @@ uint32_t restart_stream(StreamCtrl *ctrl){
 }
 
 int quit_pipeline(StreamCtrl *ctrl){
-    if(GST_IS_ELEMENT(ctrl->pipeline)){
-        std::cout << "In QuitPipeline: Pipeline -> NULL\n";
-        gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-        gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
-    }
+    std::cout << "Stopping and Quitting the pipeline\n";
+    stop_pipeline_idle(ctrl);
+    // if(GST_IS_ELEMENT(ctrl->pipeline)){
+    //     std::cout << "In QuitPipeline: Pipeline -> NULL\n";
+    //     gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+    //     gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
+    // }
 
-    if (GST_IS_ELEMENT(ctrl->loop))
-        if (ctrl->loop){
-            std::cout << "quitting\n";
-            g_main_loop_quit(ctrl->loop);
-        }
+    // if (GST_IS_ELEMENT(ctrl->loop))
+    //     if (ctrl->loop){
+    //         std::cout << "quitting\n";
+    //         g_main_loop_quit(ctrl->loop);
+    //     }
     return 1;
 }
 
