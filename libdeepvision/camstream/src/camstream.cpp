@@ -257,7 +257,7 @@ static gboolean stop_pipeline_idle(gpointer user_data){
     if (!ctl || !GST_IS_ELEMENT(ctl->pipeline))
         return G_SOURCE_REMOVE;
     gst_element_set_state(ctl->pipeline, GST_STATE_NULL);
-    gst_element_get_state(ctl->pipeline, NULL, NULL, 0);
+    gst_element_get_state(ctl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
     if(!ctl->loop) {
         std::cout << "NOT LOOP\n";
         return G_SOURCE_REMOVE;
@@ -673,11 +673,12 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         std::lock_guard<std::mutex> guard(*(ctrl->lock));
         std::cout << "CTRL Locked\n";
     }
-
+    GstState state, pending;
     if(GST_IS_ELEMENT(ctrl->pipeline)){
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-        gst_element_get_state(ctrl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-        std::cout << "Pipeline -> NULL\n";
+        gst_element_get_state(ctrl->pipeline, &state, &pending, GST_CLOCK_TIME_NONE);
+        std::cout << "pipeline state - " << gst_element_state_get_name(state) << std::endl;
+        std::cout << "pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
     }
 
     if(ctrl->appsink){
