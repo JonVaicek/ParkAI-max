@@ -263,10 +263,11 @@ int quit_pipeline(StreamCtrl *ctrl){
         gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
     }
 
-    if (ctrl->loop){
-        std::cout << "quitting\n";
-        g_main_loop_quit(ctrl->loop);
-    }
+    if (ctrl->loop != nullptr)
+        if (ctrl->loop){
+            std::cout << "quitting\n";
+            g_main_loop_quit(ctrl->loop);
+        }
     return 1;
 }
 
