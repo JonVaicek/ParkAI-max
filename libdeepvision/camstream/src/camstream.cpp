@@ -45,10 +45,10 @@ void reset_stream_control(StreamCtrl *ctrl){
     std::cout << "Reset Stream Control\n";
     ctrl->restart = false;
     ctrl->timestamp = 0;
-    ctrl->rel_time = 0;
+    ctrl->rel_time = std::time(nullptr);
     ctrl->imgW = 0;
     ctrl->imgH = 0;
-    ctrl->state = VSTREAM_NULL;
+    ctrl->state = VSTREAM_STARTUP;
     ctrl->image = nullptr;
 };
 
@@ -634,9 +634,10 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     guint bus_watch_id = gst_bus_add_watch(bus, bus_call, ctrl); 
     gst_object_unref(bus);
 
+    std::mutex *mutex = (ctrl->lock);
+    mutex->lock();
     reset_stream_control(ctrl);
-    ctrl->state = VSTREAM_STARTUP;
-    ctrl->rel_time = std::time(nullptr);
+    mutex->unlock();
 
     g_main_loop_run(ctrl->loop);
     std::cout << "Loop Returned\n";
