@@ -48,7 +48,7 @@ void reset_stream_control(StreamCtrl *ctrl){
     ctrl->rel_time = 0;
     ctrl->imgW = 0;
     ctrl->imgH = 0;
-    ctrl->state = VSTREAM_NULL;
+    ctrl->state = VSTREAM_RUNNING;
     ctrl->image = nullptr;
 };
 
@@ -258,29 +258,40 @@ static gboolean stop_pipeline_idle(gpointer user_data){
         return G_SOURCE_REMOVE;
     gst_element_set_state(ctl->pipeline, GST_STATE_NULL);
     gst_element_get_state(ctl->pipeline, NULL, NULL, 0);
-    if(!ctl->loop) 
+    if(!ctl->loop) {
+        std::cout << "NOT LOOP\n";
         return G_SOURCE_REMOVE;
+    };
+        
     g_main_loop_quit(ctl->loop);
     return G_SOURCE_REMOVE; // run once
-}
-
-
-uint32_t restart_stream(StreamCtrl *ctrl){
-    // if(GST_IS_ELEMENT(ctrl->pipeline))
-    //     gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
     
-    // if(GST_IS_ELEMENT(ctrl->loop))
-    //     g_main_loop_quit(ctrl->loop);
-    std::mutex *mutex = (ctrl->lock);
-    mutex->lock();
-    ctrl->restart = true;
-    mutex->unlock();
-    return 1;
 }
+
+static gboolean reconnect(gpointer user_data){
+    StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+    if (!ctl || !GST_IS_ELEMENT(ctl->pipeline))
+        return G_SOURCE_REMOVE;
+    
+    // gst_element_set_state(ctl->pipeline, GST_STATE_NULL);
+    // gst_element_get_state(ctl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+
+    gst_element_set_state(ctl->pipeline, GST_STATE_PAUSED);
+    gst_element_get_state(ctl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+    reset_stream_control(ctl);
+    //ctl->restart = false;
+    return G_SOURCE_REMOVE; // run once
+
+};
+
+
 
 int quit_pipeline(StreamCtrl *ctrl){
     std::cout << "Stopping and Quitting the pipeline\n";
-    g_idle_add(stop_pipeline_idle, ctrl);
+    GMainContext* context = g_main_loop_get_context(ctrl->loop);
+    g_main_context_invoke(context, stop_pipeline_idle, ctrl);
+
+    //g_idle_add(stop_pipeline_idle, ctrl);
     // if(GST_IS_ELEMENT(ctrl->pipeline)){
     //     std::cout << "In QuitPipeline: Pipeline -> NULL\n";
     //     gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
@@ -294,6 +305,8 @@ int quit_pipeline(StreamCtrl *ctrl){
     //     }
     return 1;
 }
+
+
 
 // Callback to process new samples from appsink
 GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
@@ -486,6 +499,8 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
                       << ": " << err->message << std::endl;
             g_error_free(err);
             g_free(debug);
+            //ctrl->restart = true;
+            //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             break;
         }
 
@@ -497,6 +512,16 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             //g_main_loop_quit(ctrl->loop);
             //return FALSE;
             break;
+        
+        case GST_MESSAGE_STATE_CHANGED:
+            if (GST_MESSAGE_SRC(msg) == GST_OBJECT(ctrl->pipeline)) {
+                GstState old_state, new_state, pending;
+                gst_message_parse_state_changed(msg, &old_state, &new_state, &pending);
+                // std::cout << "Pipeline "<< ctrl->stream_ip << " state changed from "
+                //         << gst_element_state_get_name(old_state) << " to "
+                //         << gst_element_state_get_name(new_state) << "\n";
+            }
+        break;
 
         default:
             break;

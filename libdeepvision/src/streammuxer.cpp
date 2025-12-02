@@ -99,25 +99,23 @@ int check_stream_states(StreamCtrl * ctrl){
     if(ctrl->restart == true){
         return 0;
     }
-    if (std::time(nullptr) - ctrl->timestamp > 3* 2 *30 && ctrl->state == VSTREAM_RUNNING){ // restart stream after 3 minutes of failure to receive frame
+    if (std::time(nullptr) - ctrl->timestamp > RECONNECT_TIME_SECONDS && ctrl->state == VSTREAM_RUNNING){ // restart stream after 3 minutes of failure to receive frame
         ctrl->restart = true;
         ctrl->state = VSTREAM_RELOAD;
         std::cout << "Stream stopped playing\n";
         std::cout << "Reloading stream: " << ctrl->stream_ip << std::endl;
-        //restart_stream(ctrl);
         quit_pipeline(ctrl);
         return 0;
     }
 
     if (ctrl->state == VSTREAM_STARTUP || ctrl->state == VSTREAM_RELOAD){ // try restarting stream after 5 minutes of failed loading
-        if (std::time(nullptr) - ctrl->rel_time > 3 * 2* 30){
+        if (std::time(nullptr) - ctrl->rel_time > RECONNECT_TIME_SECONDS){
             ctrl->rel_time = std::time(nullptr);
             ctrl->restart = true;
             ctrl->state = VSTREAM_RELOAD;
             std::cout << "Stream failed to start\n";
             std::cout << "Reloading stream: " << ctrl->stream_ip << std::endl;
             quit_pipeline(ctrl);
-            //restart_stream(ctrl);
             return 0;
         }
     }
