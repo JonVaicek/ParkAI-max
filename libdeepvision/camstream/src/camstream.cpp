@@ -42,6 +42,7 @@ std::vector<unsigned char> latest_frame;
 /* Global Variables End*/
 
 void reset_stream_control(StreamCtrl *ctrl){
+    std::cout << "Reset Stream Control\n";
     ctrl->restart = false;
     ctrl->timestamp = 0;
     ctrl->rel_time = 0;
