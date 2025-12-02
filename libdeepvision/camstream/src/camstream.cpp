@@ -593,33 +593,43 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     gst_object_unref(bus);
 
     g_main_loop_run(ctrl->loop);
+    std::cout << "Loop Returned\n";
     
     //cleanup
-    if (bus_watch_id)
-        g_source_remove(bus_watch_id);
-    if(timeout_id)
+    // if (bus_watch_id)
+    //     g_source_remove(bus_watch_id);
+    if(timeout_id){
         g_source_remove(timeout_id);
-
-    if(ctrl->appsink && sample_handler_id)
+        std::cout << "Timeout Source removed\n";
+    }
+    if(ctrl->appsink && sample_handler_id){
         g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
-
+        std::cout << "g_signal disconnected\n";
+    }
         
     if (ctrl->lock) {
         std::lock_guard<std::mutex> guard(*(ctrl->lock));
+        std::cout << "CTRL Locked\n";
     }
 
     if(GST_IS_ELEMENT(ctrl->pipeline)){
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         gst_element_get_state(ctrl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+        std::cout << "Pipeline -> NULL\n";
     }
 
-    
     if(ctrl->appsink)
         gst_object_unref(ctrl->appsink);
+        ctrl->appsink = nullptr;
+        std::cout << "appsink unreffed\n";
     if(ctrl->pipeline)
         gst_object_unref(ctrl->pipeline);
+        ctrl->pipeline = nullptr;
+        std::cout << "pipeline unreffed\n";
     if(ctrl->loop)
         g_main_loop_unref(ctrl->loop);
+        ctrl->loop = nullptr;
+        std::cout << "loop unreffed\n";
     return;
 }
 
