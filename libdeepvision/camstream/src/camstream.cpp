@@ -571,6 +571,7 @@ void init_camstream(void){
  * @param ctrl reference to pipeline control structure
  */
 void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
+
     std::cout << "Creating Streamer Pipeline\n";
     //gst_init(NULL, NULL);
     std::string gst_launch =
@@ -603,7 +604,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     // gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
     // gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
     gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
-    guint timeout_id = g_timeout_add(100, periodic_tick_continious, ctrl);
+    //guint timeout_id = g_timeout_add(100, periodic_tick_continious, ctrl);
 
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
     guint bus_watch_id = gst_bus_add_watch(bus, bus_call, ctrl); 
@@ -617,10 +618,10 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     //cleanup
     // if (bus_watch_id)
     //     g_source_remove(bus_watch_id);
-    if(timeout_id){
-        g_source_remove(timeout_id);
-        std::cout << "Timeout Source removed\n";
-    }
+    // if(timeout_id){
+    //     g_source_remove(timeout_id);
+    //     std::cout << "Timeout Source removed\n";
+    // }
     if(ctrl->appsink && sample_handler_id){
         g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
         std::cout << "g_signal disconnected\n";
