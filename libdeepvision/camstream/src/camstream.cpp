@@ -298,6 +298,8 @@ int quit_pipeline(StreamCtrl *ctrl){
 GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+    if (ctl->restart) return GST_FLOW_OK;
+    
     std::mutex *mutex = (ctl->lock);
     mutex->lock();
     ctl->frame_rd = true;
@@ -630,8 +632,8 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     std::cout << "Loop Returned\n";
     
     //cleanup
-    // if (bus_watch_id)
-    //     g_source_remove(bus_watch_id);
+     if (bus_watch_id)
+         g_source_remove(bus_watch_id);
     // if(timeout_id){
     //     g_source_remove(timeout_id);
     //     std::cout << "Timeout Source removed\n";
@@ -652,18 +654,21 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         std::cout << "Pipeline -> NULL\n";
     }
 
-    if(ctrl->appsink)
+    if(ctrl->appsink){
         gst_object_unref(ctrl->appsink);
         ctrl->appsink = nullptr;
         std::cout << "appsink unreffed\n";
-    if(ctrl->pipeline)
+    }
+    if(ctrl->pipeline){
         gst_object_unref(ctrl->pipeline);
         ctrl->pipeline = nullptr;
         std::cout << "pipeline unreffed\n";
-    if(ctrl->loop)
+    }
+    if(ctrl->loop){
         g_main_loop_unref(ctrl->loop);
         ctrl->loop = nullptr;
         std::cout << "loop unreffed\n";
+    }
     return;
 }
 
