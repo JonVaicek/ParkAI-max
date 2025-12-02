@@ -279,7 +279,7 @@ uint32_t restart_stream(StreamCtrl *ctrl){
 
 int quit_pipeline(StreamCtrl *ctrl){
     std::cout << "Stopping and Quitting the pipeline\n";
-    stop_pipeline_idle(ctrl);
+    g_idle_add(stop_pipeline_idle, ctrl);
     // if(GST_IS_ELEMENT(ctrl->pipeline)){
     //     std::cout << "In QuitPipeline: Pipeline -> NULL\n";
     //     gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
@@ -299,7 +299,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
     if (ctl->restart) return GST_FLOW_OK;
-    
+
     std::mutex *mutex = (ctl->lock);
     mutex->lock();
     ctl->frame_rd = true;
