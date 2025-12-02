@@ -254,13 +254,14 @@ static gboolean start_pipeline_idle(gpointer user_data){
 
 static gboolean stop_pipeline_idle(gpointer user_data){
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
-    if (!ctl || !GST_IS_ELEMENT(ctl->pipeline)) return G_SOURCE_REMOVE;
+    if (!ctl || !GST_IS_ELEMENT(ctl->pipeline))
+        return G_SOURCE_REMOVE;
     gst_element_set_state(ctl->pipeline, GST_STATE_NULL);
-    gst_element_get_state(ctl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-    if(!ctl->loop) return G_SOURCE_REMOVE;
+    gst_element_get_state(ctl->pipeline, NULL, NULL, 0);
+    if(!ctl->loop) 
+        return G_SOURCE_REMOVE;
     g_main_loop_quit(ctl->loop);
     return G_SOURCE_REMOVE; // run once
-
 }
 
 
