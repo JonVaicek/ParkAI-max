@@ -48,7 +48,7 @@ void reset_stream_control(StreamCtrl *ctrl){
     ctrl->rel_time = 0;
     ctrl->imgW = 0;
     ctrl->imgH = 0;
-    ctrl->state = VSTREAM_RUNNING;
+    ctrl->state = VSTREAM_NULL;
     ctrl->image = nullptr;
 };
 
@@ -267,22 +267,6 @@ static gboolean stop_pipeline_idle(gpointer user_data){
     return G_SOURCE_REMOVE; // run once
     
 }
-
-static gboolean reconnect(gpointer user_data){
-    StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
-    if (!ctl || !GST_IS_ELEMENT(ctl->pipeline))
-        return G_SOURCE_REMOVE;
-    
-    // gst_element_set_state(ctl->pipeline, GST_STATE_NULL);
-    // gst_element_get_state(ctl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-
-    gst_element_set_state(ctl->pipeline, GST_STATE_PAUSED);
-    gst_element_get_state(ctl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-    reset_stream_control(ctl);
-    //ctl->restart = false;
-    return G_SOURCE_REMOVE; // run once
-
-};
 
 
 
@@ -629,9 +613,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     ctrl->loop = g_main_loop_new(NULL, FALSE);
     std::cout << "Set State to STARTUP\n";
 
-    reset_stream_control(ctrl);
-    ctrl->state = VSTREAM_STARTUP;
-    ctrl->rel_time = std::time(nullptr);
+
 
     g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
 
@@ -652,7 +634,9 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     guint bus_watch_id = gst_bus_add_watch(bus, bus_call, ctrl); 
     gst_object_unref(bus);
 
-
+    reset_stream_control(ctrl);
+    ctrl->state = VSTREAM_STARTUP;
+    ctrl->rel_time = std::time(nullptr);
 
     g_main_loop_run(ctrl->loop);
     std::cout << "Loop Returned\n";
