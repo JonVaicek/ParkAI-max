@@ -273,7 +273,7 @@ int quit_pipeline(StreamCtrl *ctrl){
         gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
     }
 
-    if (ctrl->loop != nullptr)
+    if (GST_IS_ELEMENT(ctrl->loop))
         if (ctrl->loop){
             std::cout << "quitting\n";
             g_main_loop_quit(ctrl->loop);
@@ -302,7 +302,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     GstStateChangeReturn ret;
     GstState current_state, pending_state;
     if (ctrl->restart == true){
-        std::cout << "Stream is restarting\n";
+        //std::cout << "Stream is restarting\n";
         return 0;
     }
     if (ctrl->frame_rd == false){
