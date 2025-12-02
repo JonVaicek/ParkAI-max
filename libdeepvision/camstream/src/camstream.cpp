@@ -267,6 +267,7 @@ uint32_t restart_stream(StreamCtrl *ctrl){
 
 int quit_pipeline(StreamCtrl *ctrl){
     if(GST_IS_ELEMENT(ctrl->pipeline)){
+        std::cout << "In QuitPipeline: Pipeline -> NULL\n";
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
     }
@@ -588,7 +589,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     reset_stream_control(ctrl);
     ctrl->state = VSTREAM_STARTUP;
     ctrl->rel_time = std::time(nullptr);
-    
+
     g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
 
     if (!ctrl->pipeline || !ctrl->appsink) {
