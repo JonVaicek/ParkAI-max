@@ -497,15 +497,15 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             //return FALSE;
             break;
         
-        case GST_MESSAGE_STATE_CHANGED:
-            if (GST_MESSAGE_SRC(msg) == GST_OBJECT(ctrl->pipeline)) {
-                GstState old_state, new_state, pending;
-                gst_message_parse_state_changed(msg, &old_state, &new_state, &pending);
-                // std::cout << "Pipeline "<< ctrl->stream_ip << " state changed from "
-                //         << gst_element_state_get_name(old_state) << " to "
-                //         << gst_element_state_get_name(new_state) << "\n";
-            }
-        break;
+        // case GST_MESSAGE_STATE_CHANGED:
+        //     if (GST_MESSAGE_SRC(msg) == GST_OBJECT(ctrl->pipeline)) {
+        //         GstState old_state, new_state, pending;
+        //         gst_message_parse_state_changed(msg, &old_state, &new_state, &pending);
+        //         // std::cout << "Pipeline "<< ctrl->stream_ip << " state changed from "
+        //         //         << gst_element_state_get_name(old_state) << " to "
+        //         //         << gst_element_state_get_name(new_state) << "\n";
+        //     }
+        // break;
 
         default:
             break;
@@ -633,6 +633,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
     guint bus_watch_id = gst_bus_add_watch(bus, bus_call, ctrl); 
     gst_object_unref(bus);
+
 
     std::mutex *mutex = (ctrl->lock);
     mutex->lock();
