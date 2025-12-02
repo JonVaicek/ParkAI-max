@@ -108,9 +108,9 @@ int check_stream_states(StreamCtrl * ctrl){
         quit_pipeline(ctrl);
         return 0;
     }
-    
+
     if (ctrl->state == VSTREAM_STARTUP || ctrl->state == VSTREAM_RELOAD){ // try restarting stream after 5 minutes of failed loading
-        if (std::time(nullptr) - ctrl->rel_time > 5 * 2* 30){
+        if (std::time(nullptr) - ctrl->rel_time > 3 * 2* 30){
             ctrl->rel_time = std::time(nullptr);
             ctrl->restart = true;
             ctrl->state = VSTREAM_RELOAD;
