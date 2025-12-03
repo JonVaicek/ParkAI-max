@@ -250,7 +250,7 @@ static gboolean stop_pipeline_idle(gpointer user_data){
         return G_SOURCE_REMOVE;
     gst_element_set_state(ctl->pipeline, GST_STATE_NULL);
     //gst_element_get_state(ctl->pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-    gst_element_get_state(ctl->pipeline, NULL, NULL, GST_SECOND * 5);
+    //gst_element_get_state(ctl->pipeline, NULL, NULL, GST_SECOND * 5);
     if(!ctl->loop) {
         std::cout << "NOT LOOP\n";
         return G_SOURCE_REMOVE;
