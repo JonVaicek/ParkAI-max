@@ -328,7 +328,9 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     }
     if (ctrl->frame_rd == false){
         if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->appsink)){
-            g_idle_add(start_pipeline_idle, ctrl);
+            //g_idle_add(start_pipeline_idle, ctrl);
+            GMainContext* context = g_main_loop_get_context(ctrl->loop);
+            g_main_context_invoke(context, start_pipeline_idle, ctrl);
         }
         else{
             return 0;
@@ -394,7 +396,9 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
 
         ctrl->frame_rd = false;
         //setting pipeline to paused
-        g_idle_add(pause_pipeline_idle, ctrl);
+        GMainContext* context = g_main_loop_get_context(ctrl->loop);
+        g_main_context_invoke(context, pause_pipeline_idle, ctrl);
+        //g_idle_add(pause_pipeline_idle, ctrl);
         return 1;
     }
     return 0;
