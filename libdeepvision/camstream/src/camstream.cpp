@@ -272,6 +272,14 @@ static gboolean stop_pipeline_idle(gpointer user_data){
 
 int quit_pipeline(StreamCtrl *ctrl){
     std::cout << "Stopping and Quitting the pipeline\n";
+    if (ctrl->bus_watch_id)
+        g_source_remove(ctrl->bus_watch_id);
+
+    if(ctrl->appsink && ctrl->sampleh_id){
+        g_signal_handler_disconnect(ctrl->appsink, ctrl->sampleh_id);
+        std::cout << "g_signal disconnected\n";
+    }
+
     GMainContext* context = g_main_loop_get_context(ctrl->loop);
     g_main_context_invoke(context, stop_pipeline_idle, ctrl);
 
@@ -623,7 +631,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     }
     std::cout << "Pipeline created!\n";
     guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
-
+    ctrl->sampleh_id = sample_handler_id;
     /* Uncomment if preroll to be done before the first pull*/
     // gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
     // gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
@@ -632,6 +640,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
 
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
     guint bus_watch_id = gst_bus_add_watch(bus, bus_call, ctrl); 
+    ctrl->bus_watch_id = bus_watch_id;
     gst_object_unref(bus);
 
 
@@ -644,21 +653,21 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     std::cout << "Loop Returned\n";
     
     //cleanup
-     if (bus_watch_id)
-         g_source_remove(bus_watch_id);
+    //  if (bus_watch_id)
+    //      g_source_remove(bus_watch_id);
     // if(timeout_id){
     //     g_source_remove(timeout_id);
     //     std::cout << "Timeout Source removed\n";
     // }
-    if(ctrl->appsink && sample_handler_id){
-        g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
-        std::cout << "g_signal disconnected\n";
-    }
+    // if(ctrl->appsink && sample_handler_id){
+    //     g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
+    //     std::cout << "g_signal disconnected\n";
+    // }
         
-    if (ctrl->lock) {
-        std::lock_guard<std::mutex> guard(*(ctrl->lock));
-        std::cout << "CTRL Locked\n";
-    }
+    // if (ctrl->lock) {
+    //     std::lock_guard<std::mutex> guard(*(ctrl->lock));
+    //     std::cout << "CTRL Locked\n";
+    // }
     GstState state, pending;
     if(GST_IS_ELEMENT(ctrl->pipeline)){
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);

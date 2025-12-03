@@ -43,6 +43,8 @@ struct StreamCtrl{
     uint32_t imgW = 0;
     uint32_t imgH = 0;
     uint32_t index;
+    guint bus_watch_id;
+    guint sampleh_id;
     StreamState state = VSTREAM_NULL;
     unsigned char *image = nullptr;
     bool allocated = false;
