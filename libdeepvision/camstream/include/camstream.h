@@ -34,6 +34,7 @@ typedef enum{
 
 struct StreamCtrl{
     std::string stream_ip;
+    GMainContext *context = NULL;
     GstElement *pipeline = NULL;
     GstElement *appsink = NULL;
     GMainLoop *loop = NULL;
@@ -59,21 +60,13 @@ struct StreamCtrl{
 void init_camstream(void);
 void save_jpeg_to_file(const std::vector<unsigned char>& jpeg_data, const std::string& filename);
 void save_jpeg_to_file_new(const unsigned char * jpeg_data, const std::string& filename);
-int load_image(const char *rtsp_url, std::vector<unsigned char> &img);
-vstream load_stream(const char *rtsp_url, unsigned char *img, bool *run, StreamCtrl *ctrl);
+
 
 vstream load_manual_stream(const char *rtsp_url, StreamCtrl *ctrl);
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size);
 
 int quit_pipeline(StreamCtrl *ctrl);
 
-class VideoSource{
-    StreamCtrl ctrl;
-    vstream stream;
 
-    public:
-    VideoSource(uint32_t id, const char *rtsp_url):
-    stream(load_manual_stream(rtsp_url, &ctrl)){}
-};
 
 #endif

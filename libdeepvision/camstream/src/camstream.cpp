@@ -15,14 +15,6 @@
 /* Definitions End*/
 #define N_CHANNELS 3
 
-struct loop_ctl_struct{
-    std::vector<unsigned char> img;
-    GstElement *pipeline = NULL;
-    GstElement *appsink = NULL;
-    GMainLoop *loop = NULL;
-    bool run = true;
-    bool read = false;
-};
 
 struct pngStruct {
     unsigned char *buf;
@@ -405,83 +397,6 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
 }
 
 
-// Callback to process new samples from appsink
-GstFlowReturn frame_received_pipeline_callback(GstElement *sink, gpointer user_data) {
-    loop_ctl_struct *lpctl = static_cast<loop_ctl_struct*> (user_data);
-    //std::vector<unsigned char>* img = static_cast<std::vector<unsigned char>*>(user_data);
-    GstSample *sample = NULL;
-    int width = 640;
-    int height = 480;
-    std::cout << "new sample ready\n";
-    g_signal_emit_by_name(sink, "pull-sample", &sample);
-    if (sample) {
-        
-        GstBuffer *buffer = gst_sample_get_buffer(sample);
-        GstMapInfo map;
-        gst_buffer_map(buffer, &map, GST_MAP_READ);
-
-        unsigned char *raw_data = map.data;
-        if (!raw_data) {
-            g_printerr("raw_data is NULL\n");
-            return GST_FLOW_ERROR;
-        }
-
-        GstCaps *caps = gst_sample_get_caps(sample);
-        GstStructure *structure = gst_caps_get_structure(caps, 0);
-        gst_structure_get_int(structure, "width", &width);
-        gst_structure_get_int(structure, "height", &height);
-        //*img = encode_jpeg(raw_data, width, height);
-        lpctl->img = encode_jpeg(raw_data, width, height);
-        gst_buffer_unmap(buffer, &map);
-        gst_sample_unref(sample);
-
-        lpctl->run = false; //to kill the thread
-        //save_jpeg_to_file(lpctl->img, "pic.jpeg");
-
-        return GST_FLOW_OK;
-    }
-    return GST_FLOW_ERROR;
-}
-
-
-// Callback to process new samples from appsink
-GstFlowReturn new_sample_pipeline_callback(GstElement *sink, gpointer user_data) {
-    //loop_ctl_struct *lpctl = static_cast<loop_ctl_struct*> (user_data);
-    unsigned char* img = static_cast<unsigned char*>(user_data);
-    std::cout << "New Sample ptr: " << (void *)img << std::endl;
-    GstSample *sample = NULL;
-    int width = 640;
-    int height = 480;
-    //std::cout << "new sample ready\n";
-    g_signal_emit_by_name(sink, "pull-sample", &sample);
-    if (sample) {
-        
-        GstBuffer *buffer = gst_sample_get_buffer(sample);
-        GstMapInfo map;
-        gst_buffer_map(buffer, &map, GST_MAP_READ);
-
-        unsigned char *raw_data = map.data;
-        if (!raw_data) {
-            g_printerr("raw_data is NULL\n");
-            return GST_FLOW_ERROR;
-        }
-
-        GstCaps *caps = gst_sample_get_caps(sample);
-        GstStructure *structure = gst_caps_get_structure(caps, 0);
-        gst_structure_get_int(structure, "width", &width);
-        gst_structure_get_int(structure, "height", &height);
-        size_t jpeg_size = encode_jpeg_to_buffer(raw_data, width, height, img, 1920*1080);
-        gst_buffer_unmap(buffer, &map);
-        gst_sample_unref(sample);
-
-        //lpctl->run = false; //to kill the thread
-        //save_jpeg_to_file(lpctl->img, "pic.jpeg");
-
-        return GST_FLOW_OK;
-    }
-    return GST_FLOW_ERROR;
-}
-
 
 // Bus message handler
 static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
@@ -527,22 +442,6 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
 }
 
 
-static gboolean periodic_tick(gpointer user_data){
-  loop_ctl_struct *lpctl = static_cast<loop_ctl_struct*> (user_data);
-  //std::cout << "Pipeline Running\n";
-  //std::cout << "run val = " << lpctl->run <<  std::endl;;
-  if (! (lpctl->run)) {
-        std::cout << "Stopping Cam Preview!\n";
-        //gst_element_set_state(lpctl->pipeline, GST_STATE_NULL);
-        g_main_loop_quit(lpctl->loop);
-
-        // Returning FALSE removes this timeout
-        return false;
-    }
-    // Returning TRUE keeps the timeout active
-    return true;
-}
-
 static gboolean periodic_tick_continious(gpointer user_data){
   StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
 
@@ -563,41 +462,7 @@ static gboolean periodic_tick_continious(gpointer user_data){
 }
 
 
-int create_pipeline_single_frame(std::string rtsp_url, loop_ctl_struct *loop_ctl){
-    std::cout << "Creating Cam Preview Pipeline\n";
-    gst_init(NULL, NULL);
-    std::string gst_launch =
-        "rtspsrc location=" + rtsp_url + " latency=0 "
-        "! rtph264depay ! h264parse ! decodebin "
-        "! videoconvert ! video/x-raw,format=RGB ! appsink name=sink emit-signals=true sync=false";
-        //"! nvvideoconvert ! video/x-raw,format=RGB ! appsink name=sink emit-signals=true sync=false";
 
-    loop_ctl->pipeline = gst_parse_launch(gst_launch.c_str(), NULL);
-    //GstElement *pipeline = gst_parse_launch(gst_launch.c_str(), NULL);
-
-    loop_ctl->appsink = gst_bin_get_by_name(GST_BIN(loop_ctl->pipeline), "sink");
-    //GstElement *appsink = gst_bin_get_by_name(GST_BIN(pipeline), "sink");
-    //GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-    loop_ctl->loop = g_main_loop_new(NULL, FALSE);
-    
-    if (!loop_ctl->pipeline || !loop_ctl->appsink) {
-        g_printerr("Failed to create pipeline\n");
-        return -1;
-    }
-    std::cout << "Pipeline created!\n";
-    g_signal_connect(loop_ctl->appsink, "new-sample", G_CALLBACK(frame_received_pipeline_callback), loop_ctl);
-
-    gst_element_set_state(loop_ctl->pipeline, GST_STATE_PLAYING);
-    g_timeout_add(100, periodic_tick, loop_ctl);
-    //GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-    g_main_loop_run(loop_ctl->loop);
-
-    gst_element_set_state(loop_ctl->pipeline, GST_STATE_NULL);
-    gst_object_unref(loop_ctl->pipeline);
-
-    g_main_loop_unref(loop_ctl->loop);
-    return 0;
-}
 
 void init_camstream(void){
     gst_init(NULL, NULL);
@@ -622,7 +487,10 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     std::cout << "Get Appsink pointer\n";
     ctrl->appsink = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "sink");
     std::cout << "Get main loop pointer\n";
-    ctrl->loop = g_main_loop_new(NULL, FALSE);
+    ctrl->context = g_main_context_new();
+    ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
+    g_main_context_unref(ctrl->context);
+    
     std::cout << "Set State to STARTUP\n";
 
 
@@ -695,61 +563,11 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         ctrl->loop = nullptr;
         std::cout << "loop unreffed\n";
     }
+    ctrl->context = NULL;
     return;
 }
 
 
-void create_pipeline_multi_frame(std::string rtsp_url, unsigned char *img, StreamCtrl *ctrl){
-    std::cout << "Creating Cam Preview Pipeline\n";
-    std::cout << "img ptr at pipeline creation: " << (void *)img << std::endl;
-    gst_init(NULL, NULL);
-    std::string gst_launch =
-        "rtspsrc location=" + rtsp_url + " latency=0 "
-        "! rtph264depay ! h264parse ! decodebin "
-        "! videoconvert ! video/x-raw,format=RGB ! appsink name=sink emit-signals=true sync=false";
-
-    ctrl->pipeline = gst_parse_launch(gst_launch.c_str(), NULL);
-    ctrl->appsink = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "sink");
-    ctrl->loop = g_main_loop_new(NULL, FALSE);
-    if (!ctrl->pipeline || !ctrl->appsink) {
-        g_printerr("Failed to create pipeline\n");
-        return;
-    }
-    std::cout << "Pipeline created!\n";
-    g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(new_sample_pipeline_callback), img);
-
-    gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
-    g_timeout_add(100, periodic_tick_continious, ctrl);
-    //GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-    g_main_loop_run(ctrl->loop);
-
-    gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-    gst_object_unref(ctrl->pipeline);
-    g_main_loop_unref(ctrl->loop);
-    return;
-}
-
-int stream(const char *rtsp_url, loop_ctl_struct *lctl){
-    while (lctl->run){
-        if(lctl->run){
-            create_pipeline_single_frame(rtsp_url, lctl);
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-    return 1;
-}
-
-
-int pipeline(const char *rtsp_url, unsigned char *img, bool *run, StreamCtrl *ctrl){
-    ctrl->run = run;
-    while(*run){
-        create_pipeline_multi_frame(rtsp_url, img, ctrl);
-    }
-    return 1;
-}
-vstream load_stream(const char *rtsp_url, unsigned char *img, bool *run, StreamCtrl *ctrl){
-    return vstream(pipeline, rtsp_url, img, run, ctrl);
-} 
 
 /**
  * @brief Manual Pipeline loop
@@ -775,17 +593,3 @@ vstream load_manual_stream(const char *rtsp_url, StreamCtrl *ctrl){
     return vstream(pipeline_manual, rtsp_url, ctrl);
 }
 
-
-
-int load_image(const char *rtsp_url, std::vector<unsigned char> &img){
-    loop_ctl_struct lctl;
-    lctl.run = true;
-    std::thread pipe(stream, rtsp_url, &lctl);
-    //std::this_thread::sleep_for(std::chrono::seconds(10));
-    //lctl.run = false;
-    pipe.join();
-    if (lctl.img.empty())
-        return 0;
-    img = lctl.img;
-    return 1;
-}
