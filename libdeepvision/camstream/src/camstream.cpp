@@ -562,7 +562,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     GstState state, pending;
     if(GST_IS_ELEMENT(ctrl->pipeline)){
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-        gst_element_get_state(ctrl->pipeline, &state, &pending, GST_SECOND * 5);
+        gst_element_get_state(ctrl->pipeline, &state, &pending, 0);
         std::cout << "pipeline state - " << gst_element_state_get_name(state) << std::endl;
         std::cout << "pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
     }
