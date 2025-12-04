@@ -204,6 +204,29 @@ int edit_settings_button(void){
     return 1;
 }
 
+void display_computer_uptime(uint64_t uptime_s){
+    const uint32_t timestr_len = 128;
+    char timestr[timestr_len];
+    int days, hours, minutes;
+    days = uptime_s / 3600*24;
+    if (days == 0){
+        hours = uptime_s / 3600;
+        if (hours == 0){
+            minutes = uptime_s / 60;
+            snprintf(timestr, timestr_len, "Uptime: %d min", minutes);
+        }
+        else{
+            minutes = (uptime_s % 3600) / 60;
+            snprintf(timestr, timestr_len, "Uptime: %d h, %d min", hours, minutes);
+        }
+    }
+    else{
+        hours = (uptime_s % 3600*24) / 3600;
+        snprintf(timestr, timestr_len, "Uptime: %d d, %d h", days, hours);
+    }
+    ImGui::Text("%s",timestr);
+}
+
 void display_app_uptime(uint64_t uptime_ms){
     const uint32_t timestr_len = 128;
     char timestr[timestr_len];
@@ -486,6 +509,8 @@ int main(int argc, char* argv[]) {
             url_text_input_box(enable_url_edit);
             //ImGui::SameLine();
             edit_settings_button();
+            ImGui::NewLine();
+            ImGui::Text("OS Boot TS: %s", app_settings.sys_boot.c_str());
             display_app_uptime(app_tick);
             display_fps_data(det.is_running(), fps_perf );
             button_add_camera(camList);

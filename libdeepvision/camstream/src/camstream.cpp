@@ -276,13 +276,13 @@ int quit_pipeline(StreamCtrl *ctrl){
     }
     gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
     g_object_set(ctrl->valve, "drop", TRUE, NULL);
-    if (ctrl->bus_watch_id)
-        g_source_remove(ctrl->bus_watch_id);
+    // if (ctrl->bus_watch_id)
+    //     g_source_remove(ctrl->bus_watch_id);
 
-    if(ctrl->appsink && ctrl->sampleh_id){
-        g_signal_handler_disconnect(ctrl->appsink, ctrl->sampleh_id);
-        std::cout << ctrl->stream_ip << " g_signal disconnected\n";
-    }
+    // if(ctrl->appsink && ctrl->sampleh_id){
+    //     g_signal_handler_disconnect(ctrl->appsink, ctrl->sampleh_id);
+    //     std::cout << ctrl->stream_ip << " g_signal disconnected\n";
+    // }
 
     // GMainContext* context = g_main_loop_get_context(ctrl->loop);
     // g_main_context_invoke(context, stop_pipeline_idle, ctrl);
@@ -573,7 +573,12 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         std::cout << ctrl->stream_ip << " pipeline state - " << gst_element_state_get_name(state) << std::endl;
         std::cout << ctrl->stream_ip << " pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
     }
-
+    if (bus_watch_id)
+        g_source_remove(bus_watch_id);
+    if(ctrl->appsink && sample_handler_id){
+        g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
+        std::cout << "g_signal disconnected\n";
+    }
     if(ctrl->appsink){
         gst_object_unref(ctrl->appsink);
         ctrl->appsink = nullptr;
