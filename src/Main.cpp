@@ -408,8 +408,8 @@ int main(int argc, char* argv[]) {
     std::thread th_heartbeat = std::thread(send_periodic_hb, &app_settings, &det,
                                         hostname, HEARTBEAT_PERIOD_SEC, &run_heartbeat, &streams);
     // Initialization
-    int screenWidth = 450;
-    int screenHeight = 128;
+    int screenWidth = 1024;
+    int screenHeight = 256;
 
     SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, WINDOW_TITLE);
@@ -425,7 +425,7 @@ int main(int argc, char* argv[]) {
     int iDisplayWidth = GetMonitorWidth(monitor);
     int iDisplayHeight = GetMonitorHeight(monitor);
     std::cout << "Display size: " << iDisplayWidth << "x" << iDisplayHeight << std::endl;
-    screenWidth = iDisplayWidth >> 2;
+    screenWidth = iDisplayWidth >> 1;
     screenHeight = iDisplayHeight >> 2;
     SetWindowSize(screenWidth, screenHeight);
     int nframe = 0;
