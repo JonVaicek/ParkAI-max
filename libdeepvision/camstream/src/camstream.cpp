@@ -490,7 +490,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         "rtspsrc location=" + rtsp_url + " protocols=tcp "
         "! rtph264depay ! h264parse "
         "! queue leaky=2 max-size-buffers=1 "
-        "! valve name=valve drop=true !"
+        "! valve name=valve drop=true "
         "! decodebin "
         "! videoconvert ! video/x-raw,format=RGB ! queue leaky=2 max-size-buffers=1 ! appsink name=sink emit-signals=true sync=false";
     std::cout << "Get Pipeline pointer\n";
