@@ -426,7 +426,7 @@ int main(int argc, char* argv[]) {
     int iDisplayHeight = GetMonitorHeight(monitor);
     std::cout << "Display size: " << iDisplayWidth << "x" << iDisplayHeight << std::endl;
     screenWidth = iDisplayWidth >> 1;
-    screenHeight = iDisplayHeight >> 2;
+    screenHeight = iDisplayHeight >> 1;
     SetWindowSize(screenWidth, screenHeight);
     int nframe = 0;
 

@@ -42,6 +42,7 @@ void reset_stream_control(StreamCtrl *ctrl){
     ctrl->imgH = 0;
     ctrl->state = VSTREAM_STARTUP;
     ctrl->image = nullptr;
+    ctrl->frame_rd = false;
 };
 
 void save_jpeg_to_file(const std::vector<unsigned char>& jpeg_data, const std::string& filename) {
