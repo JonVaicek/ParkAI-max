@@ -270,6 +270,12 @@ int quit_pipeline(StreamCtrl *ctrl){
         std::cout << ctrl->stream_ip << " quit_pipeline: no loop for index " << ctrl->index << "\n";
         return 0;
     }
+    if (!ctrl->pipeline){
+        std::cout << ctrl->stream_ip << " Not Pipeline\n";
+        return 0;
+    }
+    gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
+    g_object_set(ctrl->valve, "drop", TRUE, NULL);
     if (ctrl->bus_watch_id)
         g_source_remove(ctrl->bus_watch_id);
 
@@ -403,10 +409,10 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         // GMainContext* context = g_main_loop_get_context(ctrl->loop);
         // g_main_context_invoke(context, pause_pipeline_idle, ctrl);
         g_object_set(ctrl->valve, "drop", TRUE, NULL);
-        ctrl->frame_rd = false;
         //g_idle_add(pause_pipeline_idle, ctrl);
         return 1;
     }
+    ctrl->frame_rd = false;
     return 0;
 }
 
