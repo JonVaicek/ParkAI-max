@@ -320,10 +320,15 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         return 0;
     }
     if (ctrl->frame_rd == false){
+        if (!ctrl->valve){
+            return 0;
+        }
         if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->appsink)){
+
             //g_idle_add(start_pipeline_idle, ctrl);
-            GMainContext* context = g_main_loop_get_context(ctrl->loop);
-            g_main_context_invoke(context, start_pipeline_idle, ctrl);
+            // GMainContext* context = g_main_loop_get_context(ctrl->loop);
+            // g_main_context_invoke(context, start_pipeline_idle, ctrl);
+            g_object_set(ctrl->valve, "drop", FALSE, NULL);
         }
         else{
             return 0;
@@ -387,10 +392,12 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         gst_buffer_unmap(buffer, &map);
         gst_sample_unref(sample);
 
-        ctrl->frame_rd = false;
+        
         //setting pipeline to paused
-        GMainContext* context = g_main_loop_get_context(ctrl->loop);
-        g_main_context_invoke(context, pause_pipeline_idle, ctrl);
+        // GMainContext* context = g_main_loop_get_context(ctrl->loop);
+        // g_main_context_invoke(context, pause_pipeline_idle, ctrl);
+        g_object_set(ctrl->valve, "drop", TRUE, NULL);
+        ctrl->frame_rd = false;
         //g_idle_add(pause_pipeline_idle, ctrl);
         return 1;
     }
@@ -481,12 +488,17 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     std::string gst_launch =
         //"rtspsrc location=" + rtsp_url + " protocols=tcp latency=2000 retry=3 "
         "rtspsrc location=" + rtsp_url + " protocols=tcp "
-        "! rtph264depay ! h264parse ! decodebin "
+        "! rtph264depay ! h264parse "
+        "! queue leaky=2 max-size-buffers=1 "
+        "! valve name=valve drop=true !"
+        "! decodebin "
         "! videoconvert ! video/x-raw,format=RGB ! queue leaky=2 max-size-buffers=1 ! appsink name=sink emit-signals=true sync=false";
     std::cout << "Get Pipeline pointer\n";
     ctrl->pipeline = gst_parse_launch(gst_launch.c_str(), NULL);
     std::cout << "Get Appsink pointer\n";
     ctrl->appsink = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "sink");
+    std::cout << "Get Valve\n";
+    ctrl->valve = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "valve");
     std::cout << "Get main loop pointer\n";
     ctrl->context = g_main_context_new();
     ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
@@ -506,9 +518,10 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
     ctrl->sampleh_id = sample_handler_id;
     /* Uncomment if preroll to be done before the first pull*/
-    // gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+    gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+    g_object_set(ctrl->valve, "drop", TRUE, NULL);
     // gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
-    gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
+    //gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
     //guint timeout_id = g_timeout_add(100, periodic_tick_continious, ctrl);
 
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
@@ -553,6 +566,11 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         gst_object_unref(ctrl->appsink);
         ctrl->appsink = nullptr;
         std::cout << "appsink unreffed\n";
+    }
+    if(ctrl->valve){
+        gst_object_unref(ctrl->valve);
+        ctrl->valve = nullptr;
+        std::cout << "valve unreffed\n";
     }
     if(ctrl->pipeline){
         gst_object_unref(ctrl->pipeline);

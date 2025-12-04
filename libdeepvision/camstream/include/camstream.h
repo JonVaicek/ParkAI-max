@@ -37,6 +37,7 @@ struct StreamCtrl{
     GMainContext *context = NULL;
     GstElement *pipeline = NULL;
     GstElement *appsink = NULL;
+    GstElement *valve = NULL;
     GMainLoop *loop = NULL;
     std::mutex *lock = nullptr;
     time_t timestamp = 0;
