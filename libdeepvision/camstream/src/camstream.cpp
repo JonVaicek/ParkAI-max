@@ -267,7 +267,7 @@ static gboolean stop_pipeline_idle(gpointer user_data){
 int quit_pipeline(StreamCtrl *ctrl){
     std::cout << "Stopping and Quitting the pipeline\n";
     if (!ctrl || !ctrl->loop) {
-        std::cout << "quit_pipeline: no loop for index " << ctrl->index << "\n";
+        std::cout << ctrl->stream_ip << " quit_pipeline: no loop for index " << ctrl->index << "\n";
         return 0;
     }
     if (ctrl->bus_watch_id)
@@ -275,7 +275,7 @@ int quit_pipeline(StreamCtrl *ctrl){
 
     if(ctrl->appsink && ctrl->sampleh_id){
         g_signal_handler_disconnect(ctrl->appsink, ctrl->sampleh_id);
-        std::cout << "g_signal disconnected\n";
+        std::cout << ctrl->stream_ip << " g_signal disconnected\n";
     }
 
     // GMainContext* context = g_main_loop_get_context(ctrl->loop);
@@ -489,7 +489,7 @@ void init_camstream(void){
  */
 void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
 
-    std::cout << "Creating Streamer Pipeline\n";
+    std::cout << ctrl->stream_ip << " Creating Streamer Pipeline\n";
     //gst_init(NULL, NULL);
     std::string gst_launch =
         //"rtspsrc location=" + rtsp_url + " protocols=tcp latency=2000 retry=3 "
@@ -499,18 +499,18 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         "! valve name=valve drop=true "
         "! decodebin "
         "! videoconvert ! video/x-raw,format=RGB ! queue leaky=2 max-size-buffers=1 ! appsink name=sink emit-signals=true sync=false";
-    std::cout << "Get Pipeline pointer\n";
+    //std::cout << "Get Pipeline pointer\n";
     ctrl->pipeline = gst_parse_launch(gst_launch.c_str(), NULL);
-    std::cout << "Get Appsink pointer\n";
+    //std::cout << "Get Appsink pointer\n";
     ctrl->appsink = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "sink");
-    std::cout << "Get Valve\n";
+    //std::cout << "Get Valve\n";
     ctrl->valve = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "valve");
-    std::cout << "Get main loop pointer\n";
+    //std::cout << "Get main loop pointer\n";
     ctrl->context = g_main_context_new();
     ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
     g_main_context_unref(ctrl->context);
     
-    std::cout << "Set State to STARTUP\n";
+    //std::cout << "Set State to STARTUP\n";
 
 
 
@@ -520,7 +520,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         g_printerr("Failed to create pipeline\n");
         return;
     }
-    std::cout << "Pipeline created!\n";
+    std::cout << ctrl->stream_ip << " Pipeline created!\n";
     guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
     ctrl->sampleh_id = sample_handler_id;
     /* Uncomment if preroll to be done before the first pull*/
@@ -542,7 +542,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     mutex->unlock();
 
     g_main_loop_run(ctrl->loop);
-    std::cout << "Loop Returned\n";
+    std::cout << ctrl->stream_ip << " Loop Returned\n";
     
     //cleanup
     //  if (bus_watch_id)
@@ -564,29 +564,29 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     if(GST_IS_ELEMENT(ctrl->pipeline)){
         gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         gst_element_get_state(ctrl->pipeline, &state, &pending, 0);
-        std::cout << "pipeline state - " << gst_element_state_get_name(state) << std::endl;
-        std::cout << "pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
+        std::cout << ctrl->stream_ip << " pipeline state - " << gst_element_state_get_name(state) << std::endl;
+        std::cout << ctrl->stream_ip << " pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
     }
 
     if(ctrl->appsink){
         gst_object_unref(ctrl->appsink);
         ctrl->appsink = nullptr;
-        std::cout << "appsink unreffed\n";
+        std::cout << ctrl->stream_ip << " appsink unreffed\n";
     }
     if(ctrl->valve){
         gst_object_unref(ctrl->valve);
         ctrl->valve = nullptr;
-        std::cout << "valve unreffed\n";
+        std::cout << ctrl->stream_ip << " valve unreffed\n";
     }
     if(ctrl->pipeline){
         gst_object_unref(ctrl->pipeline);
         ctrl->pipeline = nullptr;
-        std::cout << "pipeline unreffed\n";
+        std::cout << ctrl->stream_ip << " pipeline unreffed\n";
     }
     if(ctrl->loop){
         g_main_loop_unref(ctrl->loop);
         ctrl->loop = nullptr;
-        std::cout << "loop unreffed\n";
+        std::cout << ctrl->stream_ip << " loop unreffed\n";
     }
     ctrl->context = NULL;
     return;
