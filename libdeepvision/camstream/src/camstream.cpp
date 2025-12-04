@@ -265,6 +265,10 @@ static gboolean stop_pipeline_idle(gpointer user_data){
 
 int quit_pipeline(StreamCtrl *ctrl){
     std::cout << "Stopping and Quitting the pipeline\n";
+    if (!ctrl || !ctrl->loop) {
+        std::cout << "quit_pipeline: no loop for index " << ctrl->index << "\n";
+        return 0;
+    }
     if (ctrl->bus_watch_id)
         g_source_remove(ctrl->bus_watch_id);
 
@@ -273,8 +277,9 @@ int quit_pipeline(StreamCtrl *ctrl){
         std::cout << "g_signal disconnected\n";
     }
 
-    GMainContext* context = g_main_loop_get_context(ctrl->loop);
-    g_main_context_invoke(context, stop_pipeline_idle, ctrl);
+    // GMainContext* context = g_main_loop_get_context(ctrl->loop);
+    // g_main_context_invoke(context, stop_pipeline_idle, ctrl);
+    g_main_loop_quit(ctrl->loop);
 
     //g_idle_add(stop_pipeline_idle, ctrl);
     // if(GST_IS_ELEMENT(ctrl->pipeline)){
