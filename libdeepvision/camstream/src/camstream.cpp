@@ -308,6 +308,26 @@ int quit_pipeline(StreamCtrl *ctrl){
     return 1;
 }
 
+int pipeline_teardown(GstElement *pipeline){
+    GstIterator *it = gst_bin_iterate_recurse(GST_BIN(pipeline));
+    GValue item = G_VALUE_INIT;
+
+    while (gst_iterator_next(it, &item) == GST_ITERATOR_OK) {
+        GstElement *elem = GST_ELEMENT(g_value_get_object(&item));
+
+        // Force the element directly to NULL
+        gst_element_set_state(elem, GST_STATE_NULL);
+
+        // Remove element from any running scheduling
+        gst_element_abort_state(elem);
+
+        g_value_reset(&item);
+    }
+
+    g_value_unset(&item);
+    gst_iterator_free(it);
+    return 1;
+}
 
 
 // Callback to process new samples from appsink
@@ -565,7 +585,10 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     }
 
     GstState state, pending;
+    
     if(GST_IS_ELEMENT(ctrl->pipeline)){
+        std::cout << ctrl->stream_ip << " - Tearing down the pipeline\n";
+        pipeline_teardown(ctrl->pipeline);
         std::cout << ctrl->stream_ip << " - Setting Pipeline to GST_STATE_NULL\n";
         GstStateChangeReturn ret = gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         if (ret == GST_STATE_CHANGE_ASYNC){
@@ -583,7 +606,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         else{
             std::cout << ctrl->stream_ip << " StateChangeReturn = Something else\n";
         }
-        std::cout << 
+
         gst_element_get_state(ctrl->pipeline, &state, &pending, 0);
         std::cout << ctrl->stream_ip << " pipeline state - " << gst_element_state_get_name(state) << std::endl;
         std::cout << ctrl->stream_ip << " pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
