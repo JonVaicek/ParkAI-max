@@ -265,7 +265,7 @@ static gboolean stop_pipeline_idle(gpointer user_data){
 
 
 int quit_pipeline(StreamCtrl *ctrl){
-    std::cout << "Stopping and Quitting the pipeline\n";
+    std::cout << ctrl->stream_ip <<" Stopping and Quitting the pipeline\n";
     if (!ctrl || !ctrl->loop) {
         std::cout << ctrl->stream_ip << " quit_pipeline: no loop for index " << ctrl->index << "\n";
         return 0;
@@ -274,8 +274,12 @@ int quit_pipeline(StreamCtrl *ctrl){
         std::cout << ctrl->stream_ip << " Not Pipeline\n";
         return 0;
     }
-    gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
+
     g_object_set(ctrl->valve, "drop", TRUE, NULL);
+    std::cout << ctrl->stream_ip <<" Valve Set to drop=TRUE\n";
+    gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
+    std::cout << ctrl->stream_ip <<" EOS SENT\n";
+
     // if (ctrl->bus_watch_id)
     //     g_source_remove(ctrl->bus_watch_id);
 
@@ -287,6 +291,7 @@ int quit_pipeline(StreamCtrl *ctrl){
     // GMainContext* context = g_main_loop_get_context(ctrl->loop);
     // g_main_context_invoke(context, stop_pipeline_idle, ctrl);
     g_main_loop_quit(ctrl->loop);
+    std::cout << ctrl->stream_ip <<" - Main Loop Quit\n";
 
     //g_idle_add(stop_pipeline_idle, ctrl);
     // if(GST_IS_ELEMENT(ctrl->pipeline)){
@@ -440,8 +445,8 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             //gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
-            //g_main_loop_quit(ctrl->loop);
-            //return FALSE;
+            g_main_loop_quit(ctrl->loop);
+            return FALSE;
             break;
         
         // case GST_MESSAGE_STATE_CHANGED:
@@ -551,34 +556,39 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     std::cout << ctrl->stream_ip << " Loop Returned\n";
     
     //cleanup
-    //  if (bus_watch_id)
-    //      g_source_remove(bus_watch_id);
-    // if(timeout_id){
-    //     g_source_remove(timeout_id);
-    //     std::cout << "Timeout Source removed\n";
-    // }
-    // if(ctrl->appsink && sample_handler_id){
-    //     g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
-    //     std::cout << "g_signal disconnected\n";
-    // }
-        
-    // if (ctrl->lock) {
-    //     std::lock_guard<std::mutex> guard(*(ctrl->lock));
-    //     std::cout << "CTRL Locked\n";
-    // }
-    GstState state, pending;
-    if(GST_IS_ELEMENT(ctrl->pipeline)){
-        gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-        gst_element_get_state(ctrl->pipeline, &state, &pending, 0);
-        std::cout << ctrl->stream_ip << " pipeline state - " << gst_element_state_get_name(state) << std::endl;
-        std::cout << ctrl->stream_ip << " pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
-    }
+
     if (bus_watch_id)
         g_source_remove(bus_watch_id);
     if(ctrl->appsink && sample_handler_id){
         g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
         std::cout << "g_signal disconnected\n";
     }
+
+    GstState state, pending;
+    if(GST_IS_ELEMENT(ctrl->pipeline)){
+        std::cout << ctrl->stream_ip << " - Setting Pipeline to GST_STATE_NULL\n";
+        GstStateChangeReturn ret = gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+        if (ret == GST_STATE_CHANGE_ASYNC){
+            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_ASYNC\n";
+        }
+        else if(ret == GST_STATE_CHANGE_FAILURE){
+            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_FAILURE\n";
+        }
+        else if(ret == GST_STATE_CHANGE_SUCCESS){
+            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_SUCCESS\n";
+        }
+        else if(ret == GST_STATE_CHANGE_NO_PREROLL){
+            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_NO_PREROLL\n";
+        }
+        else{
+            std::cout << ctrl->stream_ip << " StateChangeReturn = Something else\n";
+        }
+        std::cout << 
+        gst_element_get_state(ctrl->pipeline, &state, &pending, 0);
+        std::cout << ctrl->stream_ip << " pipeline state - " << gst_element_state_get_name(state) << std::endl;
+        std::cout << ctrl->stream_ip << " pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
+    }
+
     if(ctrl->appsink){
         gst_object_unref(ctrl->appsink);
         ctrl->appsink = nullptr;
