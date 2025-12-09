@@ -543,15 +543,17 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     g_main_context_unref(ctrl->context);
     
     //std::cout << "Set State to STARTUP\n";
-
-
-
-    g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
-
-    if (!ctrl->pipeline || !ctrl->appsink) {
-        g_printerr("Failed to create pipeline\n");
+    if (!ctrl->pipeline || !ctrl->appsink || !ctrl->valve || !ctrl->loop) {
+        g_printerr("%s Failed to create pipeline/elements/loop\n", ctrl->stream_ip.c_str());
+        // cleanup everything allocated so far
+        if (ctrl->appsink)  { gst_object_unref(ctrl->appsink);  ctrl->appsink = nullptr; }
+        if (ctrl->valve)    { gst_object_unref(ctrl->valve);    ctrl->valve   = nullptr; }
+        if (ctrl->pipeline) { gst_object_unref(ctrl->pipeline); ctrl->pipeline = nullptr; }
+        if (ctrl->loop)     { g_main_loop_unref(ctrl->loop);    ctrl->loop    = nullptr; }
+        if (ctrl->context)  { g_main_context_unref(ctrl->context); ctrl->context = nullptr; }
         return;
     }
+    g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
     std::cout << ctrl->stream_ip << " Pipeline created!\n";
     guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
     ctrl->sampleh_id = sample_handler_id;
