@@ -592,24 +592,24 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     
     if(GST_IS_ELEMENT(ctrl->pipeline)){
         std::cout << ctrl->stream_ip << " - Tearing down the pipeline\n";
-        pipeline_teardown(ctrl->pipeline);
+        //pipeline_teardown(ctrl->pipeline);
         std::cout << ctrl->stream_ip << " - Setting Pipeline to GST_STATE_NULL\n";
-        // GstStateChangeReturn ret = gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-        // if (ret == GST_STATE_CHANGE_ASYNC){
-        //     std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_ASYNC\n";
-        // }
-        // else if(ret == GST_STATE_CHANGE_FAILURE){
-        //     std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_FAILURE\n";
-        // }
-        // else if(ret == GST_STATE_CHANGE_SUCCESS){
-        //     std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_SUCCESS\n";
-        // }
-        // else if(ret == GST_STATE_CHANGE_NO_PREROLL){
-        //     std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_NO_PREROLL\n";
-        // }
-        // else{
-        //     std::cout << ctrl->stream_ip << " StateChangeReturn = Something else\n";
-        // }
+        GstStateChangeReturn ret = gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+        if (ret == GST_STATE_CHANGE_ASYNC){
+            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_ASYNC\n";
+        }
+        else if(ret == GST_STATE_CHANGE_FAILURE){
+            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_FAILURE\n";
+        }
+        else if(ret == GST_STATE_CHANGE_SUCCESS){
+            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_SUCCESS\n";
+        }
+        else if(ret == GST_STATE_CHANGE_NO_PREROLL){
+            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_NO_PREROLL\n";
+        }
+        else{
+            std::cout << ctrl->stream_ip << " StateChangeReturn = Something else\n";
+        }
 
         gst_element_get_state(ctrl->pipeline, &state, &pending, 0);
         std::cout << ctrl->stream_ip << " pipeline state - " << gst_element_state_get_name(state) << std::endl;

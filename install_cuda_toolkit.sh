@@ -1,16 +1,16 @@
 # #!/bin/bash
-# #
-# wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
-# sudo dpkg -i cuda-keyring_1.1-1_all.deb
-# sudo apt-get update
-# sudo apt-get -y install cuda-toolkit-12-6
-# sudo apt-get install libcudnn9-cuda-12
+# #ubuntu 24.04
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+sudo apt-get -y install cuda-toolkit-12-6
+sudo apt-get install libcudnn9-cuda-12
 
 #!/bin/bash
-#
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
-sudo dpkg -i cuda-keyring_1.0-1_all.deb
-sudo apt-get update
-sudo apt-get -y install cuda-toolkit-12-2
-sudo apt-get install libcudnn9-cuda-12
+# ubuntu 20.04
+#wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
+#sudo dpkg -i cuda-keyring_1.0-1_all.deb
+#sudo apt-get update
+#sudo apt-get -y install cuda-toolkit-12-2
+#sudo apt-get install libcudnn9-cuda-12
 
