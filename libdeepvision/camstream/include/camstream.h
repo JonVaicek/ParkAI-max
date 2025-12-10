@@ -34,7 +34,7 @@ typedef enum{
 
 struct StreamCtrl{
     std::string stream_ip;
-    //GMainContext *context = NULL;
+    GMainContext *context = NULL;
     GstElement *pipeline = NULL;
     GstElement *appsink = NULL;
     GstElement *valve = NULL;
