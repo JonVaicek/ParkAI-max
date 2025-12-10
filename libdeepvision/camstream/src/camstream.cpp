@@ -538,9 +538,10 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     //std::cout << "Get Valve\n";
     ctrl->valve = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "valve");
     //std::cout << "Get main loop pointer\n";
-    ctrl->context = g_main_context_new();
-    ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
-    g_main_context_unref(ctrl->context);
+    //ctrl->context = g_main_context_new();
+    //ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
+    //g_main_context_unref(ctrl->context);
+    ctrl->loop = g_main_loop_new(NULL, FALSE);
     
     //std::cout << "Set State to STARTUP\n";
     if (!ctrl->pipeline || !ctrl->appsink || !ctrl->valve || !ctrl->loop) {
@@ -550,7 +551,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         if (ctrl->valve)    { gst_object_unref(ctrl->valve);    ctrl->valve   = nullptr; }
         if (ctrl->pipeline) { gst_object_unref(ctrl->pipeline); ctrl->pipeline = nullptr; }
         if (ctrl->loop)     { g_main_loop_unref(ctrl->loop);    ctrl->loop    = nullptr; }
-        if (ctrl->context)  { g_main_context_unref(ctrl->context); ctrl->context = nullptr; }
+        // if (ctrl->context)  { g_main_context_unref(ctrl->context); ctrl->context = nullptr; }
         return;
     }
     g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
@@ -635,7 +636,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         ctrl->loop = nullptr;
         std::cout << ctrl->stream_ip << " loop unreffed\n";
     }
-    ctrl->context = NULL;
+    //ctrl->context = NULL;
     return;
 }
 
