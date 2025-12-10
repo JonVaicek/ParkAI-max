@@ -1,6 +1,6 @@
 #ifndef CAMSTREAM_H
 #define CAMSTREAM_H
-
+#include <iostream>
 #include <vector>
 #include <thread>
 #include <gst/gst.h>
