@@ -32,6 +32,13 @@ typedef enum{
     VSTREAM_RELOAD
 }StreamState;
 
+typedef enum{
+    STREAM_SET_PLAYING = 0,
+    STREAM_SET_PAUSED,
+    STREAM_SET_NULL
+
+}StreamSetState;
+
 struct StreamCtrl{
     std::string stream_ip;
     GMainContext *context = NULL;
@@ -45,6 +52,7 @@ struct StreamCtrl{
     uint32_t imgW = 0;
     uint32_t imgH = 0;
     uint32_t index;
+    StreamSetState setState = STREAM_SET_NULL;
     guint bus_watch_id;
     guint sampleh_id;
     StreamState state = VSTREAM_NULL;

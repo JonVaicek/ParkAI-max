@@ -356,25 +356,33 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     GstStateChangeReturn ret;
     GstState current_state, pending_state;
     if (ctrl->restart == true){
-        //std::cout << "Stream is restarting\n";
         return 0;
     }
 
-    if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->valve)){
-
-        //g_idle_add(start_pipeline_idle, ctrl);
-        // GMainContext* context = g_main_loop_get_context(ctrl->loop);
-        // g_main_context_invoke(context, start_pipeline_idle, ctrl);
-        g_object_set(ctrl->valve, "drop", FALSE, NULL);
-    }else{
+    if (ctrl->frame_rd == false){
+        if (GST_IS_ELEMENT(ctrl->pipeline)){
+            //g_idle_add(start_pipeline_idle, ctrl);
+            // GMainContext* context = g_main_loop_get_context(ctrl->loop);
+            // g_main_context_invoke(context, start_pipeline_idle, ctrl);
+            if (ctrl->setState != STREAM_SET_PLAYING){
+                gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+                ctrl->setState = STREAM_SET_PLAYING;
+            }
+            //g_object_set(ctrl->valve, "drop", FALSE, NULL);
+        }
+        else{
+            return 0;
+        }
         return 0;
     }
 
     GstSample* sample = nullptr;
     int n = 0;
+
+    //g_signal_emit_by_name(ctrl->appsink, "pull-sample", &sample);
+
     sample = gst_app_sink_try_pull_sample(GST_APP_SINK(ctrl->appsink), 10 * GST_MSECOND);
-    g_object_set(ctrl->valve, "drop", TRUE, NULL);
-    
+    //g_object_set(ctrl->valve, "drop", TRUE, NULL);
     if (sample) {
 
         GstBuffer *buffer = gst_sample_get_buffer(sample);
@@ -425,8 +433,10 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         gst_buffer_unmap(buffer, &map);
         gst_sample_unref(sample);
 
-        
         //setting pipeline to paused
+        gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
+        ctrl->setState = STREAM_SET_PAUSED;
+
         // GMainContext* context = g_main_loop_get_context(ctrl->loop);
         // g_main_context_invoke(context, pause_pipeline_idle, ctrl);
         //g_object_set(ctrl->valve, "drop", TRUE, NULL);
@@ -554,10 +564,10 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
     ctrl->sampleh_id = sample_handler_id;
     /* Uncomment if preroll to be done before the first pull*/
-    gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
-    g_object_set(ctrl->valve, "drop", TRUE, NULL);
-    // gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
-    //gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
+    //gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+    g_object_set(ctrl->valve, "drop", FALSE, NULL);
+    //gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
+    gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
     //guint timeout_id = g_timeout_add(100, periodic_tick_continious, ctrl);
 
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
