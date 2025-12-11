@@ -335,7 +335,7 @@ int pipeline_teardown(GstElement *pipeline){
 GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
-    g_object_set(ctl->valve, "drop", TRUE, NULL);
+    //g_object_set(ctl->valve, "drop", TRUE, NULL);
 
     if (ctl->restart) return GST_FLOW_OK;
 
