@@ -373,7 +373,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         else{
             return 0;
         }
-        return 0;
+        //return 0;
     }
 
     GstSample* sample = nullptr;
@@ -382,6 +382,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     //g_signal_emit_by_name(ctrl->appsink, "pull-sample", &sample);
 
     sample = gst_app_sink_try_pull_sample(GST_APP_SINK(ctrl->appsink), 10 * GST_MSECOND);
+    g_object_set(ctrl->valve, "drop", TRUE, NULL);
     if (sample) {
 
         GstBuffer *buffer = gst_sample_get_buffer(sample);
@@ -436,7 +437,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         //setting pipeline to paused
         // GMainContext* context = g_main_loop_get_context(ctrl->loop);
         // g_main_context_invoke(context, pause_pipeline_idle, ctrl);
-        g_object_set(ctrl->valve, "drop", TRUE, NULL);
+        //g_object_set(ctrl->valve, "drop", TRUE, NULL);
         //g_idle_add(pause_pipeline_idle, ctrl);
         return 1;
     }

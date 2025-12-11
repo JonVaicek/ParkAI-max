@@ -111,7 +111,7 @@ std::string get_sys_boottime_s(bool writefile, const char * filepath){
             break;
         }
         else{
-            stat.ignore(std::numeric_limits<std::streamsize>::max());
+            stat.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
     }
     std::string out;
@@ -121,7 +121,6 @@ std::string get_sys_boottime_s(bool writefile, const char * filepath){
         char buf[64];
         strftime(buf, sizeof(buf), DATETIME_STRING_FORMAT, &gmtr);
         out.assign(buf);
-        std::cout << "Ateina\n";
     }
     else{
         timespec bts{}, tsn{};
@@ -138,7 +137,6 @@ std::string get_sys_boottime_s(bool writefile, const char * filepath){
 
     std::cout << "System boot time (UTC): "
               << out << "\n";
-              exit(1);
 #else
     std::cout << "Unknown Operating System\n"
 #endif
