@@ -566,8 +566,12 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     //guint timeout_id = g_timeout_add(100, periodic_tick_continious, ctrl);
 
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
-    guint bus_watch_id = gst_bus_add_watch(bus, bus_call, ctrl); 
+    //guint bus_watch_id = gst_bus_add_watch_full(bus, G_PRIORITY_DEFAULT, bus_call, ctrl); 
+    GSource *bus_source = gst_bus_create_watch(bus);
+    g_source_set_callback(bus_source, (GSourceFunc)bus_call, ctrl, nullptr);
+    guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
     ctrl->bus_watch_id = bus_watch_id;
+    g_source_unref(bus_source);
     gst_object_unref(bus);
 
 
@@ -583,6 +587,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
 
     if (bus_watch_id)
         g_source_remove(bus_watch_id);
+        bus_watch_id=0;
     if(ctrl->appsink && sample_handler_id){
         g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
         std::cout << "g_signal disconnected\n";
