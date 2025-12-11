@@ -291,7 +291,7 @@ int quit_pipeline(StreamCtrl *ctrl){
 
     // GMainContext* context = g_main_loop_get_context(ctrl->loop);
     // g_main_context_invoke(context, stop_pipeline_idle, ctrl);
-    //g_main_loop_quit(ctrl->loop);
+    g_main_loop_quit(ctrl->loop);
     std::cout << ctrl->stream_ip <<" - Main Loop Quit\n";
 
     //g_idle_add(stop_pipeline_idle, ctrl);
