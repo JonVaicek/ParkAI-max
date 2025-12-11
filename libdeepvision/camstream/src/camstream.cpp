@@ -335,6 +335,8 @@ int pipeline_teardown(GstElement *pipeline){
 GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+    g_object_set(ctl->valve, "drop", TRUE, NULL);
+
     if (ctl->restart) return GST_FLOW_OK;
 
     std::mutex *mutex = (ctl->lock);
@@ -361,7 +363,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         if (!ctrl->valve){
             return 0;
         }
-        if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->appsink)){
+        if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->valve)){
 
             //g_idle_add(start_pipeline_idle, ctrl);
             // GMainContext* context = g_main_loop_get_context(ctrl->loop);
