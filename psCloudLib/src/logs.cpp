@@ -6,7 +6,7 @@
 #include <chrono>
 #include <thread>
 #include <ctime>
-
+#include <limits>
 
 #ifdef _WIN32
 #include "windows.h"
@@ -101,28 +101,46 @@ std::string get_sys_boottime_s(bool writefile, const char * filepath){
     
 #elif __linux__
 
+    time_t bsec = 0;
+    std::ifstream stat("/proc/stat");
+    std::string key;
 
-    timespec bts, tsn;
-    clock_gettime(CLOCK_BOOTTIME, &bts);
-    clock_gettime(CLOCK_REALTIME, &tsn);
-
-    std::time_t btime = tsn.tv_sec - bts.tv_sec;
-    long bnsec = tsn.tv_nsec - bts.tv_nsec;
-    if (bnsec < 0){
-        bnsec += 1000000000L;
-        btime -= 1;
+    while(stat >> key){
+        if (key == "btime"){
+            stat >> bsec;
+            break;
+        }
+        else{
+            stat.ignore(std::numeric_limits<std::streamsize>::max());
+        }
     }
-    std::tm gmtr;
-    gmtime_r(&btime, &gmtr);
-    char timestr[64];
-    strftime(timestr, sizeof(timestr), DATETIME_STRING_FORMAT, &gmtr);
+    std::string out;
+    if(bsec > 0){
+        std:tm gmtr;
+        gmtime_r(&bsec, &gmtr);
+        char buf[64];
+        strftime(buf, sizeof(buf), DATETIME_STRING_FORMAT, &gmtr);
+        out.assign(buf);
+    }
+    else{
+        timespec bts{}, tsn{};
+        clock_gettime(CLOCK_BOOTTIME, &bts);
+        clock_gettime(CLOCK_REALTIME, &tsn);
+        time_t btime = tsn.tv_sec - bts.tv_sec;
+        if (tsn.tv_nsec < bts.tv_nsec) btime -= 1;
+        std::tm gmtr;
+        gmtime_r(&btime, &gmtr);
+        char buf[64];
+        strftime(buf, sizeof(buf), DATETIME_STRING_FORMAT, &gmtr);
+        out.assign(buf);
+    }
 
     std::cout << "System boot time (UTC): "
-              << timestr << "\n";
+              << out << "\n";
 #else
     std::cout << "Unknown Operating System\n"
 #endif
-    return timestr;
+    return out;
 }
 
 nlohmann::json clear_old_events(nlohmann::json events){
