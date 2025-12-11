@@ -359,30 +359,22 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
         //std::cout << "Stream is restarting\n";
         return 0;
     }
-    if (ctrl->frame_rd == false){
-        if (!ctrl->valve){
-            return 0;
-        }
-        if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->valve)){
 
-            //g_idle_add(start_pipeline_idle, ctrl);
-            // GMainContext* context = g_main_loop_get_context(ctrl->loop);
-            // g_main_context_invoke(context, start_pipeline_idle, ctrl);
-            g_object_set(ctrl->valve, "drop", FALSE, NULL);
-        }
-        else{
-            return 0;
-        }
-        //return 0;
+    if (GST_IS_ELEMENT(ctrl->pipeline) && GST_IS_ELEMENT(ctrl->valve)){
+
+        //g_idle_add(start_pipeline_idle, ctrl);
+        // GMainContext* context = g_main_loop_get_context(ctrl->loop);
+        // g_main_context_invoke(context, start_pipeline_idle, ctrl);
+        g_object_set(ctrl->valve, "drop", FALSE, NULL);
+    }else{
+        return 0;
     }
 
     GstSample* sample = nullptr;
     int n = 0;
-
-    //g_signal_emit_by_name(ctrl->appsink, "pull-sample", &sample);
-
     sample = gst_app_sink_try_pull_sample(GST_APP_SINK(ctrl->appsink), 10 * GST_MSECOND);
     g_object_set(ctrl->valve, "drop", TRUE, NULL);
+    
     if (sample) {
 
         GstBuffer *buffer = gst_sample_get_buffer(sample);
