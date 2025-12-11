@@ -291,7 +291,7 @@ int quit_pipeline(StreamCtrl *ctrl){
 
     // GMainContext* context = g_main_loop_get_context(ctrl->loop);
     // g_main_context_invoke(context, stop_pipeline_idle, ctrl);
-    g_main_loop_quit(ctrl->loop);
+    //g_main_loop_quit(ctrl->loop);
     std::cout << ctrl->stream_ip <<" - Main Loop Quit\n";
 
     //g_idle_add(stop_pipeline_idle, ctrl);
@@ -467,7 +467,7 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             //gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
             g_main_loop_quit(ctrl->loop);
-            return FALSE;
+            //return FALSE;
             break;
         
         // case GST_MESSAGE_STATE_CHANGED:
@@ -585,9 +585,9 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     
     //cleanup
 
-    if (bus_watch_id)
-        g_source_remove(bus_watch_id);
-        bus_watch_id=0;
+    if (ctrl->bus_watch_id)
+        g_source_remove(ctrl->bus_watch_id);
+        ctrl->bus_watch_id=0;
     if(ctrl->appsink && sample_handler_id){
         g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
         std::cout << "g_signal disconnected\n";
