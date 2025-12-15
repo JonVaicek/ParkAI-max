@@ -138,7 +138,7 @@ std::string get_sys_boottime_s(bool writefile, const char * filepath){
 
     std::cout << "System boot time (UTC): "
               << out << "\n";
-    exit(1);
+    
 #else
     std::cout << "Unknown Operating System\n"
 #endif
