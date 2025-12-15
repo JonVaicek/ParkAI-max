@@ -351,6 +351,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
     return GST_FLOW_ERROR;
 }
 
+
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size){
     std::lock_guard<std::mutex> lock(*(ctrl->lock));
     GstStateChangeReturn ret;
