@@ -121,7 +121,6 @@ std::string get_sys_boottime_s(bool writefile, const char * filepath){
         char buf[64];
         strftime(buf, sizeof(buf), DATETIME_STRING_FORMAT, &gmtr);
         out.assign(buf);
-        std::cout << "Ateina\n";
     }
     else{
         timespec bts{}, tsn{};

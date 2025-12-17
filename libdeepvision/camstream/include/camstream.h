@@ -73,6 +73,7 @@ void save_jpeg_to_file_new(const unsigned char * jpeg_data, const std::string& f
 
 vstream load_manual_stream(const char *rtsp_url, StreamCtrl *ctrl);
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size);
+uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_size);
 
 int quit_pipeline(StreamCtrl *ctrl);
 

@@ -91,7 +91,8 @@ class StreamMuxer{
     int update_frame(uint32_t id){
         uchar *img = nullptr;
         uint64_t nbytes;
-        uint32_t ret = pull_image(src_handles[id], RAW, &img, &nbytes); // Use raw RGB data
+        //uint32_t ret = pull_image(src_handles[id], RAW, &img, &nbytes); // Use raw RGB data
+        uint32_t ret = pull_gst_frame(src_handles[id], &img, &nbytes);
         if (!ret){
             //std::cout << id << " - Frame Failed To Update\n";
             return 0;
@@ -171,6 +172,7 @@ class StreamMuxer{
             std::cout << "Handle is ok\n";
         }
         uint32_t ret = pull_image(src_handles[id], JPEG, img_buf, max_size);
+        //uint32_t ret = pull_gst_frame(src_handles[id], img_buf, max_size);
         return 1;
     }
 

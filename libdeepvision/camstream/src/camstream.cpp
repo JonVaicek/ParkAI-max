@@ -276,7 +276,7 @@ int quit_pipeline(StreamCtrl *ctrl){
         return 0;
     }
 
-    g_object_set(ctrl->valve, "drop", TRUE, NULL);
+    g_object_set(ctrl->valve, "drop", FALSE, NULL);
     std::cout << ctrl->stream_ip <<" Valve Set to drop=TRUE\n";
     gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
     std::cout << ctrl->stream_ip <<" EOS SENT\n";
@@ -291,7 +291,7 @@ int quit_pipeline(StreamCtrl *ctrl){
 
     // GMainContext* context = g_main_loop_get_context(ctrl->loop);
     // g_main_context_invoke(context, stop_pipeline_idle, ctrl);
-    g_main_loop_quit(ctrl->loop);
+    //g_main_loop_quit(ctrl->loop);
     std::cout << ctrl->stream_ip <<" - Main Loop Quit\n";
 
     //g_idle_add(stop_pipeline_idle, ctrl);
@@ -337,20 +337,78 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
     //g_object_set(ctl->valve, "drop", TRUE, NULL);
 
-    if (ctl->restart) return GST_FLOW_OK;
+    if (ctl->restart) return GST_FLOW_EOS;
 
     std::mutex *mutex = (ctl->lock);
     mutex->lock();
-    ctl->frame_rd = true;
-    ctl->timestamp = std::time(nullptr);
-    ctl->state = VSTREAM_RUNNING;
-    mutex->unlock();
-    if (true) {
+
+    GstSample* sample = nullptr;
+    g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample); // pull sample
+    if (sample){
+        GstBuffer *buffer = gst_sample_get_buffer(sample);
+        GstMapInfo map;
+        gst_buffer_map(buffer, &map, GST_MAP_READ);
+        //get raw data
+        unsigned char *raw_data = map.data;
+        if (!raw_data) {
+            gst_buffer_unmap(buffer, &map);
+            gst_sample_unref(sample);
+            return GST_FLOW_ERROR;
+        }
+        GstCaps *caps = gst_sample_get_caps(sample);
+        GstStructure *structure = gst_caps_get_structure(caps, 0);
+        int width = 0, height = 0;
+        uint64_t max_size = map.maxsize;
+
+        gst_structure_get_int(structure, "width", &width);
+        gst_structure_get_int(structure, "height", &height);
+
+        //allocate memory
+        if (ctl->image == nullptr){
+            ctl->image = (unsigned char *) malloc(height*width*3);
+            ctl->imgW = width;
+            ctl->imgH = height;
+        }
+        else{
+            if (width != ctl->imgW || height != ctl->imgH){
+                std::cout << ctl->stream_ip << " Image Resolution Changed. Reallocating..\n";
+                free(ctl->image);
+                ctl->image = (unsigned char *) malloc(height*width*3);
+                ctl->imgW = width;
+                ctl->imgH = height;
+            }
+        }
+        // copy the frame
+        memcpy(ctl->image, raw_data, max_size);
+        gst_buffer_unmap(buffer, &map);
+        gst_sample_unref(sample);
+
+        ctl->frame_rd = true;
+        ctl->timestamp = std::time(nullptr);
+        ctl->state = VSTREAM_RUNNING;
+        mutex->unlock();
+        g_object_set(ctl->valve, "drop", TRUE, NULL);
         return GST_FLOW_OK;
     }
+    mutex->unlock();
     return GST_FLOW_ERROR;
 }
 
+
+uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_size){
+    std::lock_guard<std::mutex> lock(*(ctl->lock));
+    if (ctl->frame_rd != TRUE){
+        return 0;
+    }
+
+    if (img_buf == nullptr)
+        *img_buf = (unsigned char*)malloc(ctl->imgH * ctl->imgW * 3);
+    *max_size = ctl->imgH * ctl->imgW * 3;
+
+    memcpy(img_buf, ctl->image, *max_size);
+    g_object_set(ctl->valve, "drop", FALSE, NULL);
+    return 1;
+}
 
 uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf, uint64_t *max_size){
     std::lock_guard<std::mutex> lock(*(ctrl->lock));
@@ -534,7 +592,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         "rtspsrc location=" + rtsp_url + " protocols=tcp "
         "! rtph264depay ! h264parse "
         "! queue leaky=2 max-size-buffers=1 "
-        "! valve name=valve drop=true "
+        "! valve name=valve drop=false "
         "! decodebin "
         "! videoconvert ! video/x-raw,format=RGB ! queue leaky=2 max-size-buffers=1 ! appsink name=sink emit-signals=true sync=false";
     //std::cout << "Get Pipeline pointer\n";
@@ -650,6 +708,11 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     if (ctrl->context){
         g_main_context_unref(ctrl->context); ctrl->context = nullptr;
         std::cout << ctrl->stream_ip << " Context Unreffed\n";
+    }
+    if(ctrl->image){
+        free(ctrl->image);
+        ctrl->imgH = 0;
+        ctrl->imgW = 0;
     }
     //ctrl->context = NULL;
     return;
