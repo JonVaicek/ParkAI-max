@@ -626,7 +626,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     //gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
     g_object_set(ctrl->valve, "drop", FALSE, NULL);
     //gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
-    gst_element_set_state(ctrl->pipeline, GST_STATE_PAUSED);
+    gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
     //guint timeout_id = g_timeout_add(100, periodic_tick_continious, ctrl);
 
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
