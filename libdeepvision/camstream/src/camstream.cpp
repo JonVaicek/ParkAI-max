@@ -401,7 +401,7 @@ uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_
         return 0;
     }
 
-    if (img_buf == nullptr)
+    if (*img_buf == nullptr)
         *img_buf = (unsigned char*)malloc(ctl->imgH * ctl->imgW * 3);
     *max_size = ctl->imgH * ctl->imgW * 3;
     std::cout << ctl->stream_ip << " Copying frame\n";
