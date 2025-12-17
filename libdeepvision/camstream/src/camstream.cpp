@@ -405,7 +405,7 @@ uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_
         *img_buf = (unsigned char*)malloc(ctl->imgH * ctl->imgW * 3);
     *max_size = ctl->imgH * ctl->imgW * 3;
 
-    memcpy(img_buf, ctl->image, *max_size);
+    memcpy(*img_buf, ctl->image, *max_size);
     g_object_set(ctl->valve, "drop", FALSE, NULL);
     return 1;
 }
