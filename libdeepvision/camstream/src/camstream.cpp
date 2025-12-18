@@ -278,8 +278,14 @@ int quit_pipeline(StreamCtrl *ctrl){
 
     g_object_set(ctrl->valve, "drop", FALSE, NULL);
     std::cout << ctrl->stream_ip <<" Valve Set to drop=TRUE\n";
-    gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
-    std::cout << ctrl->stream_ip <<" EOS SENT\n";
+    gboolean sent = gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
+    if(!sent){
+        std::cout << ctrl->stream_ip <<" failed to send EOS\n";
+    }
+    else{
+        std::cout << ctrl->stream_ip <<" EOS SENT\n";
+    }
+    
 
     // if (ctrl->bus_watch_id)
     //     g_source_remove(ctrl->bus_watch_id);
@@ -529,8 +535,9 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
                       << ": " << err->message << std::endl;
             g_error_free(err);
             g_free(debug);
-            //ctrl->restart = true;
+            ctrl->restart = true;
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
+            g_main_loop_quit(ctrl->loop);
             break;
         }
 
