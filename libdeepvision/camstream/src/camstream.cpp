@@ -337,7 +337,13 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
     //g_object_set(ctl->valve, "drop", TRUE, NULL);
 
-    if (ctl->restart) return GST_FLOW_EOS;
+    if (ctl->restart){
+        // pull frames and discard
+        GstSample* sample = nullptr;
+        g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample);
+        gst_sample_unref(sample);
+        return GST_FLOW_OK;
+    }
 
     std::mutex *mutex = (ctl->lock);
     mutex->lock();
@@ -398,6 +404,9 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_size){
     std::lock_guard<std::mutex> lock(*(ctl->lock));
     if (ctl->frame_rd != TRUE){
+        return 0;
+    }
+    if(ctl->restart == true){
         return 0;
     }
 
