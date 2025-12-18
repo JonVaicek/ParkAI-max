@@ -38,8 +38,6 @@ void reset_stream_control(StreamCtrl *ctrl){
     ctrl->restart = false;
     ctrl->timestamp = 0;
     ctrl->rel_time = std::time(nullptr);
-    ctrl->imgW = 0;
-    ctrl->imgH = 0;
     ctrl->state = VSTREAM_STARTUP;
     if(ctrl->image){
         free(ctrl->image);
@@ -342,7 +340,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
         GstCaps *caps = gst_sample_get_caps(sample);
         GstStructure *structure = gst_caps_get_structure(caps, 0);
         int width = 0, height = 0;
-        uint64_t max_size = map.maxsize;
+        uint64_t max_size = map.size;
 
         gst_structure_get_int(structure, "width", &width);
         gst_structure_get_int(structure, "height", &height);
@@ -363,7 +361,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
             }
         }
         // copy the frame
-        memcpy(ctl->image, raw_data, max_size);
+        memcpy(ctl->image, raw_data, map.size);
         gst_buffer_unmap(buffer, &map);
         gst_sample_unref(sample);
 
@@ -562,7 +560,10 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         "! queue leaky=2 max-size-buffers=1 "
         "! valve name=valve drop=false "
         "! decodebin "
-        "! videoconvert ! video/x-raw,format=RGB ! queue leaky=2 max-size-buffers=1 ! appsink name=sink emit-signals=true sync=false";
+        "! videoconvert "
+        "! video/x-raw,format=RGB "
+        "! queue leaky=2 max-size-buffers=1 "
+        "! appsink name=sink emit-signals=true sync=false";
     //std::cout << "Get Pipeline pointer\n";
     ctrl->pipeline = gst_parse_launch(gst_launch.c_str(), NULL);
     //std::cout << "Get Appsink pointer\n";
