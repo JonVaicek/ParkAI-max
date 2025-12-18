@@ -41,7 +41,12 @@ void reset_stream_control(StreamCtrl *ctrl){
     ctrl->imgW = 0;
     ctrl->imgH = 0;
     ctrl->state = VSTREAM_STARTUP;
-    ctrl->image = nullptr;
+    if(ctrl->image){
+        free(ctrl->image);
+        ctrl->imgH = 0;
+        ctrl->imgW = 0;
+        ctrl->image = nullptr;
+    }
     ctrl->frame_rd = false;
 };
 
@@ -275,43 +280,10 @@ int quit_pipeline(StreamCtrl *ctrl){
         std::cout << ctrl->stream_ip << " Not Pipeline\n";
         return 0;
     }
-
     g_object_set(ctrl->valve, "drop", FALSE, NULL);
     std::cout << ctrl->stream_ip <<" Valve Set to drop=TRUE\n";
     gboolean sent = gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
-    if(!sent){
-        std::cout << ctrl->stream_ip <<" failed to send EOS\n";
-    }
-    else{
-        std::cout << ctrl->stream_ip <<" EOS SENT\n";
-    }
-    
-
-    // if (ctrl->bus_watch_id)
-    //     g_source_remove(ctrl->bus_watch_id);
-
-    // if(ctrl->appsink && ctrl->sampleh_id){
-    //     g_signal_handler_disconnect(ctrl->appsink, ctrl->sampleh_id);
-    //     std::cout << ctrl->stream_ip << " g_signal disconnected\n";
-    // }
-
-    // GMainContext* context = g_main_loop_get_context(ctrl->loop);
-    // g_main_context_invoke(context, stop_pipeline_idle, ctrl);
-    //g_main_loop_quit(ctrl->loop);
     std::cout << ctrl->stream_ip <<" - Main Loop Quit\n";
-
-    //g_idle_add(stop_pipeline_idle, ctrl);
-    // if(GST_IS_ELEMENT(ctrl->pipeline)){
-    //     std::cout << "In QuitPipeline: Pipeline -> NULL\n";
-    //     gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-    //     gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
-    // }
-
-    // if (GST_IS_ELEMENT(ctrl->loop))
-    //     if (ctrl->loop){
-    //         std::cout << "quitting\n";
-    //         g_main_loop_quit(ctrl->loop);
-    //     }
     return 1;
 }
 
@@ -535,7 +507,9 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
                       << ": " << err->message << std::endl;
             g_error_free(err);
             g_free(debug);
+            ctrl->lock->lock();
             ctrl->restart = true;
+            ctrl->lock->unlock();
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             g_main_loop_quit(ctrl->loop);
             break;
@@ -547,18 +521,7 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             //gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
             g_main_loop_quit(ctrl->loop);
-            //return FALSE;
             break;
-        
-        // case GST_MESSAGE_STATE_CHANGED:
-        //     if (GST_MESSAGE_SRC(msg) == GST_OBJECT(ctrl->pipeline)) {
-        //         GstState old_state, new_state, pending;
-        //         gst_message_parse_state_changed(msg, &old_state, &new_state, &pending);
-        //         // std::cout << "Pipeline "<< ctrl->stream_ip << " state changed from "
-        //         //         << gst_element_state_get_name(old_state) << " to "
-        //         //         << gst_element_state_get_name(new_state) << "\n";
-        //     }
-        // break;
 
         default:
             break;
@@ -573,22 +536,11 @@ static gboolean periodic_tick_continious(gpointer user_data){
 
   if (! ctrl->run || ctrl->restart == true) {
         std::lock_guard<std::mutex> lock(*(ctrl->lock));
-        //std::cout << "LOCKED BY TICK\n";
         std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
-        //gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
-        //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-        //gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
-        //g_main_loop_quit(ctrl->loop);
-        //ctrl->restart = false;
-        // Returning FALSE removes this timeout
         return false;
     }
-    // Returning TRUE keeps the timeout active
     return true;
 }
-
-
-
 
 void init_camstream(void){
     gst_init(NULL, NULL);
@@ -665,10 +617,14 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     
     //cleanup
 
-    if (ctrl->bus_watch_id)
+    if (ctrl->bus_watch_id){
+        std::cout  << ctrl->stream_ip << "  removing bus_watch\n";
         g_source_remove(ctrl->bus_watch_id);
         ctrl->bus_watch_id=0;
+        std::cout << ctrl->stream_ip << " bus_watch removed\n";
+    }
     if(ctrl->appsink && sample_handler_id){
+        std::cout << ctrl->stream_ip << " removing sample_handler\n";
         g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
         std::cout << "g_signal disconnected\n";
     }
@@ -725,11 +681,6 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         g_main_context_unref(ctrl->context); ctrl->context = nullptr;
         std::cout << ctrl->stream_ip << " Context Unreffed\n";
     }
-    if(ctrl->image){
-        free(ctrl->image);
-        ctrl->imgH = 0;
-        ctrl->imgW = 0;
-    }
     //ctrl->context = NULL;
     return;
 }
@@ -745,7 +696,7 @@ int pipeline_manual(const char *rtsp_url, StreamCtrl *ctrl){
     while(ctrl->run){
         create_pipeline_multi_frame_manual(rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::this_thread::sleep_for(std::chrono::seconds(60));
     }
     return 1;
 }
