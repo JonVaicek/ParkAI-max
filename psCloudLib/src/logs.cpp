@@ -116,25 +116,13 @@ std::string get_sys_boottime_s(bool writefile, const char * filepath){
     }
     std::string out;
     if(bsec > 0){
-        std:tm gmtr;
+        std:tm gmtr{};
         gmtime_r(&bsec, &gmtr);
         char buf[64];
         strftime(buf, sizeof(buf), DATETIME_STRING_FORMAT, &gmtr);
         out.assign(buf);
     }
-    else{
-        timespec bts{}, tsn{};
-        clock_gettime(CLOCK_BOOTTIME, &bts);
-        clock_gettime(CLOCK_REALTIME, &tsn);
-        time_t btime = tsn.tv_sec - bts.tv_sec;
-        if (tsn.tv_nsec < bts.tv_nsec) btime -= 1;
-        std::tm gmtr;
-        gmtime_r(&btime, &gmtr);
-        char buf[64];
-        strftime(buf, sizeof(buf), DATETIME_STRING_FORMAT, &gmtr);
-        out.assign(buf);
-    }
-
+std::cout << "RAW bsec = " << bsec << std::endl;
     std::cout << "System boot time (UTC): "
               << out << "\n";
     

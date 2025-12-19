@@ -660,7 +660,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
             std::cout << ctrl->stream_ip << " StateChangeReturn = Something else\n";
         }
 
-        gst_element_get_state(ctrl->pipeline, &state, &pending, 0);
+        gst_element_get_state(ctrl->pipeline, &state, &pending, GST_CLOCK_TIME_NONE);
         std::cout << ctrl->stream_ip << " pipeline state - " << gst_element_state_get_name(state) << std::endl;
         std::cout << ctrl->stream_ip << " pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
     }

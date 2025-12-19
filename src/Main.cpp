@@ -125,6 +125,7 @@ int init_application(void){
     app_settings.gate_server_lots = gateserver_lots;
     app_settings.boottime = get_datetime_utc();
     app_settings.sys_boot = get_sys_boottime_s(0, nullptr);
+
     get_restart();
     // disable user editing url
     enable_url_edit = false;
