@@ -1,10 +1,27 @@
 #include "streammuxer.h"
-
+#include <fstream>
+#include <string>
+#include <iostream>
 
 
 
 /* Stream Muxer Helper Functions Begin*/
+size_t current_rss_kb() {
+    std::ifstream f("/proc/self/status");
+    std::string line;
+    while (std::getline(f, line)) {
+        if (line.rfind("VmRSS:", 0) == 0) {
+            size_t kb = 0;
+            std::sscanf(line.c_str(), "VmRSS: %zu kB", &kb);
+            return kb;
+        }
+    }
+    return 0;
+}
 
+void log_mem(const char* tag) {
+    std::cout << tag << " VmRSS: " << current_rss_kb()/1024.0 << " MB\n";
+}
 
 
 /* Stream Muxer Helper Functions End*/
@@ -80,6 +97,7 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
             //std::cout << "STREAMMUX: Tick Reached 1000\n";
             tick = 0;
             update_fd();
+            log_mem("prog-mem:");
             //std::cout << "Streammux Running at: " << get_fps() << " fps" << std::endl;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(period_ms));

@@ -312,7 +312,6 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
     std::mutex *mutex = (ctl->lock);
-    //g_object_set(ctl->valve, "drop", TRUE, NULL);
 
     if (ctl->restart){
         // pull frames and discard
@@ -375,8 +374,8 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
         ctl->frame_rd = true;
         ctl->timestamp = std::time(nullptr);
         ctl->state = VSTREAM_RUNNING;
-
-        g_object_set(ctl->valve, "drop", TRUE, NULL);
+        if(GST_IS_OBJECT(ctl->valve))
+            g_object_set(ctl->valve, "drop", TRUE, NULL);
         return GST_FLOW_OK;
     }
 
@@ -403,9 +402,10 @@ uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_
         }
     }
     *max_size = buf_size;
-    std::cout << ctl->stream_ip << " Copying frame\n";
+    //std::cout << ctl->stream_ip << " Copying frame\n";
     memcpy(*img_buf, ctl->image, *max_size);
-    g_object_set(ctl->valve, "drop", FALSE, NULL);
+    if (GST_IS_OBJECT(ctl->valve));
+        g_object_set(ctl->valve, "drop", FALSE, NULL);
     return 1;
 }
 
@@ -563,7 +563,7 @@ void init_camstream(void){
  * @param rtsp_url rtsp stream url
  * @param ctrl reference to pipeline control structure
  */
-void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
+uint32_t create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
 
     std::cout << ctrl->stream_ip << " Creating Streamer Pipeline\n";
     //gst_init(NULL, NULL);
@@ -587,11 +587,9 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     //std::cout << "Get main loop pointer\n";
     ctrl->context = g_main_context_new();
     ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
-    //g_main_context_unref(ctrl->context);
-    //ctrl->loop = g_main_loop_new(NULL, FALSE);
-    
+
     //std::cout << "Set State to STARTUP\n";
-    if (!ctrl->pipeline || !ctrl->appsink || !ctrl->valve || !ctrl->loop) {
+    if (!ctrl->pipeline || !ctrl->appsink || !ctrl->valve || !ctrl->loop || !ctrl->context) {
         g_printerr("%s Failed to create pipeline/elements/loop\n", ctrl->stream_ip.c_str());
         // cleanup everything allocated so far
         if (ctrl->appsink)  { gst_object_unref(ctrl->appsink);  ctrl->appsink = nullptr; }
@@ -599,28 +597,23 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         if (ctrl->pipeline) { gst_object_unref(ctrl->pipeline); ctrl->pipeline = nullptr; }
         if (ctrl->loop)     { g_main_loop_unref(ctrl->loop);    ctrl->loop    = nullptr; }
         if (ctrl->context)  { g_main_context_unref(ctrl->context); ctrl->context = nullptr; }
-        return;
+        return 0;
     }
     g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
+    g_object_set(ctrl->valve, "drop", FALSE, NULL);
+
     std::cout << ctrl->stream_ip << " Pipeline created!\n";
     guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
     ctrl->sampleh_id = sample_handler_id;
-    /* Uncomment if preroll to be done before the first pull*/
-    //gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
-    g_object_set(ctrl->valve, "drop", FALSE, NULL);
-    //gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
-    gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
-    //guint timeout_id = g_timeout_add(100, periodic_tick_continious, ctrl);
 
+    gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+
+    //create bus
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
-    //guint bus_watch_id = gst_bus_add_watch_full(bus, G_PRIORITY_DEFAULT, bus_call, ctrl); 
     GSource *bus_source = gst_bus_create_watch(bus);
     g_source_set_callback(bus_source, (GSourceFunc)bus_call, ctrl, nullptr);
     guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
     ctrl->bus_watch_id = bus_watch_id;
-    g_source_unref(bus_source);
-    gst_object_unref(bus);
-
 
     std::mutex *mutex = (ctrl->lock);
     mutex->lock();
@@ -631,24 +624,28 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
     std::cout << ctrl->stream_ip << " Loop Returned\n";
     
     //cleanup
-
-    if (ctrl->bus_watch_id){
-        std::cout  << ctrl->stream_ip << "  removing bus_watch\n";
-        g_source_remove(ctrl->bus_watch_id);
-        ctrl->bus_watch_id=0;
-        std::cout << ctrl->stream_ip << " bus_watch removed\n";
+    std::cout  << ctrl->stream_ip << " Destroying bus_source\n";
+    if (bus_source){
+        g_source_destroy(bus_source);
+        g_source_unref(bus_source);
+        gst_object_unref(bus);
+        std::cout  << ctrl->stream_ip << " bus destroyed\n";
     }
+    // if (ctrl->bus_watch_id){
+    //     std::cout  << ctrl->stream_ip << "  removing bus_watch\n";
+    //     g_source_remove(ctrl->bus_watch_id);
+    //     ctrl->bus_watch_id=0;
+    //     std::cout << ctrl->stream_ip << " bus_watch removed\n";
+    // }
     if(ctrl->appsink && sample_handler_id){
         std::cout << ctrl->stream_ip << " removing sample_handler\n";
         g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
-        std::cout << "g_signal disconnected\n";
+        std::cout << ctrl->stream_ip << "g_signal disconnected\n";
     }
 
     GstState state, pending;
-    
     if(GST_IS_ELEMENT(ctrl->pipeline)){
-        std::cout << ctrl->stream_ip << " - Tearing down the pipeline\n";
-        //pipeline_teardown(ctrl->pipeline);
+
         std::cout << ctrl->stream_ip << " - Setting Pipeline to GST_STATE_NULL\n";
         GstStateChangeReturn ret = gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         if (ret == GST_STATE_CHANGE_ASYNC){
@@ -698,7 +695,7 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         std::cout << ctrl->stream_ip << " Context Unreffed\n";
     }
     //ctrl->context = NULL;
-    return;
+    return 1;
 }
 
 
@@ -712,7 +709,7 @@ int pipeline_manual(const char *rtsp_url, StreamCtrl *ctrl){
     while(ctrl->run){
         create_pipeline_multi_frame_manual(rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
-        std::this_thread::sleep_for(std::chrono::seconds(60));
+        std::this_thread::sleep_for(std::chrono::seconds(10));
     }
     return 1;
 }
