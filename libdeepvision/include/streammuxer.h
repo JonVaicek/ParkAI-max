@@ -89,22 +89,15 @@ class StreamMuxer{
     }
 
     int update_frame(uint32_t id){
-        uchar *img = nullptr;
-        uint64_t nbytes;
-        //uint32_t ret = pull_image(src_handles[id], RAW, &img, &nbytes); // Use raw RGB data
-        uint32_t ret = pull_gst_frame(src_handles[id], &img, &nbytes);
+        //this allocates memory in passed address, user must release it after 
+        uint32_t ret = pull_gst_frame(src_handles[id], &frames[id].idata, &frames[id].nbytes);
         if (!ret){
             //std::cout << id << " - Frame Failed To Update\n";
             return 0;
         }
         //std::cout << id << " - Copying frame\n";
-        frames[id].nbytes = nbytes;
-        frames[id].idata = (uchar *)malloc(nbytes);
-        memcpy(frames[id].idata, img, nbytes);
         frames[id].width = src_handles[id]->imgW;
         frames[id].height = src_handles[id]->imgH;
-        free(img);
-        nbytes = 0;
         //std::cout << id << " - Frame Updated\n";
         return 1;
     }
@@ -140,6 +133,16 @@ class StreamMuxer{
 
     //int copy_frame(int id, cv::Mat &img, uint64_t *size);
     int copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w, uint32_t *h);
+
+    int reset_frame(uint32_t id){
+        
+        frames[id].fid = (uint64_t)-1;
+        frames[id].ready = false;
+        frames[id].read = true;
+        //set buffer to 0??
+        memset(frames[id].idata, 0, frames[id].nbytes);
+        return 1;
+    }
 
     int clear_frame_buffers(uint32_t id){
         if (frames[id].idata != nullptr){

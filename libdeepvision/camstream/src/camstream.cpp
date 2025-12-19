@@ -385,10 +385,17 @@ uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_
     if(ctl->restart == true){
         return 0;
     }
-
-    if (*img_buf == nullptr)
-        *img_buf = (unsigned char*)malloc(ctl->imgH * ctl->imgW * 3);
-    *max_size = ctl->imgH * ctl->imgW * 3;
+    uint64_t buf_size = ctl->imgH * ctl->imgW * 3;
+    if (*img_buf == nullptr){
+        *img_buf = (unsigned char*)malloc(buf_size);
+    }
+    else{
+        if (*max_size != buf_size){
+            free(img_buf);
+            *img_buf = (unsigned char*)malloc(buf_size);
+        }
+    }
+    *max_size = buf_size;
     std::cout << ctl->stream_ip << " Copying frame\n";
     memcpy(*img_buf, ctl->image, *max_size);
     g_object_set(ctl->valve, "drop", FALSE, NULL);
@@ -679,7 +686,8 @@ void create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
         std::cout << ctrl->stream_ip << " loop unreffed\n";
     }
     if (ctrl->context){
-        g_main_context_unref(ctrl->context); ctrl->context = nullptr;
+        g_main_context_unref(ctrl->context);
+        ctrl->context = nullptr;
         std::cout << ctrl->stream_ip << " Context Unreffed\n";
     }
     //ctrl->context = NULL;
