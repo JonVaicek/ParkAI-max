@@ -311,6 +311,7 @@ int pipeline_teardown(GstElement *pipeline){
 GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+    std::mutex *mutex = (ctl->lock);
     //g_object_set(ctl->valve, "drop", TRUE, NULL);
 
     if (ctl->restart){
@@ -321,11 +322,16 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
         return GST_FLOW_OK;
     }
 
-    std::mutex *mutex = (ctl->lock);
-    mutex->lock();
-
     GstSample* sample = nullptr;
     g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample); // pull sample
+
+    if (!mutex->try_lock()) {
+        // Another thread owns the buffer → drop frame
+        gst_sample_unref(sample);
+        return GST_FLOW_OK;
+    }
+    std::lock_guard<std::mutex> lock(*mutex, std::adopt_lock);
+
     if (sample){
         GstBuffer *buffer = gst_sample_get_buffer(sample);
         GstMapInfo map;
@@ -344,6 +350,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
         gst_structure_get_int(structure, "width", &width);
         gst_structure_get_int(structure, "height", &height);
+        
 
         //allocate memory
         if (ctl->image == nullptr){
@@ -368,11 +375,11 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
         ctl->frame_rd = true;
         ctl->timestamp = std::time(nullptr);
         ctl->state = VSTREAM_RUNNING;
-        mutex->unlock();
+
         g_object_set(ctl->valve, "drop", TRUE, NULL);
         return GST_FLOW_OK;
     }
-    mutex->unlock();
+
     return GST_FLOW_ERROR;
 }
 
@@ -391,7 +398,7 @@ uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_
     }
     else{
         if (*max_size != buf_size){
-            free(img_buf);
+            free(*img_buf);
             *img_buf = (unsigned char*)malloc(buf_size);
         }
     }
