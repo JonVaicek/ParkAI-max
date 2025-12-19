@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <gst/app/gstappsink.h>  // add if not included
+#include <malloc.h>
 /*File Includes End*/
 
 /* Definitions Start*/
@@ -315,21 +316,23 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
     if (ctl->restart){
         // pull frames and discard
-        GstSample* sample = nullptr;
-        g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample);
-        gst_sample_unref(sample);
+        // GstSample* sample = nullptr;
+        // g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample);
+        // if (sample)
+        //     gst_sample_unref(sample);
         return GST_FLOW_OK;
     }
 
-    GstSample* sample = nullptr;
-    g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample); // pull sample
 
     if (!mutex->try_lock()) {
         // Another thread owns the buffer → drop frame
-        gst_sample_unref(sample);
+        // if (sample)
+        //     gst_sample_unref(sample);
         return GST_FLOW_OK;
     }
     std::lock_guard<std::mutex> lock(*mutex, std::adopt_lock);
+    GstSample* sample = nullptr;
+    g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample); // pull sample
 
     if (sample){
         GstBuffer *buffer = gst_sample_get_buffer(sample);
@@ -605,6 +608,7 @@ uint32_t create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ct
     std::cout << ctrl->stream_ip << " Pipeline created!\n";
     guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
     ctrl->sampleh_id = sample_handler_id;
+    
 
     gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
 
@@ -710,6 +714,7 @@ int pipeline_manual(const char *rtsp_url, StreamCtrl *ctrl){
         create_pipeline_multi_frame_manual(rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
         std::this_thread::sleep_for(std::chrono::seconds(60));
+        //malloc_trim(0);
     }
     return 1;
 }
