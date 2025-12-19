@@ -53,7 +53,7 @@
 
 #define VISUALIZE_DETECTIONS false
 
-#define BATCH_SIZE 1
+#define BATCH_SIZE 4
 
 #define ONDT_MILLISECOND std::chrono::milliseconds(1)
 

@@ -709,7 +709,7 @@ int pipeline_manual(const char *rtsp_url, StreamCtrl *ctrl){
     while(ctrl->run){
         create_pipeline_multi_frame_manual(rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::this_thread::sleep_for(std::chrono::seconds(60));
     }
     return 1;
 }
