@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <gst/app/gstappsink.h>  // add if not included
+#include <gst/rtsp/rtsp.h>
 #include <malloc.h>
 /*File Includes End*/
 
@@ -561,6 +562,235 @@ void init_camstream(void){
     gst_init(NULL, NULL);
 }
 
+uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
+    std::cout << url << " Creating Streamer Pipeline\n";
+    std::string name = "rtsp-" + url;
+    p->pipeline     = gst_pipeline_new(name.c_str());
+    p->rtspsrc      = gst_element_factory_make("rtspsrc", "src");
+    p->depay        = gst_element_factory_make("rtph264depay", nullptr);
+    p->parser       = gst_element_factory_make("h264parse", nullptr);
+    p->queue1       = gst_element_factory_make("queue", nullptr);
+    p->valve        = gst_element_factory_make("valve", "valve");
+    p->decodebin    = gst_element_factory_make("decodebin", nullptr);
+    p->videoconvert = gst_element_factory_make("videoconvert", nullptr);
+    p->capsfilter   = gst_element_factory_make("capsfilter", nullptr);
+    p->queue2       = gst_element_factory_make("queue", nullptr);
+    p->appsink      = gst_element_factory_make("appsink", "sink");
+
+    if(!p->pipeline){
+        std::cout << "Could not Create pipeline for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->rtspsrc){
+        std::cout << "Could not Create rtspsrc for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->depay){
+        std::cout << "Could not Create depay for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->parser){
+        std::cout << "Could not Create parser for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->queue1){
+        std::cout << "Could not Create queue1 for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->valve){
+        std::cout << "Could not Create valve for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->decodebin){
+        std::cout << "Could not Create decodebin for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->videoconvert){
+        std::cout << "Could not Create videoconvert for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->capsfilter){
+        std::cout << "Could not Create capsfilter for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->queue2){
+        std::cout << "Could not Create queue2 for - " << url << std::endl;
+        return 0;
+    }
+    if(!p->appsink){
+        std::cout << "Could not Create appsink for - " << url << std::endl;
+        return 0;
+    }
+
+    g_object_set(p->rtspsrc, "location", url.c_str(), "protocols", GST_RTSP_LOWER_TRANS_TCP,
+        "latency", 200, NULL);
+    
+    g_object_set(p->queue1, "leaky", 2, "max-size-buffers", 1, NULL);
+    g_object_set(p->queue2, "leaky", 2, "max-size-buffers", 1, NULL);
+
+    g_object_set(p->valve, "drop", FALSE, NULL);
+
+    GstCaps *caps = gst_caps_from_string("video/x-raw,format=RGB");
+    g_object_set(p->capsfilter, "caps", caps, NULL);
+    gst_caps_unref(caps);
+
+    g_object_set(p->appsink, "emit-signals", TRUE,
+        "sync", FALSE, "max-buffers", 1, "drop", TRUE, NULL);
+    
+    gst_bin_add_many(GST_BIN(p->pipeline), p->rtspsrc, p->depay, p->parser,
+        p->queue1, p->valve, p->decodebin, p->videoconvert, p->capsfilter,
+        p->queue2, p->appsink, NULL);
+    
+    //static links
+    //rtspsrc -> depay linked dinamically
+    gst_element_link_many( p->depay, p->parser,
+        p->queue1, p->valve, p->decodebin, NULL);
+    //decodebin -> videconvert linked dinamically
+    gst_element_link_many(p->videoconvert, p->capsfilter,
+        p->queue2, p->appsink, NULL);
+
+
+    
+    return 1;
+}
+
+static void on_decode_pad_added(GstElement *src, GstPad *pad, gpointer data) {
+    GstElement *videoconvert = GST_ELEMENT(data);
+    GstPad *sinkpad = gst_element_get_static_pad(videoconvert, "sink");
+
+    GstCaps *caps = gst_pad_get_current_caps(pad);
+    const GstStructure *str = gst_caps_get_structure(caps, 0);
+    const gchar *name = gst_structure_get_name(str);
+
+    if (g_str_has_prefix(name, "video/")) {
+        if (!gst_pad_is_linked(sinkpad)) {
+            gst_pad_link(pad, sinkpad);
+        }
+    }
+
+    gst_caps_unref(caps);
+    gst_object_unref(sinkpad);
+}
+
+static void on_rtsp_pad_added(GstElement *src, GstPad *pad, gpointer data) {
+    GstElement *depay = GST_ELEMENT(data);
+    GstPad *sinkpad = gst_element_get_static_pad(depay, "sink");
+
+    if (!gst_pad_is_linked(sinkpad)) {
+        gst_pad_link(pad, sinkpad);
+    }
+    gst_object_unref(sinkpad);
+}
+
+static gboolean bus_cb(GstBus *bus, GstMessage *msg, gpointer user_data) {
+    auto *p = static_cast<StreamCtrl*>(user_data);
+
+    switch (GST_MESSAGE_TYPE(msg)) {
+
+    case GST_MESSAGE_ERROR: {
+        GError *err;
+        gchar *dbg;
+        gst_message_parse_error(msg, &err, &dbg);
+
+        g_printerr("GST ERROR: %s\n", err->message);
+
+        g_error_free(err);
+        g_free(dbg);
+
+        // Stop pipeline cleanly
+        gst_element_set_state(p->pipeline, GST_STATE_NULL);
+
+        // You can trigger reconnect logic here
+                // Optional: flush old data
+        gst_element_send_event(p->pipeline, gst_event_new_flush_start());
+        gst_element_send_event(p->pipeline, gst_event_new_flush_stop(TRUE));
+
+        // Restart
+        gst_element_set_state(p->pipeline, GST_STATE_PLAYING);
+        p->restart = false;
+        std::cout << "Set to playing\n";
+        // e.g. schedule restart in another thread
+        //return FALSE;
+    }
+
+    case GST_MESSAGE_EOS:
+        gst_element_set_state(p->pipeline, GST_STATE_NULL);
+
+                // Optional: flush old data
+        gst_element_send_event(p->pipeline, gst_event_new_flush_start());
+        gst_element_send_event(p->pipeline, gst_event_new_flush_stop(TRUE));
+
+        // Restart
+        gst_element_set_state(p->pipeline, GST_STATE_PLAYING);
+        p->restart = false;
+        //return FALSE;
+
+    default:
+        break;
+    }
+    return TRUE;
+}
+
+
+uint32_t start_manual_pipeline(std::string rtsp_url, StreamCtrl *ctrl){
+    StreamPipeline p;
+    uint32_t ret = create_gst_pipeline(1, rtsp_url, &p);
+    if (!ret){
+        std::cout << "Failed to create pipeline for " << rtsp_url << std::endl;
+        return 0;
+    }
+    //copy the required pointer to ctrl structure
+    ctrl->pipeline = p.pipeline;
+    ctrl->appsink = p.appsink;
+    ctrl->valve = p.valve;
+    
+    guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
+    ctrl->sampleh_id = sample_handler_id;
+
+    g_signal_connect(p.rtspsrc, "pad-added", G_CALLBACK(on_rtsp_pad_added), p.depay);
+    g_signal_connect(p.decodebin, "pad-added", G_CALLBACK(on_decode_pad_added), p.videoconvert);
+
+
+    ctrl->context = g_main_context_new();
+    ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
+
+    //create bus
+    GstBus *bus = gst_element_get_bus(ctrl->pipeline);
+    GSource *bus_source = gst_bus_create_watch(bus);
+    g_source_set_callback(bus_source, (GSourceFunc)bus_cb, ctrl, nullptr);
+    guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
+    ctrl->bus_watch_id = bus_watch_id;
+
+    std::mutex *mutex = (ctrl->lock);
+    mutex->lock();
+    reset_stream_control(ctrl);
+    mutex->unlock();
+    gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+    g_main_loop_run(ctrl->loop);
+    std::cout << ctrl->stream_ip << " Loop Returned\n";
+
+
+    if(ctrl->pipeline){
+        gst_object_unref(ctrl->pipeline);
+        ctrl->pipeline = nullptr;
+        std::cout << ctrl->stream_ip << " pipeline unreffed\n";
+    }
+    if(ctrl->loop){
+        g_main_loop_unref(ctrl->loop);
+        ctrl->loop = nullptr;
+        std::cout << ctrl->stream_ip << " loop unreffed\n";
+    }
+    if (ctrl->context){
+        g_main_context_pop_thread_default(ctrl->context);
+        g_main_context_unref(ctrl->context);
+        ctrl->context = nullptr;
+        std::cout << ctrl->stream_ip << " Context Unreffed\n";
+    }
+
+    return 1;
+}
+
+
 /***
  * @brief Creates a gstreamer pipeline for h264 rtsp stream parse. Pipeline needs to be manually preloaded for frame pulls
  * @param rtsp_url rtsp stream url
@@ -713,7 +943,8 @@ uint32_t create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ct
  */
 int pipeline_manual(const char *rtsp_url, StreamCtrl *ctrl){
     while(ctrl->run){
-        create_pipeline_multi_frame_manual(rtsp_url, ctrl);
+        //create_pipeline_multi_frame_manual(rtsp_url, ctrl);
+        start_manual_pipeline(rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
         std::this_thread::sleep_for(std::chrono::seconds(60));
         //malloc_trim(0);

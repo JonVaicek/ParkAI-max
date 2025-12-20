@@ -39,6 +39,20 @@ typedef enum{
 
 }StreamSetState;
 
+struct StreamPipeline {
+    GstElement *pipeline;
+    GstElement *rtspsrc;
+    GstElement *depay;
+    GstElement *parser;
+    GstElement *queue1;
+    GstElement *valve;
+    GstElement *decodebin;
+    GstElement *videoconvert;
+    GstElement *capsfilter;
+    GstElement *queue2;
+    GstElement *appsink;
+};
+
 struct StreamCtrl{
     std::string stream_ip;
     GMainContext *context = NULL;
@@ -64,6 +78,7 @@ struct StreamCtrl{
     bool restart = false;
     bool frame_rd = false;
 };
+
 
 
 void init_camstream(void);
