@@ -651,6 +651,7 @@ uint32_t create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ct
     if(GST_IS_ELEMENT(ctrl->pipeline)){
 
         std::cout << ctrl->stream_ip << " - Setting Pipeline to GST_STATE_NULL\n";
+
         GstStateChangeReturn ret = gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
         if (ret == GST_STATE_CHANGE_ASYNC){
             std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_ASYNC\n";
@@ -694,6 +695,7 @@ uint32_t create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ct
         std::cout << ctrl->stream_ip << " loop unreffed\n";
     }
     if (ctrl->context){
+        g_main_context_pop_thread_default(ctrl->context);
         g_main_context_unref(ctrl->context);
         ctrl->context = nullptr;
         std::cout << ctrl->stream_ip << " Context Unreffed\n";
