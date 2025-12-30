@@ -576,23 +576,23 @@ void Engine::runn(bool visualize){
         return;
     }
     int ret = 0;
-    // int ret = pull_batch(img_batch, 50);
-
-    // if(!ret){
-    //     return;
-    // }
+    ret = pull_batch(img_batch, 50);
+    
+    if(!ret){
+        return;
+    }
     // std::cout << "Pulled Batch Size : "<<img_batch.size() <<  std::endl;
     // for(const auto & b:img_batch){
     //     std::cout << "id - " << b.id << ", img_size: " << b.nbytes << std::endl;
     // }
 
     //ret = process(img_batch, b_dets);
-    return;
 
     for (int b=0; b< batch_size; b++){
         //muxer->clear_frame_buffers(img_batch[b].id);
         muxer->reset_frame(img_batch[b].id);
     }
+    return;
 
     if (ret){
         for (int b=0; b<batch_size; b++){

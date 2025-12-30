@@ -335,11 +335,6 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
     std::lock_guard<std::mutex> lock(*mutex, std::adopt_lock);
     GstSample* sample = nullptr;
     g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample); // pull sample
-    
-    // pull and unref
-    if (!sample) return GST_FLOW_OK;
-    gst_sample_unref(sample);
-    return GST_FLOW_OK;
 
     if (sample){
         GstBuffer *buffer = gst_sample_get_buffer(sample);
@@ -356,6 +351,8 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
         GstStructure *structure = gst_caps_get_structure(caps, 0);
         int width = 0, height = 0;
         uint64_t max_size = map.size;
+        ctl->im_size = map.size;
+
 
         gst_structure_get_int(structure, "width", &width);
         gst_structure_get_int(structure, "height", &height);
@@ -363,7 +360,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
 
         //allocate memory
         if (ctl->image == nullptr){
-            ctl->image = (unsigned char *) malloc(height*width*3);
+            ctl->image = (unsigned char *) malloc(max_size);
             ctl->imgW = width;
             ctl->imgH = height;
         }
@@ -371,7 +368,7 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
             if (width != ctl->imgW || height != ctl->imgH){
                 std::cout << ctl->stream_ip << " Image Resolution Changed. Reallocating..\n";
                 free(ctl->image);
-                ctl->image = (unsigned char *) malloc(height*width*3);
+                ctl->image = (unsigned char *) malloc(max_size);
                 ctl->imgW = width;
                 ctl->imgH = height;
             }
@@ -401,7 +398,8 @@ uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_
     if(ctl->restart == true){
         return 0;
     }
-    uint64_t buf_size = ctl->imgH * ctl->imgW * 3;
+    //uint64_t buf_size = ctl->imgH * ctl->imgW * 3;
+    uint64_t buf_size = ctl->im_size;
     if (*img_buf == nullptr){
         *img_buf = (unsigned char*)malloc(buf_size);
     }

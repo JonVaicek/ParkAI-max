@@ -63,6 +63,7 @@ struct StreamCtrl{
     std::mutex *lock = nullptr;
     time_t timestamp = 0;
     time_t rel_time = 0;
+    uint64_t im_size = 0;
     uint32_t imgW = 0;
     uint32_t imgH = 0;
     uint32_t index;
