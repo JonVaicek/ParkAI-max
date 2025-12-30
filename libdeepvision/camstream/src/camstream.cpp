@@ -551,6 +551,8 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
     ctl->state = VSTREAM_RUNNING;
 
     gst_buffer_unmap(buffer, &map);
+    if(GST_IS_OBJECT(ctl->valve))
+        g_object_set(ctl->valve, "drop", TRUE, NULL);
     return GST_PAD_PROBE_OK;
 }
 
@@ -885,7 +887,7 @@ uint32_t start_manual_pipeline(std::string rtsp_url, StreamCtrl *ctrl){
         ctrl->probe_id = 0;
     }
     if (probe_pad) gst_object_unref(probe_pad);
-    
+
     if(p.depay && padadd_sig_1){
         g_signal_handler_disconnect(p.depay, padadd_sig_1);
         std::cout << ctrl->stream_ip << "padadd depay sig disconnected\n";
