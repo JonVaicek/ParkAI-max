@@ -157,7 +157,7 @@ int StreamMuxer::muxer_thread(void){
                         nfr ++;
                     }
                 }
-                check_stream_states(src_handles[i]);
+                //check_stream_states(src_handles[i]);
                 mlock.unlock();
             }
         }
