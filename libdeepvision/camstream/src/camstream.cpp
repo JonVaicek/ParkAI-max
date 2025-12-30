@@ -335,6 +335,11 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
     std::lock_guard<std::mutex> lock(*mutex, std::adopt_lock);
     GstSample* sample = nullptr;
     g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample); // pull sample
+    
+    // pull and unref
+    if (!sample) return GST_FLOW_OK;
+    gst_sample_unref(sample);
+    return GST_FLOW_OK;
 
     if (sample){
         GstBuffer *buffer = gst_sample_get_buffer(sample);
