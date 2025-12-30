@@ -244,6 +244,7 @@ static gboolean pause_pipeline_idle(gpointer user_data){
 }
 
 static gboolean start_pipeline_idle(gpointer user_data){
+    g_usleep(30 * 1000* 1000); //30 seconds
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
     if (!ctl || !GST_IS_ELEMENT(ctl->pipeline)) return G_SOURCE_REMOVE;
     gst_element_set_state(ctl->pipeline, GST_STATE_PLAYING);
@@ -272,7 +273,7 @@ static gboolean stop_pipeline_idle(gpointer user_data){
 
 int quit_pipeline(StreamCtrl *ctrl){
     std::cout << ctrl->stream_ip <<" Stopping and Quitting the pipeline\n";
-    if (!ctrl || !ctrl->loop) {
+    if (!ctrl) {
         std::cout << ctrl->stream_ip << " quit_pipeline: no loop for index " << ctrl->index << "\n";
         return 0;
     }
@@ -649,8 +650,6 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
     gst_element_link_many(p->videoconvert, p->capsfilter,
         p->queue2, p->appsink, NULL);
 
-
-    
     return 1;
 }
 
@@ -701,14 +700,15 @@ static gboolean bus_cb(GstBus *bus, GstMessage *msg, gpointer user_data) {
         gst_element_set_state(p->pipeline, GST_STATE_NULL);
 
         // You can trigger reconnect logic here
-                // Optional: flush old data
+        // Optional: flush old data
         gst_element_send_event(p->pipeline, gst_event_new_flush_start());
         gst_element_send_event(p->pipeline, gst_event_new_flush_stop(TRUE));
 
+        //g_main_context_invoke(p->context, start_pipeline_idle, p);
         // Restart
-        gst_element_set_state(p->pipeline, GST_STATE_PLAYING);
-        p->restart = false;
-        std::cout << "Set to playing\n";
+        //gst_element_set_state(p->pipeline, GST_STATE_PLAYING);
+        //p->restart = false;
+        //std::cout << "Set to playing\n";
         // e.g. schedule restart in another thread
         //return FALSE;
     }
@@ -716,19 +716,69 @@ static gboolean bus_cb(GstBus *bus, GstMessage *msg, gpointer user_data) {
     case GST_MESSAGE_EOS:
         gst_element_set_state(p->pipeline, GST_STATE_NULL);
 
-                // Optional: flush old data
+        // Optional: flush old data
         gst_element_send_event(p->pipeline, gst_event_new_flush_start());
         gst_element_send_event(p->pipeline, gst_event_new_flush_stop(TRUE));
 
+        //g_main_context_invoke(p->context, start_pipeline_idle, p);
         // Restart
-        gst_element_set_state(p->pipeline, GST_STATE_PLAYING);
-        p->restart = false;
+        //gst_element_set_state(p->pipeline, GST_STATE_PLAYING);
+        //p->restart = false;
         //return FALSE;
 
     default:
         break;
     }
     return TRUE;
+}
+
+int bus_listener(GstBus *bus, GstElement *pipeline){
+    GstMessage *msg;
+    bool terminate = false;
+
+    do {
+    msg = gst_bus_timed_pop_filtered (bus, GST_CLOCK_TIME_NONE, 
+       (GstMessageType) (GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_ERROR | GST_MESSAGE_EOS));
+
+    /* Parse message */
+    if (msg != NULL) {
+      GError *err;
+      gchar *debug_info;
+
+      switch (GST_MESSAGE_TYPE (msg)) {
+        case GST_MESSAGE_ERROR:
+          gst_message_parse_error (msg, &err, &debug_info);
+          g_printerr ("Error received from element %s: %s\n",
+              GST_OBJECT_NAME (msg->src), err->message);
+          g_printerr ("Debugging information: %s\n",
+              debug_info ? debug_info : "none");
+          g_clear_error (&err);
+          g_free (debug_info);
+          terminate = TRUE;
+          break;
+        case GST_MESSAGE_EOS:
+          g_print ("End-Of-Stream reached.\n");
+          terminate = TRUE;
+          break;
+        case GST_MESSAGE_STATE_CHANGED:
+          /* We are only interested in state-changed messages from the pipeline */
+          if (GST_MESSAGE_SRC (msg) == GST_OBJECT (pipeline)) {
+            GstState old_state, new_state, pending_state;
+            gst_message_parse_state_changed (msg, &old_state, &new_state,
+                &pending_state);
+            g_print ("Pipeline state changed from %s to %s:\n",
+                gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+          }
+          break;
+        default:
+          /* We should not reach here */
+          g_printerr ("Unexpected message received.\n");
+          break;
+      }
+      gst_message_unref (msg);
+    }
+  } while (!terminate);
+  return 1;
 }
 
 
@@ -745,47 +795,68 @@ uint32_t start_manual_pipeline(std::string rtsp_url, StreamCtrl *ctrl){
     ctrl->valve = p.valve;
     
     guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
+
     ctrl->sampleh_id = sample_handler_id;
 
     g_signal_connect(p.rtspsrc, "pad-added", G_CALLBACK(on_rtsp_pad_added), p.depay);
+
     g_signal_connect(p.decodebin, "pad-added", G_CALLBACK(on_decode_pad_added), p.videoconvert);
 
+    // dont create bus
+    //ctrl->context = g_main_context_new();
+    //ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
 
-    ctrl->context = g_main_context_new();
-    ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
-
-    //create bus
-    GstBus *bus = gst_element_get_bus(ctrl->pipeline);
-    GSource *bus_source = gst_bus_create_watch(bus);
-    g_source_set_callback(bus_source, (GSourceFunc)bus_cb, ctrl, nullptr);
-    guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
-    ctrl->bus_watch_id = bus_watch_id;
-
+    // reset the stream control
     std::mutex *mutex = (ctrl->lock);
     mutex->lock();
     reset_stream_control(ctrl);
     mutex->unlock();
-    gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
-    g_main_loop_run(ctrl->loop);
-    std::cout << ctrl->stream_ip << " Loop Returned\n";
+
+    /* Start playing */
+    ret = gst_element_set_state (ctrl->pipeline, GST_STATE_PLAYING);
+    if (ret == GST_STATE_CHANGE_FAILURE) {
+        g_printerr ("Unable to set the pipeline to the playing state.\n");
+        gst_object_unref (ctrl->pipeline);
+        return 0;
+    }
+
+    //create bus
+    GstBus *bus = gst_element_get_bus(ctrl->pipeline);
+    bus_listener(bus, ctrl->pipeline);
+    std::cout << ctrl->stream_ip << " bus listener returned\n";
+    //free resources
+    gst_object_unref (bus);
+    gst_element_set_state (ctrl->pipeline, GST_STATE_NULL);
+    std::cout << ctrl->stream_ip << " State Set To NULL\n";
+    gst_object_unref (ctrl->pipeline);
+    std::cout << ctrl->stream_ip << " Pipeline Aufiderzein\n";
+    // GSource *bus_source = gst_bus_create_watch(bus);
+    // g_source_set_callback(bus_source, (GSourceFunc)bus_cb, ctrl, nullptr);
+    // guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
+    // ctrl->bus_watch_id = bus_watch_id;
 
 
-    if(ctrl->pipeline){
-        gst_object_unref(ctrl->pipeline);
-        ctrl->pipeline = nullptr;
-        std::cout << ctrl->stream_ip << " pipeline unreffed\n";
-    }
-    if(ctrl->loop){
-        g_main_loop_unref(ctrl->loop);
-        ctrl->loop = nullptr;
-        std::cout << ctrl->stream_ip << " loop unreffed\n";
-    }
-    if (ctrl->context){
-        g_main_context_pop_thread_default(ctrl->context);
-        g_main_context_unref(ctrl->context);
-        ctrl->context = nullptr;
-        std::cout << ctrl->stream_ip << " Context Unreffed\n";
-    }
+    //gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+    //g_main_loop_run(ctrl->loop);
+    //std::cout << ctrl->stream_ip << " Loop Returned\n";
+
+
+    // if(ctrl->pipeline){
+    //     gst_object_unref(ctrl->pipeline);
+    //     ctrl->pipeline = nullptr;
+    //     std::cout << ctrl->stream_ip << " pipeline unreffed\n";
+    // }
+    // if(ctrl->loop){
+    //     g_main_loop_unref(ctrl->loop);
+    //     ctrl->loop = nullptr;
+    //     std::cout << ctrl->stream_ip << " loop unreffed\n";
+    // }
+    // if (ctrl->context){
+    //     g_main_context_pop_thread_default(ctrl->context);
+    //     g_main_context_unref(ctrl->context);
+    //     ctrl->context = nullptr;
+    //     std::cout << ctrl->stream_ip << " Context Unreffed\n";
+    // }
 
     return 1;
 }
