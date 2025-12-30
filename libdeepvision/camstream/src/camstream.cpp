@@ -514,7 +514,45 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
     return 0;
 }
 
+static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+    if (!ctl || !(info->type & GST_PAD_PROBE_TYPE_BUFFER)) return GST_PAD_PROBE_OK;
 
+    GstBuffer *buffer = GST_PAD_PROBE_INFO_BUFFER(info);
+    if (!buffer) return GST_PAD_PROBE_OK;
+
+    // Avoid blocking the streaming thread
+    if (!ctl->lock->try_lock()) return GST_PAD_PROBE_OK;
+    std::lock_guard<std::mutex> lock(*ctl->lock, std::adopt_lock);
+
+    GstMapInfo map;
+    if (!gst_buffer_map(buffer, &map, GST_MAP_READ)) return GST_PAD_PROBE_OK;
+
+    int width = ctl->imgW, height = ctl->imgH;
+    GstCaps *caps = gst_pad_get_current_caps(pad);
+    if (caps) {
+        GstStructure *s = gst_caps_get_structure(caps, 0);
+        gst_structure_get_int(s, "width", &width);
+        gst_structure_get_int(s, "height", &height);
+        gst_caps_unref(caps);
+    }
+
+    ctl->im_size = map.size;
+    if (!ctl->image || width != ctl->imgW || height != ctl->imgH) {
+        if (ctl->image) free(ctl->image);
+        ctl->image = (unsigned char*)malloc(map.size);
+        ctl->imgW = width;
+        ctl->imgH = height;
+    }
+    memcpy(ctl->image, map.data, map.size);
+
+    ctl->frame_rd = true;
+    ctl->timestamp = std::time(nullptr);
+    ctl->state = VSTREAM_RUNNING;
+
+    gst_buffer_unmap(buffer, &map);
+    return GST_PAD_PROBE_OK;
+}
 
 // Bus message handler
 static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
@@ -580,7 +618,8 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
     p->videoconvert = gst_element_factory_make("videoconvert", nullptr);
     p->capsfilter   = gst_element_factory_make("capsfilter", nullptr);
     p->queue2       = gst_element_factory_make("queue", nullptr);
-    p->appsink      = gst_element_factory_make("appsink", "sink");
+    //p->appsink      = gst_element_factory_make("appsink", "sink");
+    p->appsink      = gst_element_factory_make("fakesink", "sink");
 
     if(!p->pipeline){
         std::cout << "Could not Create pipeline for - " << url << std::endl;
@@ -639,8 +678,9 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
     g_object_set(p->capsfilter, "caps", caps, NULL);
     gst_caps_unref(caps);
 
-    g_object_set(p->appsink, "emit-signals", TRUE,
-        "sync", FALSE, "max-buffers", 1, "drop", TRUE, NULL);
+    // g_object_set(p->appsink, "emit-signals", TRUE,
+    //     "sync", FALSE, "max-buffers", 1, "drop", TRUE, NULL);
+    g_object_set(p->appsink, "sync", FALSE, "qos", TRUE, NULL);
     
     gst_bin_add_many(GST_BIN(p->pipeline), p->rtspsrc, p->depay, p->parser,
         p->queue1, p->valve, p->decodebin, p->videoconvert, p->capsfilter,
@@ -798,12 +838,15 @@ uint32_t start_manual_pipeline(std::string rtsp_url, StreamCtrl *ctrl){
     ctrl->appsink = p.appsink;
     ctrl->valve = p.valve;
     
-    guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
-
-    ctrl->sampleh_id = sample_handler_id;
+    //guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
+    //ctrl->sampleh_id = sample_handler_id;
 
     guint padadd_sig_1 = g_signal_connect(p.rtspsrc, "pad-added", G_CALLBACK(on_rtsp_pad_added), p.depay);
     guint padadd_sig_2 = g_signal_connect(p.decodebin, "pad-added", G_CALLBACK(on_decode_pad_added), p.videoconvert);
+
+    GstPad *probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
+    ctrl->probe_id = gst_pad_add_probe(probe_pad, GST_PAD_PROBE_TYPE_BUFFER, frame_probe_cb, ctrl, NULL);
+    gst_object_unref(probe_pad);
 
     // dont create bus
     //ctrl->context = g_main_context_new();
@@ -831,11 +874,18 @@ uint32_t start_manual_pipeline(std::string rtsp_url, StreamCtrl *ctrl){
     gst_object_unref (bus);
     gst_element_set_state (ctrl->pipeline, GST_STATE_NULL);
 
-    if(ctrl->appsink && sample_handler_id){
-        std::cout << ctrl->stream_ip << " removing sample_handler\n";
-        g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
-        std::cout << ctrl->stream_ip << "g_signal disconnected\n";
+    // if(ctrl->appsink && sample_handler_id){
+    //     std::cout << ctrl->stream_ip << " removing sample_handler\n";
+    //     g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
+    //     std::cout << ctrl->stream_ip << "g_signal disconnected\n";
+    // }
+    probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
+    if (probe_pad && ctrl->probe_id) {
+        gst_pad_remove_probe(probe_pad, ctrl->probe_id);
+        ctrl->probe_id = 0;
     }
+    if (probe_pad) gst_object_unref(probe_pad);
+    
     if(p.depay && padadd_sig_1){
         g_signal_handler_disconnect(p.depay, padadd_sig_1);
         std::cout << ctrl->stream_ip << "padadd depay sig disconnected\n";

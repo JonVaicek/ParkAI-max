@@ -70,6 +70,7 @@ struct StreamCtrl{
     StreamSetState setState = STREAM_SET_NULL;
     guint bus_watch_id;
     guint sampleh_id;
+    guint probe_id;
     StreamState state = VSTREAM_NULL;
     unsigned char *image = nullptr;
     bool allocated = false;
