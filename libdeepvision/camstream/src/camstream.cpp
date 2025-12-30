@@ -311,7 +311,7 @@ int pipeline_teardown(GstElement *pipeline){
 
 
 // Callback to process new samples from appsink
-GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
+GstFlowReturn sample_ready_callback(GstAppSink *appsink, gpointer user_data) {
 
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
     std::mutex *mutex = (ctl->lock);
@@ -334,8 +334,8 @@ GstFlowReturn sample_ready_callback(GstElement *sink, gpointer user_data) {
     }
     std::lock_guard<std::mutex> lock(*mutex, std::adopt_lock);
     GstSample* sample = nullptr;
-    g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample); // pull sample
-
+    //g_signal_emit_by_name(ctl->appsink, "pull-sample", &sample); // pull sample
+    sample = gst_app_sink_try_pull_sample(appsink, 0);
     if (sample){
         GstBuffer *buffer = gst_sample_get_buffer(sample);
         GstMapInfo map;
