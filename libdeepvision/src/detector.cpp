@@ -586,7 +586,7 @@ void Engine::runn(bool visualize){
     //     std::cout << "id - " << b.id << ", img_size: " << b.nbytes << std::endl;
     // }
 
-    //ret = process(img_batch, b_dets);
+    ret = process(img_batch, b_dets);
 
     for (int b=0; b< batch_size; b++){
         //muxer->clear_frame_buffers(img_batch[b].id);
