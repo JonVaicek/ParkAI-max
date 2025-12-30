@@ -409,7 +409,7 @@ uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_
     *max_size = buf_size;
     //std::cout << ctl->stream_ip << " Copying frame\n";
     memcpy(*img_buf, ctl->image, *max_size);
-    if (GST_IS_OBJECT(ctl->valve));
+    if (GST_IS_OBJECT(ctl->valve))
         g_object_set(ctl->valve, "drop", FALSE, NULL);
     return 1;
 }
@@ -798,9 +798,8 @@ uint32_t start_manual_pipeline(std::string rtsp_url, StreamCtrl *ctrl){
 
     ctrl->sampleh_id = sample_handler_id;
 
-    g_signal_connect(p.rtspsrc, "pad-added", G_CALLBACK(on_rtsp_pad_added), p.depay);
-
-    g_signal_connect(p.decodebin, "pad-added", G_CALLBACK(on_decode_pad_added), p.videoconvert);
+    guint padadd_sig_1 = g_signal_connect(p.rtspsrc, "pad-added", G_CALLBACK(on_rtsp_pad_added), p.depay);
+    guint padadd_sig_2 = g_signal_connect(p.decodebin, "pad-added", G_CALLBACK(on_decode_pad_added), p.videoconvert);
 
     // dont create bus
     //ctrl->context = g_main_context_new();
@@ -827,6 +826,20 @@ uint32_t start_manual_pipeline(std::string rtsp_url, StreamCtrl *ctrl){
     //free resources
     gst_object_unref (bus);
     gst_element_set_state (ctrl->pipeline, GST_STATE_NULL);
+
+    if(ctrl->appsink && sample_handler_id){
+        std::cout << ctrl->stream_ip << " removing sample_handler\n";
+        g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
+        std::cout << ctrl->stream_ip << "g_signal disconnected\n";
+    }
+    if(p.depay && padadd_sig_1){
+        g_signal_handler_disconnect(p.depay, padadd_sig_1);
+        std::cout << ctrl->stream_ip << "padadd depay sig disconnected\n";
+    }
+    if(p.decodebin && padadd_sig_2){
+        g_signal_handler_disconnect(p.decodebin, padadd_sig_2);
+        std::cout << ctrl->stream_ip << "padadd decodebin sig disconnected\n";
+    }
     std::cout << ctrl->stream_ip << " State Set To NULL\n";
     gst_object_unref (ctrl->pipeline);
     std::cout << ctrl->stream_ip << " Pipeline Aufiderzein\n";
