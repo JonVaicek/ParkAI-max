@@ -405,6 +405,7 @@ uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_
     }
     else{
         if (*max_size != buf_size){
+            std::cout << "Reallocating\n";
             free(*img_buf);
             *img_buf = (unsigned char*)malloc(buf_size);
         }
