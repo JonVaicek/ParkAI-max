@@ -1290,7 +1290,7 @@ class Detector{
             ctrl.index = streams[i].index;
             ctrl.stream_ip = streams[i].ip;
             src_handles.emplace_back(ctrl);
-            sources.emplace_back(load_manual_stream(streams[i].url.c_str(), &src_handles[i]));
+            sources.emplace_back(load_manual_stream(i, streams[i].url.c_str(), &src_handles[i]));
             muxer.link_stream(&sources[i], &src_handles[i]);
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // add streams with a delay
         }

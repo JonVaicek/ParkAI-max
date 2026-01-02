@@ -515,8 +515,12 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
 }
 
 static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
+
     if (!ctl || !(info->type & GST_PAD_PROBE_TYPE_BUFFER)) return GST_PAD_PROBE_OK;
+
+    if (ctl->restart == TRUE) return GST_PAD_PROBE_OK;
 
     GstBuffer *buffer = GST_PAD_PROBE_INFO_BUFFER(info);
     if (!buffer) return GST_PAD_PROBE_OK;
@@ -682,7 +686,8 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
 
     // g_object_set(p->appsink, "emit-signals", TRUE,
     //     "sync", FALSE, "max-buffers", 1, "drop", TRUE, NULL);
-    g_object_set(p->appsink, "sync", FALSE, "qos", TRUE, NULL);
+    
+    //g_object_set(p->appsink, "sync", FALSE, "qos", TRUE, NULL);
     
     gst_bin_add_many(GST_BIN(p->pipeline), p->rtspsrc, p->depay, p->parser,
         p->queue1, p->valve, p->decodebin, p->videoconvert, p->capsfilter,
@@ -780,6 +785,7 @@ static gboolean bus_cb(GstBus *bus, GstMessage *msg, gpointer user_data) {
 
 int bus_listener(GstBus *bus, GstElement *pipeline){
     GstMessage *msg;
+
     bool terminate = false;
 
     do {
@@ -828,9 +834,9 @@ int bus_listener(GstBus *bus, GstElement *pipeline){
 }
 
 
-uint32_t start_manual_pipeline(std::string rtsp_url, StreamCtrl *ctrl){
+uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     StreamPipeline p;
-    uint32_t ret = create_gst_pipeline(1, rtsp_url, &p);
+    uint32_t ret = create_gst_pipeline(id, rtsp_url, &p);
     if (!ret){
         std::cout << "Failed to create pipeline for " << rtsp_url << std::endl;
         return 0;
@@ -889,13 +895,14 @@ uint32_t start_manual_pipeline(std::string rtsp_url, StreamCtrl *ctrl){
     if (probe_pad) gst_object_unref(probe_pad);
 
     if(p.depay && padadd_sig_1){
-        g_signal_handler_disconnect(p.depay, padadd_sig_1);
+        //g_signal_handler_disconnect(p.depay, padadd_sig_1);
         std::cout << ctrl->stream_ip << "padadd depay sig disconnected\n";
     }
     if(p.decodebin && padadd_sig_2){
         g_signal_handler_disconnect(p.decodebin, padadd_sig_2);
         std::cout << ctrl->stream_ip << "padadd decodebin sig disconnected\n";
     }
+
     std::cout << ctrl->stream_ip << " State Set To NULL\n";
     gst_object_unref (ctrl->pipeline);
     std::cout << ctrl->stream_ip << " Pipeline Aufiderzein\n";
@@ -1081,10 +1088,10 @@ uint32_t create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ct
  * @param rtsp_url rtsp stream url
  * @param ctrl stream control struct
  */
-int pipeline_manual(const char *rtsp_url, StreamCtrl *ctrl){
+int pipeline_manual(int id, const char *rtsp_url, StreamCtrl *ctrl){
     while(ctrl->run){
         //create_pipeline_multi_frame_manual(rtsp_url, ctrl);
-        start_manual_pipeline(rtsp_url, ctrl);
+        start_manual_pipeline(id ,rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
         std::this_thread::sleep_for(std::chrono::seconds(60));
         //malloc_trim(0);
@@ -1098,7 +1105,7 @@ int pipeline_manual(const char *rtsp_url, StreamCtrl *ctrl){
  * @param ctrl stream control struct
  * @return vstream thread
  */
-vstream load_manual_stream(const char *rtsp_url, StreamCtrl *ctrl){
-    return vstream(pipeline_manual, rtsp_url, ctrl);
+vstream load_manual_stream(int id, const char *rtsp_url, StreamCtrl *ctrl){
+    return vstream(pipeline_manual, id, rtsp_url, ctrl);
 }
 
