@@ -520,8 +520,8 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
 
     if (!ctl || !(info->type & GST_PAD_PROBE_TYPE_BUFFER)) return GST_PAD_PROBE_OK;
 
-    if (ctl->restart == TRUE) return GST_PAD_PROBE_OK;
-
+    if (ctl->restart) return GST_PAD_PROBE_OK;
+    
     GstBuffer *buffer = GST_PAD_PROBE_INFO_BUFFER(info);
     if (!buffer) return GST_PAD_PROBE_OK;
 
