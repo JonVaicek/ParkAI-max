@@ -857,8 +857,8 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     gst_object_unref(probe_pad);
 
     // dont create bus
-    //ctrl->context = g_main_context_new();
-    //ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
+    ctrl->context = g_main_context_new();
+    ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
 
     // reset the stream control
     std::mutex *mutex = (ctrl->lock);
@@ -876,6 +876,11 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
 
     //create bus
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
+    // GSource *bus_source = gst_bus_create_watch(bus);
+    // g_source_set_callback(bus_source, (GSourceFunc)bus_cb, ctrl, nullptr);
+    // guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
+    // ctrl->bus_watch_id = bus_watch_id;
+    // manual bus listener
     bus_listener(bus, ctrl->pipeline);
     std::cout << ctrl->stream_ip << " bus listener returned\n";
     //free resources
@@ -896,22 +901,18 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
 
     if(p.depay && padadd_sig_1){
         //g_signal_handler_disconnect(p.depay, padadd_sig_1);
-        std::cout << ctrl->stream_ip << "padadd depay sig disconnected\n";
+        std::cout << ctrl->stream_ip << " padadd depay sig disconnected\n";
     }
     if(p.decodebin && padadd_sig_2){
         g_signal_handler_disconnect(p.decodebin, padadd_sig_2);
-        std::cout << ctrl->stream_ip << "padadd decodebin sig disconnected\n";
+        std::cout << ctrl->stream_ip << " padadd decodebin sig disconnected\n";
     }
-
-    std::cout << ctrl->stream_ip << " State Set To NULL\n";
-    gst_object_unref (ctrl->pipeline);
-    std::cout << ctrl->stream_ip << " Pipeline Aufiderzein\n";
-    // GSource *bus_source = gst_bus_create_watch(bus);
-    // g_source_set_callback(bus_source, (GSourceFunc)bus_cb, ctrl, nullptr);
-    // guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
-    // ctrl->bus_watch_id = bus_watch_id;
-
-
+    
+    if (ctrl->pipeline){
+        gst_object_unref (ctrl->pipeline);
+        std::cout << ctrl->stream_ip << " Pipeline Aufiderzein\n";
+    }
+    
     //gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
     //g_main_loop_run(ctrl->loop);
     //std::cout << ctrl->stream_ip << " Loop Returned\n";
