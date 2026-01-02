@@ -620,7 +620,8 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
     p->parser       = gst_element_factory_make("h264parse", nullptr);
     p->queue1       = gst_element_factory_make("queue", nullptr);
     p->valve        = gst_element_factory_make("valve", "valve");
-    p->decodebin    = gst_element_factory_make("decodebin", nullptr);
+    //p->decodebin    = gst_element_factory_make("decodebin", nullptr);
+    p->decodebin    = gst_element_factory_make("avdec_h264", nullptr);
     p->videoconvert = gst_element_factory_make("videoconvert", nullptr);
     p->capsfilter   = gst_element_factory_make("capsfilter", nullptr);
     p->queue2       = gst_element_factory_make("queue", nullptr);
@@ -693,13 +694,17 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
         p->queue1, p->valve, p->decodebin, p->videoconvert, p->capsfilter,
         p->queue2, p->appsink, NULL);
     
+    gst_element_link_many( p->depay, p->parser,
+            p->queue1, p->valve, p->decodebin, p->videoconvert, p->capsfilter,
+        p->queue2, p->appsink, NULL);
+    
     //static links
     //rtspsrc -> depay linked dinamically
-    gst_element_link_many( p->depay, p->parser,
-        p->queue1, p->valve, p->decodebin, NULL);
-    //decodebin -> videconvert linked dinamically
-    gst_element_link_many(p->videoconvert, p->capsfilter,
-        p->queue2, p->appsink, NULL);
+    // gst_element_link_many( p->depay, p->parser,
+    //     p->queue1, p->valve, p->decodebin, NULL);
+    // //decodebin -> videconvert linked dinamically
+    // gst_element_link_many(p->videoconvert, p->capsfilter,
+    //     p->queue2, p->appsink, NULL);
 
     return 1;
 }
@@ -850,7 +855,7 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     //ctrl->sampleh_id = sample_handler_id;
 
     guint padadd_sig_1 = g_signal_connect(p.rtspsrc, "pad-added", G_CALLBACK(on_rtsp_pad_added), p.depay);
-    guint padadd_sig_2 = g_signal_connect(p.decodebin, "pad-added", G_CALLBACK(on_decode_pad_added), p.videoconvert);
+    //guint padadd_sig_2 = g_signal_connect(p.decodebin, "pad-added", G_CALLBACK(on_decode_pad_added), p.videoconvert);
 
     GstPad *probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
     ctrl->probe_id = gst_pad_add_probe(probe_pad, GST_PAD_PROBE_TYPE_BUFFER, frame_probe_cb, ctrl, NULL);
@@ -903,10 +908,10 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
         //g_signal_handler_disconnect(p.depay, padadd_sig_1);
         std::cout << ctrl->stream_ip << " padadd depay sig disconnected\n";
     }
-    if(p.decodebin && padadd_sig_2){
-        g_signal_handler_disconnect(p.decodebin, padadd_sig_2);
-        std::cout << ctrl->stream_ip << " padadd decodebin sig disconnected\n";
-    }
+    // if(p.decodebin && padadd_sig_2){
+    //     g_signal_handler_disconnect(p.decodebin, padadd_sig_2);
+    //     std::cout << ctrl->stream_ip << " padadd decodebin sig disconnected\n";
+    // }
     
     if (ctrl->pipeline){
         gst_object_unref (ctrl->pipeline);
