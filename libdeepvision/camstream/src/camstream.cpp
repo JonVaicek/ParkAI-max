@@ -281,7 +281,7 @@ int quit_pipeline(StreamCtrl *ctrl){
         std::cout << ctrl->stream_ip << " Not Pipeline\n";
         return 0;
     }
-    g_object_set(ctrl->valve, "drop", FALSE, NULL);
+    g_object_set(ctrl->valve, "drop", TRUE, NULL);
     std::cout << ctrl->stream_ip <<" Valve Set to drop=TRUE\n";
     gboolean sent = gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
     std::cout << ctrl->stream_ip <<" - Main Loop Quit\n";
@@ -1118,7 +1118,7 @@ int pipeline_manual(int id, const char *rtsp_url, StreamCtrl *ctrl){
         start_manual_pipeline(id ,rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
         std::this_thread::sleep_for(std::chrono::seconds(60));
-        //malloc_trim(0);
+        break;
     }
     return 1;
 }
