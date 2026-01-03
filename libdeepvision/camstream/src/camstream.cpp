@@ -876,8 +876,8 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     gst_object_unref(probe_pad);
 
     // dont create bus
-    ctrl->context = g_main_context_new();
-    ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
+    //ctrl->context = g_main_context_new();
+    //ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
 
     // reset the stream control
     std::mutex *mutex = (ctrl->lock);
