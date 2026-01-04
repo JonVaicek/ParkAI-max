@@ -308,15 +308,20 @@ Ort::SessionOptions OnnxRTDetector::create_session_options() {
 
 
 Ort::Value OnnxRTDetector::load_input_tensor(std::vector<cv::Mat> img_batch){
-    input_tensor_values.clear(); // Clear previous data
-    
+    int size = img_batch.size();
+    input_tensor_values.clear();
+    input_tensor_values.resize(size * IN_CH * INPUT_H * INPUT_W);
+    //input_tensor_values.clear(); // Clear previous data
     // For each image in batch
-    for (const auto& src_img : img_batch) {
+    size_t idx=0;
+    for(int i=0; i< size; i++){
+    //for (const auto& src_img : img_batch) {
         // Convert HWC to CHW for this image
-        for (int c = 0; c < 3; ++c) {
+        for (int c = 0; c < IN_CH; ++c) {
             for (int y = 0; y < INPUT_H; ++y) {
                 for (int x = 0; x < INPUT_W; ++x) {
-                    input_tensor_values.push_back(src_img.at<cv::Vec3f>(y, x)[c]);
+                    //input_tensor_values.push_back(src_img.at<cv::Vec3f>(y, x)[c]);
+                    input_tensor_values[idx++]=img_batch[i].at<cv::Vec3f>(y, x)[c];
                 }
             }
         }
@@ -338,12 +343,12 @@ void OnnxRTDetector::run(Ort::Value &input_tensor){
 
 std::vector<std::vector<bbox>> OnnxRTDetector::post_process(void){
     std::vector<std::vector<bbox>> ret;
-
+    float *transposed = nullptr;
     auto shape = output_tensors.front().GetTensorTypeAndShapeInfo().GetShape(); // [2, 5, 8400]
     const int batch = shape[0];
     const int channels = shape[1];
     const int num_preds = shape[2];
-    float *transposed;
+
     transposed = (float *)malloc(batch*channels*num_preds*sizeof(float));
     float* output = output_tensors.front().GetTensorMutableData<float>();
 

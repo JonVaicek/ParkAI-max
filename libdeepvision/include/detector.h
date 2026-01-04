@@ -218,6 +218,7 @@ class LPRNetDetector{
         const char *name;
         const int INPUT_W = LPRNET_INPUT_W;
         const int INPUT_H = LPRNET_INPUT_H;
+        const int INPUT_CH = 3;
         const std::vector<std::string> ALPHABET = {
             "0","1","2","3","4","5","6","7","8","9",
             "A","B","C","D","E","F","G","H","I","J","K","L","M","N","P","Q","R","S","T","U","V","W","X","Y","Z",
@@ -271,13 +272,17 @@ class LPRNetDetector{
         //std::cout << "Output Names: " << output_names << std::endl;
         
     }
-    Ort::Value load_input_tensor(cv::Mat img){
 
+    Ort::Value load_input_tensor(cv::Mat img){
+        input_tensor_values.clear();
+        input_tensor_values.resize(INPUT_CH*INPUT_H*INPUT_W);
         // Convert HWC to CHW
-        for (int c = 0; c < 3; ++c)
+        size_t idx = 0;
+        for (int c = 0; c < INPUT_CH; ++c)
             for (int y = 0; y < INPUT_H; ++y)
                 for (int x = 0; x < INPUT_W; ++x)
-                    input_tensor_values.push_back(img.at<cv::Vec3f>(y, x)[c]);
+                    input_tensor_values[idx++] = img.at<cv::Vec3f>(y, x)[c];
+                    //input_tensor_values.push_back(img.at<cv::Vec3f>(y, x)[c]);
         Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
             memory_info, input_tensor_values.data(), input_tensor_values.size(), 
             input_shape.data(), input_shape.size());
@@ -366,6 +371,7 @@ class OnnxDetector{
     const char * name;
     const int INPUT_W = YOLO_INPUT_W;
     const int INPUT_H = YOLO_INPUT_H;
+    const int INPUT_CH= 3;
 
     const std::vector<std::string> COCO80C = {
         "person", "bycicle", "car", "motorcycle", "airplane", "bus", "train", "truck"
@@ -425,11 +431,15 @@ class OnnxDetector{
 
 
     Ort::Value load_input_tensor(cv::Mat src_img){
+        input_tensor_values.clear();
+        input_tensor_values.resize(INPUT_CH*INPUT_H*INPUT_W);
         // Convert HWC to CHW
-        for (int c = 0; c < 3; ++c)
+        size_t idx=0;
+        for (int c = 0; c < INPUT_CH; ++c)
             for (int y = 0; y < INPUT_H; ++y)
                 for (int x = 0; x < INPUT_W; ++x)
-                    input_tensor_values.push_back(src_img.at<cv::Vec3f>(y, x)[c]);
+                    input_tensor_values[idx++] = src_img.at<cv::Vec3f>(y, x)[c];
+                    //input_tensor_values.push_back(src_img.at<cv::Vec3f>(y, x)[c]);
         Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
             memory_info, input_tensor_values.data(), input_tensor_values.size(), 
             input_shape.data(), input_shape.size());

@@ -687,9 +687,12 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
 
     g_object_set(p->rtspsrc, "location", url.c_str(), "protocols", GST_RTSP_LOWER_TRANS_TCP,
         "latency", 200, NULL);
+    g_object_set(p->rtspsrc, "drop-on-latency", TRUE, NULL);
     
-    g_object_set(p->queue1, "leaky", 2, "max-size-buffers", 1, NULL);
-    g_object_set(p->queue2, "leaky", 2, "max-size-buffers", 1, NULL);
+    g_object_set(p->queue1, "leaky", 2, "max-size-buffers", 1, "max-size-time", 
+        (guint64)0, "max-size-bytes", (guint)0, NULL);
+    g_object_set(p->queue2, "leaky", 2, "max-size-buffers", 1, "max-size-time", 
+        (guint64)0, "max-size-bytes", (guint)0, NULL);
 
     g_object_set(p->valve, "drop", FALSE, NULL);
 
@@ -700,7 +703,7 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
     // g_object_set(p->appsink, "emit-signals", TRUE,
     //     "sync", FALSE, "max-buffers", 1, "drop", TRUE, NULL);
     
-    //g_object_set(p->appsink, "sync", FALSE, "qos", TRUE, NULL);
+    g_object_set(p->appsink, "sync", FALSE, "qos", TRUE, "enable-last-sample", FALSE, NULL);
     
     gst_bin_add_many(GST_BIN(p->pipeline), p->rtspsrc, p->depay, p->parser,
         p->queue1, p->valve, p->decodebin, p->videoconvert, p->capsfilter,
@@ -900,7 +903,20 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     // guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
     // ctrl->bus_watch_id = bus_watch_id;
     // manual bus listener
+    while (1){
+        bus_listener(bus, ctrl->pipeline, ctrl);
+        gst_element_send_event(ctrl->pipeline, gst_event_new_flush_start());
+        gst_element_send_event(ctrl->pipeline, gst_event_new_flush_stop(TRUE));
+        gst_element_set_state (ctrl->pipeline, GST_STATE_NULL);
+        mutex->lock();
+        ctrl->restart = true;
+        mutex->unlock();
+        sleep(60);
+        reset_stream_control(ctrl);
+        gst_element_set_state (ctrl->pipeline, GST_STATE_PLAYING);
+    }
     bus_listener(bus, ctrl->pipeline, ctrl);
+    
     mutex->lock();
     ctrl->restart = true;
     mutex->unlock();
@@ -1118,7 +1134,7 @@ int pipeline_manual(int id, const char *rtsp_url, StreamCtrl *ctrl){
         start_manual_pipeline(id ,rtsp_url, ctrl);
         std::cout << "Playback ended. Closing...\n";
         std::this_thread::sleep_for(std::chrono::seconds(60));
-        break;
+        //break;
     }
     return 1;
 }
