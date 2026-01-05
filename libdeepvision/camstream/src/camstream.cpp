@@ -38,15 +38,22 @@ std::vector<unsigned char> latest_frame;
 void reset_stream_control(StreamCtrl *ctrl){
     std::cout << "Reset Stream Control\n";
     ctrl->restart = false;
+    std::cout << "Reset timestamp\n";
     ctrl->timestamp = 0;
+    std::cout << "Reset rel time\n";
     ctrl->rel_time = std::time(nullptr);
+    std::cout << "Reset state\n";
     ctrl->state = VSTREAM_STARTUP;
+
     if(ctrl->image){
+        std::cout << "free image\n";
         free(ctrl->image);
         ctrl->imgH = 0;
         ctrl->imgW = 0;
+        std::cout << "reset image pointer\n";
         ctrl->image = nullptr;
     }
+    std::cout << "reset frame ready\n";
     ctrl->frame_rd = false;
 };
 
@@ -688,7 +695,7 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
     g_object_set(p->rtspsrc, "location", url.c_str(), "protocols", GST_RTSP_LOWER_TRANS_TCP,
         "latency", 200, NULL);
     g_object_set(p->rtspsrc, "drop-on-latency", TRUE, NULL);
-    
+
     g_object_set(p->queue1, "leaky", 2, "max-size-buffers", 1, "max-size-time", 
         (guint64)0, "max-size-bytes", (guint)0, NULL);
     g_object_set(p->queue2, "leaky", 2, "max-size-buffers", 1, "max-size-time", 
@@ -904,6 +911,7 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     // ctrl->bus_watch_id = bus_watch_id;
     // manual bus listener
     while (1){
+        std::cout << ctrl->stream_ip << " Starting bus listener\n";
         bus_listener(bus, ctrl->pipeline, ctrl);
         gst_element_send_event(ctrl->pipeline, gst_event_new_flush_start());
         gst_element_send_event(ctrl->pipeline, gst_event_new_flush_stop(TRUE));
@@ -913,6 +921,7 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
         mutex->unlock();
         sleep(60);
         reset_stream_control(ctrl);
+        std::cout << ctrl->stream_ip << " Playing pipeline\n";
         gst_element_set_state (ctrl->pipeline, GST_STATE_PLAYING);
     }
     bus_listener(bus, ctrl->pipeline, ctrl);
