@@ -916,11 +916,25 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
         gst_element_send_event(ctrl->pipeline, gst_event_new_flush_start());
         gst_element_send_event(ctrl->pipeline, gst_event_new_flush_stop(TRUE));
         gst_element_set_state (ctrl->pipeline, GST_STATE_NULL);
+        gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
+        // Detach pad probe before restart to avoid dangling callbacks
+        GstPad *probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
+        if (probe_pad && ctrl->probe_id) {
+            gst_pad_remove_probe(probe_pad, ctrl->probe_id);
+            ctrl->probe_id = 0;
+        }
+        if (probe_pad) gst_object_unref(probe_pad);
         mutex->lock();
         ctrl->restart = true;
         mutex->unlock();
         sleep(60);
+        mutex->lock();
         reset_stream_control(ctrl);
+        mutex->unlock();
+                // Reinstall probe on new capsfilter
+        GstPad *new_pad = gst_element_get_static_pad(p2.capsfilter, "src");
+        ctrl->probe_id = gst_pad_add_probe(new_pad, GST_PAD_PROBE_TYPE_BUFFER, frame_probe_cb, ctrl, NULL);
+        gst_object_unref(new_pad);
         std::cout << ctrl->stream_ip << " Playing pipeline\n";
         gst_element_set_state (ctrl->pipeline, GST_STATE_PLAYING);
     }
@@ -952,37 +966,11 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     //     //g_signal_handler_disconnect(p.depay, padadd_sig_1);
     //     std::cout << ctrl->stream_ip << " padadd depay sig disconnected\n";
     // }
-    // if(p.decodebin && padadd_sig_2){
-    //     g_signal_handler_disconnect(p.decodebin, padadd_sig_2);
-    //     std::cout << ctrl->stream_ip << " padadd decodebin sig disconnected\n";
-    // }
+
     if (ctrl->pipeline){
         gst_object_unref (ctrl->pipeline);
         std::cout << ctrl->stream_ip << " Pipeline Aufiderzein\n";
     }
-    
-    //gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
-    //g_main_loop_run(ctrl->loop);
-    //std::cout << ctrl->stream_ip << " Loop Returned\n";
-
-
-    // if(ctrl->pipeline){
-    //     gst_object_unref(ctrl->pipeline);
-    //     ctrl->pipeline = nullptr;
-    //     std::cout << ctrl->stream_ip << " pipeline unreffed\n";
-    // }
-    // if(ctrl->loop){
-    //     g_main_loop_unref(ctrl->loop);
-    //     ctrl->loop = nullptr;
-    //     std::cout << ctrl->stream_ip << " loop unreffed\n";
-    // }
-    // if (ctrl->context){
-    //     g_main_context_pop_thread_default(ctrl->context);
-    //     g_main_context_unref(ctrl->context);
-    //     ctrl->context = nullptr;
-    //     std::cout << ctrl->stream_ip << " Context Unreffed\n";
-    // }
-
     return 1;
 }
 
