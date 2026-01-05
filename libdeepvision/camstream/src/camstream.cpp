@@ -932,7 +932,7 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
         reset_stream_control(ctrl);
         mutex->unlock();
                 // Reinstall probe on new capsfilter
-        GstPad *new_pad = gst_element_get_static_pad(p2.capsfilter, "src");
+        GstPad *new_pad = gst_element_get_static_pad(p.capsfilter, "src");
         ctrl->probe_id = gst_pad_add_probe(new_pad, GST_PAD_PROBE_TYPE_BUFFER, frame_probe_cb, ctrl, NULL);
         gst_object_unref(new_pad);
         std::cout << ctrl->stream_ip << " Playing pipeline\n";
