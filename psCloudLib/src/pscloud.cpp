@@ -72,9 +72,12 @@ void upload_events_threaded(int timeout, bool *run, const char *url, char *host,
 
     while (*run){
         if (tick >= timeout*10){
-            dates.clear();
-            lotsdata.clear();
-            response.clear();
+            dates = nlohmann::json();
+            //dates.clear();
+            lotsdata = nlohmann::json();
+            //lotsdata.clear();
+            response = nlohmann::json();
+            //response.clear();
             success = 0;
             //Check if need to update:
             success = get_missing_event_dates(url, host, facility, dates);

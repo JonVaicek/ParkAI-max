@@ -540,7 +540,7 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
     // Avoid blocking the streaming thread
     if (!ctl->lock->try_lock()) return GST_PAD_PROBE_OK;
     std::lock_guard<std::mutex> lock(*ctl->lock, std::adopt_lock);
-    std::cout << ctl->stream_ip << " Reading the new frame\n";
+    //std::cout << ctl->stream_ip << " Reading the new frame\n";
     GstMapInfo map;
     if (!gst_buffer_map(buffer, &map, GST_MAP_READ)) return GST_PAD_PROBE_OK;
 
@@ -564,9 +564,9 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
         ctl->imgW = width;
         ctl->imgH = height;
     }
-    std::cout << ctl->stream_ip << " Copying image\n";
+    //std::cout << ctl->stream_ip << " Copying image\n";
     memcpy(ctl->image, map.data, map.size);
-    std::cout << ctl->stream_ip << " Image copied\n";
+    //std::cout << ctl->stream_ip << " Image copied\n";
     ctl->frame_rd = true;
     ctl->timestamp = std::time(nullptr);
     ctl->state = VSTREAM_RUNNING;
@@ -575,7 +575,7 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
     if(GST_IS_OBJECT(ctl->valve))
         g_object_set(ctl->valve, "drop", TRUE, NULL);
 
-    std::cout << ctl->stream_ip << " Image prepared\n";
+    //std::cout << ctl->stream_ip << " Image prepared\n";
     return GST_PAD_PROBE_OK;
 }
 

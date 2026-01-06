@@ -326,10 +326,11 @@ void send_periodic_hb(AppSettings *app_settings, Detector *detector, char *host,
     std::string route;
     route = "/heartbeat";
     std::string hb_url;
-    json perf_data;
     hb_url = app_settings->cloud_settings.gatedataURL + route;
+    
     while (*run){
         if (tick >= timeout_s * 10){
+            json perf_data;
             //send_heartbeat(hb_url.c_str(), host, app_settings->facility_name.c_str(), SERVER_TYPE, app_settings->sys_boot.c_str());
             server_data_t s_data = {host, app_settings->facility_name.c_str(), SERVER_TYPE, app_settings->sys_boot.c_str()};
             perf_data["running"] = detector->is_running();
@@ -386,7 +387,7 @@ int main(int argc, char* argv[]) {
     bool run_heartbeat = true;
 
     std::thread tick_generator = std::thread(generate_tick, &run, TICK_INTERVAL_MS, tick_ptr);
-    std::thread runtime_ts_thread = std::thread(runtime_ts, &run);
+    //std::thread runtime_ts_thread = std::thread(runtime_ts, &run);
 
 
     std::thread uploadData = std::thread(upload_events_threaded, DATA_UPLOAD_CHECK_TIMEOUT, &run,
@@ -394,7 +395,7 @@ int main(int argc, char* argv[]) {
                                                 hostname, app_settings.facility_name.c_str(), 
                                                 app_settings.gate_server_lots);
 
-    std::thread th_upload_outages= std::thread(periodic_upload_outages, &run);
+    //std::thread th_upload_outages= std::thread(periodic_upload_outages, &run);
 
 
     std::vector <stream_info> streams;
@@ -579,17 +580,17 @@ int main(int argc, char* argv[]) {
         tick_generator.join();
         std::cout << "Tick Generator Thread Closed\n";
     }
-
-    if(runtime_ts_thread.joinable()){
-        runtime_ts_thread.join();
-        std::cout << "Runtime TS Thread Closed\n";
-    }
-    
-    if (th_upload_outages.joinable()){
-        th_upload_outages.join();
-        std::cout << "Upload Outages Thread Closed\n";
-    }
     det.stop();
+    // if(runtime_ts_thread.joinable()){
+    //     runtime_ts_thread.join();
+    //     std::cout << "Runtime TS Thread Closed\n";
+    // }
+    
+    // if (th_upload_outages.joinable()){
+    //     th_upload_outages.join();
+    //     std::cout << "Upload Outages Thread Closed\n";
+    // }
+    
 
     // if(detections.joinable()){
     //     detections.join();

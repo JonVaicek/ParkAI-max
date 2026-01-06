@@ -341,15 +341,15 @@ void OnnxRTDetector::run(Ort::Value &input_tensor){
 }
 
 
-std::vector<std::vector<bbox>> OnnxRTDetector::post_process(void){
+std::vector<std::vector<bbox>> OnnxRTDetector::post_process(std::vector<ImgMeta> batch_meta_data){
     std::vector<std::vector<bbox>> ret;
-    float *transposed = nullptr;
+
     auto shape = output_tensors.front().GetTensorTypeAndShapeInfo().GetShape(); // [2, 5, 8400]
     const int batch = shape[0];
     const int channels = shape[1];
     const int num_preds = shape[2];
-
-    transposed = (float *)malloc(batch*channels*num_preds*sizeof(float));
+    float transposed[batch*channels*num_preds*sizeof(float)];
+    //transposed = (float *)malloc(batch*channels*num_preds*sizeof(float));
     float* output = output_tensors.front().GetTensorMutableData<float>();
 
     bool has_classes = (channels > 5);
@@ -369,8 +369,8 @@ std::vector<std::vector<bbox>> OnnxRTDetector::post_process(void){
     for(int b=0; b< batch; b++){
         std::vector<sdet> boxes;
         std::vector <bbox> bboxes;
-        int img_w = orig_imgs[b].cols;
-        int img_h = orig_imgs[b].rows;
+        int img_w = batch_meta_data[b].width;
+        int img_h = batch_meta_data[b].height;
         float sw = (float)img_w/YOLO_INPUT_W;
         float sh = (float)img_h/YOLO_INPUT_H;
 
@@ -413,7 +413,6 @@ std::vector<std::vector<bbox>> OnnxRTDetector::post_process(void){
         //std::cout << "Cars Found: " << postNMS.size() << std::endl;
         ret.push_back(postNMS);
     }
-    free(transposed);
     return ret;
 }
 
@@ -425,12 +424,17 @@ void OnnxRTDetector::clear_tensors(void){
 
 std::vector<std::vector<bbox>> OnnxRTDetector::detect(std::vector<cv::Mat> im_batch, bool visualize){
     StopWatch st_load_input;
-    orig_imgs = im_batch;
+    std::vector<ImgMeta> batch_meta;
+    batch_meta.resize(im_batch.size());
     std::vector<std::vector<bbox>> dets;
     std::vector <cv::Mat> ri_batch;
-    for (const auto & im:im_batch){
-        cv::Mat fit_img = ImgUtils::resize_image(im, INPUT_W, INPUT_H);
+    for (int i = 0; i < im_batch.size(); i++){
+        cv::Mat fit_img = ImgUtils::resize_image(im_batch[i], INPUT_W, INPUT_H);
         ri_batch.push_back(fit_img);
+
+        batch_meta[i].height = im_batch[i].rows;
+        batch_meta[i].width = im_batch[i].cols;
+        //std::cout << "Image Size Here " << batch_meta[i].width << " x " << batch_meta[i].height << std::endl;
     }
     //std::cout <<"batch ready. Size: " << ri_batch.size() << std::endl;
     Ort::Value input_tensor = load_input_tensor(ri_batch);
@@ -440,7 +444,7 @@ std::vector<std::vector<bbox>> OnnxRTDetector::detect(std::vector<cv::Mat> im_ba
     //std::cout << "RUN INFERENCE TOOK: " << st_run.stop() << std::endl;
 
     StopWatch st_pp;
-    dets = post_process();
+    dets = post_process(batch_meta);
     //std::cout << "POST_PROCESS TOOK: " << st_pp.stop() <<std::endl;
     clear_tensors();
     return dets;
@@ -496,7 +500,7 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
     //std::cout << "PREP IMAGE TOOK: " << st_prep_img.stop() << std::endl;
 
     StopWatch st_total_car_det;
-    std::vector<std::vector<bbox>> batch_dets =  car_det->detect(input_batch);
+    std::vector<std::vector<bbox>> batch_dets = car_det->detect(input_batch);
     //std::cout << "TOTAL CAR DETECT TOOK: " << st_total_car_det.stop() <<std::endl;
     detl.resize(batch_size);
 
@@ -601,19 +605,9 @@ void Engine::runn(bool visualize){
 
     if (ret){
         for (int b=0; b<batch_size; b++){
-            std::vector<parknetDet> dets = b_dets[b];
             char fn[16];
             sprintf(fn, "%05d.txt", img_batch[b].index);
-            wdet::WriteDetectionInfo(dets, wdet::get_filename(fn, detai_dir));
-            //print_detections(fn, dets);
-            // std::cout << "in image " << fn << " detected " << dets.size() << " objects\n";
-            // if (dets.size() != 0){
-            //     std::cout << "[";
-            //     for (int i=0; i < dets.size()-1; i++){
-            //         std::cout << dets[i].plText << ", ";
-            //     }
-            //     std::cout << dets[dets.size()-1].plText << "]\n";
-            // }
+            wdet::WriteDetectionInfo(b_dets[b], wdet::get_filename(fn, detai_dir));
         }
     }
     else{

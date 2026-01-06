@@ -100,6 +100,11 @@ typedef enum {
     OCR_MODEL
 }model_t;
 
+struct ImgMeta{
+    int width;
+    int height;
+};
+
 struct stream_info{
     std::string url;
     std::string ip;
@@ -229,7 +234,7 @@ class LPRNetDetector{
         Ort::Session session;
 
         Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-        cv::Mat img;
+        //cv::Mat img;
 
         std::string input_names;
         std::string output_names;
@@ -336,7 +341,7 @@ class LPRNetDetector{
 
     std::string detect_from_file(const char * img_path){
         std::string ret = "";
-        img = ImgUtils::load_image(img_path);
+        cv::Mat img = ImgUtils::load_image(img_path);
         if (img.empty()){
             return ret;
         }
@@ -350,7 +355,7 @@ class LPRNetDetector{
     }
     std::string detect_preproc(cv::Mat src_i, bool visualize = false){
         std::string ret = "";
-        img = src_i;
+        //img = src_i;
 
         cv::Mat fit_img = ImgUtils::resize_image(src_i, INPUT_W, INPUT_H);
         if(fit_img.empty()){
@@ -392,7 +397,7 @@ class OnnxDetector{
     std::string output_names;
     std::vector<const char*> input_names_raw;
     std::vector<const char*> output_names_raw;
-    cv::Mat img;
+    //cv::Mat img;
 
     static Ort::SessionOptions create_session_options() {
         Ort::SessionOptions options;
@@ -451,7 +456,7 @@ class OnnxDetector{
                     &input_tensor, 1, output_names_raw.data(), 1);
     }
 
-    std::vector<bbox> postprocess(void){
+    std::vector<bbox> postprocess(cv::Mat img){
         float *output = output_tensors.front().GetTensorMutableData<float>();
         auto tensor_info = output_tensors.front().GetTensorTypeAndShapeInfo();
         auto shape = tensor_info.GetShape();
@@ -484,7 +489,7 @@ class OnnxDetector{
         output_tensors.clear();
     }
 
-    void display_output(std::vector<bbox> detections){
+    void display_output(std::vector<bbox> detections, cv::Mat img){
         for (const auto & d:detections){
             cv::rectangle(img, cv::Point(d.x1, d.y1), cv::Point(d.x2, d.y2), cv::Scalar(0, 255, 0), 2);
             cv::putText(img, std::to_string(int(d.cid)), cv::Point(d.x1, d.y1 - 5), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 0, 255), 2);
@@ -493,7 +498,7 @@ class OnnxDetector{
         cv::waitKey(0);
     }
 
-    void visualize_bboxes(std::vector<bbox> detections){
+    void visualize_bboxes(std::vector<bbox> detections, cv::Mat img){
         for (const auto & d:detections){
             // scale detections to original image;
             cv::rectangle(img, cv::Point(d.x1, d.y1), cv::Point(d.x2, d.y2), cv::Scalar(255, 0, 0), 2);
@@ -524,7 +529,7 @@ class OnnxDetector{
      * @return vector of detected bboxes
      */
     std::vector<bbox> detect_from_file(const char * img_path, bool visualize = false){
-        img = ImgUtils::load_image(img_path);
+        cv::Mat img = ImgUtils::load_image(img_path);
         std::vector<bbox> ret;
         if (img.empty()){
             return ret;
@@ -533,10 +538,10 @@ class OnnxDetector{
         cv::Mat fit_img = ImgUtils::resize_image(prep_img, INPUT_W, INPUT_H);
         Ort::Value input_tensor = load_input_tensor(fit_img);
         run(input_tensor);
-        std::vector<bbox> dets = postprocess();
+        std::vector<bbox> dets = postprocess(img);
         clear_tensors();
         if(visualize){
-            visualize_bboxes(dets);
+            visualize_bboxes(dets, img);
         }
         return dets;
     }
@@ -549,7 +554,7 @@ class OnnxDetector{
      */
     std::vector<bbox> detect_preproc(cv::Mat src_i, bool visualize = false){
         std::vector<bbox> dets;
-        img = src_i;
+        //img = src_i;
 
         cv::Mat fit_img = ImgUtils::resize_image(src_i, INPUT_W, INPUT_H);
         int rwi = fit_img.cols;
@@ -560,10 +565,10 @@ class OnnxDetector{
         }
         Ort::Value input_tensor = load_input_tensor(fit_img);
         run(input_tensor);
-        dets = postprocess();
+        dets = postprocess(src_i);
         clear_tensors();
         if(visualize){
-            visualize_bboxes(dets);
+            visualize_bboxes(dets, src_i);
         }
         return dets;
     }
@@ -596,19 +601,13 @@ class OnnxRTDetector{
     /* Detections Threshold */
     float threshold;
 
-    /* Original image storage */
-    std::vector<cv::Mat> orig_imgs;
-
     /* Private Class Methods */
     static Ort::SessionOptions create_session_options();
     void init();
     Ort::Value load_input_tensor(std::vector<cv::Mat> img_batch);
     void run(Ort::Value &input_tensor);
-    std::vector<std::vector<bbox>> post_process(void);
+    std::vector<std::vector<bbox>> post_process(std::vector<ImgMeta> batch_meta_data);
     void clear_tensors(void);
-
-    //void display_output(std::vector<bbox> detections);
-    //void visualize_bboxes(std::vector<bbox> detections);
 
     public:
 #ifdef WIN32   
@@ -624,7 +623,6 @@ class OnnxRTDetector{
      * @return vector of detected bboxes
      */
     std::vector<std::vector<bbox>> detect(std::vector<cv::Mat> im_batch, bool visualize = false);
-
 
 };
 
