@@ -16,7 +16,7 @@
 
 /* Definitions End*/
 #define N_CHANNELS 3
-
+#define SAFE_UNREF(x) do { if (x) {  x = nullptr; } } while(0)
 
 struct pngStruct {
     unsigned char *buf;
@@ -532,7 +532,7 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
 
     if (!ctl || !(info->type & GST_PAD_PROBE_TYPE_BUFFER)) return GST_PAD_PROBE_OK;
 
-    if (ctl->restart) return GST_PAD_PROBE_OK;
+    if (ctl->restart) return GST_PAD_PROBE_REMOVE;
     
     GstBuffer *buffer = GST_PAD_PROBE_INFO_BUFFER(info);
     if (!buffer) return GST_PAD_PROBE_OK;
@@ -874,20 +874,13 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     ctrl->pipeline = p.pipeline;
     ctrl->appsink = p.appsink;
     ctrl->valve = p.valve;
-    
-    //guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
-    //ctrl->sampleh_id = sample_handler_id;
 
     guint padadd_sig_1 = g_signal_connect(p.rtspsrc, "pad-added", G_CALLBACK(on_rtsp_pad_added), p.depay);
-    //guint padadd_sig_2 = g_signal_connect(p.decodebin, "pad-added", G_CALLBACK(on_decode_pad_added), p.videoconvert);
 
     GstPad *probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
     ctrl->probe_id = gst_pad_add_probe(probe_pad, GST_PAD_PROBE_TYPE_BUFFER, frame_probe_cb, ctrl, NULL);
     gst_object_unref(probe_pad);
 
-    // dont create bus
-    //ctrl->context = g_main_context_new();
-    //ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
 
     // reset the stream control
     std::mutex *mutex = (ctrl->lock);
@@ -905,72 +898,63 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
 
     //create bus
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
-    // GSource *bus_source = gst_bus_create_watch(bus);
-    // g_source_set_callback(bus_source, (GSourceFunc)bus_cb, ctrl, nullptr);
-    // guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
-    // ctrl->bus_watch_id = bus_watch_id;
     // manual bus listener
-    while (1){
-        std::cout << ctrl->stream_ip << " Starting bus listener\n";
-        bus_listener(bus, ctrl->pipeline, ctrl);
-        gst_element_send_event(ctrl->pipeline, gst_event_new_flush_start());
-        gst_element_send_event(ctrl->pipeline, gst_event_new_flush_stop(TRUE));
-        gst_element_set_state (ctrl->pipeline, GST_STATE_NULL);
-        gst_element_get_state(ctrl->pipeline, nullptr, nullptr, GST_CLOCK_TIME_NONE);
-        // Detach pad probe before restart to avoid dangling callbacks
-        GstPad *probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
-        if (probe_pad && ctrl->probe_id) {
-            gst_pad_remove_probe(probe_pad, ctrl->probe_id);
-            ctrl->probe_id = 0;
-        }
-        if (probe_pad) gst_object_unref(probe_pad);
-        mutex->lock();
-        ctrl->restart = true;
-        mutex->unlock();
-        sleep(60);
-        mutex->lock();
-        reset_stream_control(ctrl);
-        mutex->unlock();
-                // Reinstall probe on new capsfilter
-        GstPad *new_pad = gst_element_get_static_pad(p.capsfilter, "src");
-        ctrl->probe_id = gst_pad_add_probe(new_pad, GST_PAD_PROBE_TYPE_BUFFER, frame_probe_cb, ctrl, NULL);
-        gst_object_unref(new_pad);
-        std::cout << ctrl->stream_ip << " Playing pipeline\n";
-        gst_element_set_state (ctrl->pipeline, GST_STATE_PLAYING);
-    }
     bus_listener(bus, ctrl->pipeline, ctrl);
-    
+    std::cout << ctrl->stream_ip << " bus listener returned\n";
+
     mutex->lock();
     ctrl->restart = true;
-    mutex->unlock();
-    std::cout << ctrl->stream_ip << " bus listener returned\n";
+    if (ctrl->image){
+        free(ctrl->image);
+        ctrl->image = nullptr;
+        ctrl->imgH = 0;
+        ctrl->imgW = 0;
+    }
+    
     //free resources
     gst_object_unref (bus);
-    gst_element_set_state (ctrl->pipeline, GST_STATE_NULL);
 
-    // if(ctrl->appsink && sample_handler_id){
-    //     std::cout << ctrl->stream_ip << " removing sample_handler\n";
-    //     g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
-    //     std::cout << ctrl->stream_ip << "g_signal disconnected\n";
-    // }
     std::cout << ctrl->stream_ip << "Removing pad probe\n";
     probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
     if (probe_pad && ctrl->probe_id) {
         gst_pad_remove_probe(probe_pad, ctrl->probe_id);
         ctrl->probe_id = 0;
+        std::cout << ctrl->stream_ip << " probe-pad disconnected\n";
     }
-    if (probe_pad) gst_object_unref(probe_pad);
-    std::cout << ctrl->stream_ip << " Pad Probe Removed\n";
+    if (probe_pad){
+        gst_object_unref(probe_pad);
+        std::cout << ctrl->stream_ip << " probe-pad unrefferenced\n";
+    }
+        
+    
 
-    // if(p.depay && padadd_sig_1){
-    //     //g_signal_handler_disconnect(p.depay, padadd_sig_1);
-    //     std::cout << ctrl->stream_ip << " padadd depay sig disconnected\n";
-    // }
+    if (p.rtspsrc && padadd_sig_1) {
+        g_signal_handler_disconnect(p.rtspsrc, padadd_sig_1);
+        padadd_sig_1 = 0;
+        std::cout << ctrl->stream_ip << " pad-added signal removed\n";
+    }
+
+    gst_element_set_state (ctrl->pipeline, GST_STATE_NULL);
+    gst_element_get_state(ctrl->pipeline,NULL, NULL, GST_CLOCK_TIME_NONE);
 
     if (ctrl->pipeline){
         gst_object_unref (ctrl->pipeline);
         std::cout << ctrl->stream_ip << " Pipeline Aufiderzein\n";
+        ctrl->pipeline = nullptr;
+        ctrl->appsink = nullptr;
+        ctrl->valve = nullptr;
     }
+    SAFE_UNREF(p.rtspsrc);
+    SAFE_UNREF(p.depay);
+    SAFE_UNREF(p.parser);
+    SAFE_UNREF(p.queue1);
+    SAFE_UNREF(p.valve);
+    SAFE_UNREF(p.decodebin);
+    SAFE_UNREF(p.videoconvert);
+    SAFE_UNREF(p.capsfilter);
+    SAFE_UNREF(p.queue2);
+    SAFE_UNREF(p.appsink);
+    mutex->unlock();
     return 1;
 }
 

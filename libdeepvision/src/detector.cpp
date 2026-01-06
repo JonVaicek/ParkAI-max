@@ -554,7 +554,7 @@ int Engine::process(std::vector <ImgData> &img_batch, std::vector<std::vector<pa
         //std::cout << "Detections done\n";
         if (SAVE_INPUT_IMAGES){
             StopWatch st_save_img;
-            save_input_image(img_batch[b].index, org_images[b], IMG_DIR);
+            //save_input_image(img_batch[b].index, org_images[b], IMG_DIR);
             //std::cout << "SAVE INPUT IMG TOOK: " << st_save_img.stop() << std::endl;
         }
         if (visualize){
