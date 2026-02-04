@@ -196,7 +196,7 @@ public:
     }
 
     void terminate_and_wait() {
-        if (pid_ > 0) kill(pid_, SIGTERM);
+        if (pid_ > 0) kill(pid_, SIGKILL);
         int status = 0;
         waitpid(pid_, &status, 0);
     }
