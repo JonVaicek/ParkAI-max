@@ -234,7 +234,7 @@ public:
         uint64_t sig=0;
         if(this->check_for_signal(sig)){
             if (signal_parser(sig) == EVT_PIPELINE_EXIT){
-                this->reset();
+                //this->reset();
                 return 0;
             }
             if (signal_parser(sig) == EVT_MMSH_COMPLETE){
@@ -246,7 +246,7 @@ public:
             return 0;
         }
         if(is_offline()){
-            this->reset();
+            //this->reset();
             return 0;
         }
 
