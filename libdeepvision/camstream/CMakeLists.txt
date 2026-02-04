@@ -26,26 +26,31 @@ include_directories(
 
 # 6. Add source files
 set(SOURCES
+    src/gst_parent.cpp
     src/camstream.cpp
-    #src/main.cpp
+    src/main.cpp
 )
 
 # 7. Add executable
-# add_executable(camstream ${SOURCES})
+add_executable(camstream ${SOURCES})
 add_library(libcamstream STATIC
     src/camstream.cpp
+    src/gst_parent.cpp
 )
+
+set_target_properties(libcamstream PROPERTIES OUTPUT_NAME camstream)
 
 # Specify the public include directory
 target_include_directories(libcamstream PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${GST_INCLUDE_DIRS}
     ${GLIB_INCLUDE_DIRS}
+    ${JPEG_INCLUDE_DIRS}
 )
 
 # 8. Link libraries
 target_link_libraries(libcamstream
-    PRIVATE
+    PUBLIC
     ${GST_LIBRARIES}
     ${GLIB_LIBRARIES}
     ${JPEG_LIBRARIES}
@@ -53,8 +58,47 @@ target_link_libraries(libcamstream
     PNG::PNG
 )
 
+# Link the executable to your library
+target_link_libraries(camstream
+    PRIVATE
+    libcamstream
+)
+
 # 9. Compiler definitions (optional, for pkg-config)
-target_compile_options(libcamstream PRIVATE
+target_compile_options(libcamstream PUBLIC
+    ${GST_CFLAGS_OTHER}
+    ${GLIB_CFLAGS_OTHER}
+)
+
+
+
+# Worker sources
+set(WORKER_SOURCES
+    src/gst_worker.cpp
+)
+
+# Worker executable
+add_executable(gst_worker ${WORKER_SOURCES})
+
+target_include_directories(gst_worker PRIVATE
+    ${GST_INCLUDE_DIRS}
+    ${GLIB_INCLUDE_DIRS}
+    ${JPEG_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+target_link_libraries(gst_worker
+    PRIVATE
+    libcamstream
+    ${GST_LIBRARIES}
+    ${GLIB_LIBRARIES}
+    ${JPEG_LIBRARIES}
+    pthread
+    PNG::PNG
+)
+
+target_compile_options(gst_worker PRIVATE
     ${GST_CFLAGS_OTHER}
     ${GLIB_CFLAGS_OTHER}
 )

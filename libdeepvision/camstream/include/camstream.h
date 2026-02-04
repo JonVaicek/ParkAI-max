@@ -73,19 +73,30 @@ struct StreamCtrl{
     guint probe_id;
     StreamState state = VSTREAM_NULL;
     unsigned char *image = nullptr;
-    bool allocated = false;
     bool run = true;
-    bool paused = false;
-    bool noframe = false;
     bool restart = false;
     bool frame_rd = false;
+    bool ended = false;
 };
 
+enum ShmState : uint32_t {
+    SHM_EMPTY = 0,
+    SHM_READY = 1,
+};
 
+struct DataHeader{
+    uint64_t nbytes;
+    uint32_t w;
+    uint32_t h;
+    uint32_t state=SHM_EMPTY;
+};
 
 void init_camstream(void);
 void save_jpeg_to_file(const std::vector<unsigned char>& jpeg_data, const std::string& filename);
-void save_jpeg_to_file_new(const unsigned char * jpeg_data, const std::string& filename);
+void save_jpeg_to_file_new(const unsigned char * jpeg_data, const size_t size, const std::string& filename);
+
+std::vector<unsigned char> encode_jpeg(unsigned char *raw_data, int width, int height);
+
 
 
 vstream load_manual_stream(int id, const char *rtsp_url, StreamCtrl *ctrl);
@@ -93,7 +104,7 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
 uint32_t pull_gst_frame(StreamCtrl *ctl, unsigned char **img_buf, uint64_t *max_size);
 
 int quit_pipeline(StreamCtrl *ctrl);
-
-
+uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p);
+vstream load_video_stream(int id, const char *rtsp_url, StreamCtrl *ctrl);
 
 #endif

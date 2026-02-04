@@ -35,26 +35,23 @@ std::thread func;
 std::vector<unsigned char> latest_frame;
 /* Global Variables End*/
 
-void reset_stream_control(StreamCtrl *ctrl){
-    std::cout << "Reset Stream Control\n";
+uint32_t reset_stream_control(StreamCtrl *ctrl){
+    if(ctrl->lock == nullptr){
+        return 0;
+    }
+    std::lock_guard<std::mutex> lock(*(ctrl->lock));
     ctrl->restart = false;
-    std::cout << "Reset timestamp\n";
     ctrl->timestamp = 0;
-    std::cout << "Reset rel time\n";
     ctrl->rel_time = std::time(nullptr);
-    std::cout << "Reset state\n";
     ctrl->state = VSTREAM_STARTUP;
-
     if(ctrl->image){
-        std::cout << "free image\n";
         free(ctrl->image);
         ctrl->imgH = 0;
         ctrl->imgW = 0;
-        std::cout << "reset image pointer\n";
         ctrl->image = nullptr;
     }
-    std::cout << "reset frame ready\n";
     ctrl->frame_rd = false;
+    return 1;
 };
 
 void save_jpeg_to_file(const std::vector<unsigned char>& jpeg_data, const std::string& filename) {
@@ -68,13 +65,13 @@ void save_jpeg_to_file(const std::vector<unsigned char>& jpeg_data, const std::s
 }
 
 
-void save_jpeg_to_file_new(const unsigned char * jpeg_data, const std::string& filename) {
+void save_jpeg_to_file_new(const unsigned char * jpeg_data, const size_t size, const std::string& filename) {
     std::ofstream outfile(filename, std::ios::binary);
     if (!outfile) {
         std::cerr << "Failed to open file for writing: " << filename << std::endl;
         return;
     }
-    outfile.write(reinterpret_cast<const char*>(jpeg_data), std::streamsize(1920*1080*3));
+    outfile.write(reinterpret_cast<const char*>(jpeg_data), std::streamsize(size));
     //outfile.write(reinterpret_cast<const char*>(jpeg_data.data()), jpeg_data.size());
     outfile.close();
 }
@@ -288,7 +285,7 @@ int quit_pipeline(StreamCtrl *ctrl){
         std::cout << ctrl->stream_ip << " Not Pipeline\n";
         return 0;
     }
-    g_object_set(ctrl->valve, "drop", TRUE, NULL);
+    g_object_set(ctrl->valve, "drop", FALSE, NULL);
     std::cout << ctrl->stream_ip <<" Valve Set to drop=TRUE\n";
     gboolean sent = gst_element_send_event(ctrl->pipeline, gst_event_new_eos());
     std::cout << ctrl->stream_ip <<" - Main Loop Quit\n";
@@ -528,6 +525,14 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
 
 static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
 
+    static int let_pass=0;
+    if (let_pass < 5){
+        let_pass++;
+        return GST_PAD_PROBE_OK;
+    }
+    else{
+        let_pass = 0;
+    }
     StreamCtrl* ctl = static_cast<StreamCtrl*>(user_data);
 
     if (!ctl || !(info->type & GST_PAD_PROBE_TYPE_BUFFER)) return GST_PAD_PROBE_OK;
@@ -536,6 +541,20 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
     
     GstBuffer *buffer = GST_PAD_PROBE_INFO_BUFFER(info);
     if (!buffer) return GST_PAD_PROBE_OK;
+    if(GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DISCONT)){
+        //std::cout << " [g_worker] IS_DISCOND\n";
+        return GST_PAD_PROBE_OK;
+    }
+    
+    if (GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT)) {
+        // P/B-frame (depends on codec)
+        // Not a keyframe
+        //std::cout << "IS B FRAME\n";
+    } else {
+        //std::cout << "IS I FRAME\n";
+        // Keyframe (I-frame)
+    }
+
 
     // Avoid blocking the streaming thread
     if (!ctl->lock->try_lock()) return GST_PAD_PROBE_OK;
@@ -557,7 +576,7 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
     ctl->im_size = map.size;
     if (!ctl->image || width != ctl->imgW || height != ctl->imgH) {
         if (ctl->image){
-            std::cout << ctl->stream_ip << " Allocating memory\n";
+            //std::cout << ctl->stream_ip << " Allocating memory\n";
             free(ctl->image);
         }
         ctl->image = (unsigned char*)malloc(map.size);
@@ -619,7 +638,7 @@ static gboolean periodic_tick_continious(gpointer user_data){
   StreamCtrl *ctrl = static_cast<StreamCtrl*> (user_data);
 
   if (! ctrl->run || ctrl->restart == true) {
-        std::lock_guard<std::mutex> lock(*(ctrl->lock));
+        //std::lock_guard<std::mutex> lock(*(ctrl->lock));
         std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
         return false;
     }
@@ -706,9 +725,6 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
     GstCaps *caps = gst_caps_from_string("video/x-raw,format=RGB");
     g_object_set(p->capsfilter, "caps", caps, NULL);
     gst_caps_unref(caps);
-
-    // g_object_set(p->appsink, "emit-signals", TRUE,
-    //     "sync", FALSE, "max-buffers", 1, "drop", TRUE, NULL);
     
     g_object_set(p->appsink, "sync", FALSE, "qos", TRUE, "enable-last-sample", FALSE, NULL);
     
@@ -719,14 +735,6 @@ uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
     gst_element_link_many( p->depay, p->parser,
             p->queue1, p->valve, p->decodebin, p->videoconvert, p->capsfilter,
         p->queue2, p->appsink, NULL);
-    
-    //static links
-    //rtspsrc -> depay linked dinamically
-    // gst_element_link_many( p->depay, p->parser,
-    //     p->queue1, p->valve, p->decodebin, NULL);
-    // //decodebin -> videconvert linked dinamically
-    // gst_element_link_many(p->videoconvert, p->capsfilter,
-    //     p->queue2, p->appsink, NULL);
 
     return 1;
 }
@@ -872,7 +880,6 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     std::cout << ctrl->stream_ip << " Pipeline Created\n";
     //copy the required pointer to ctrl structure
     ctrl->pipeline = p.pipeline;
-    ctrl->appsink = p.appsink;
     ctrl->valve = p.valve;
 
     guint padadd_sig_1 = g_signal_connect(p.rtspsrc, "pad-added", G_CALLBACK(on_rtsp_pad_added), p.depay);
@@ -900,8 +907,10 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     GstBus *bus = gst_element_get_bus(ctrl->pipeline);
     // manual bus listener
     bus_listener(bus, ctrl->pipeline, ctrl);
+    gst_object_unref (bus);
     std::cout << ctrl->stream_ip << " bus listener returned\n";
 
+    //free resources
     mutex->lock();
     ctrl->restart = true;
     if (ctrl->image){
@@ -911,9 +920,6 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
         ctrl->imgW = 0;
     }
     
-    //free resources
-    gst_object_unref (bus);
-
     std::cout << ctrl->stream_ip << "Removing pad probe\n";
     probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
     if (probe_pad && ctrl->probe_id) {
@@ -926,8 +932,6 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
         std::cout << ctrl->stream_ip << " probe-pad unrefferenced\n";
     }
         
-    
-
     if (p.rtspsrc && padadd_sig_1) {
         g_signal_handler_disconnect(p.rtspsrc, padadd_sig_1);
         padadd_sig_1 = 0;
@@ -959,150 +963,76 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
 }
 
 
-/***
- * @brief Creates a gstreamer pipeline for h264 rtsp stream parse. Pipeline needs to be manually preloaded for frame pulls
- * @param rtsp_url rtsp stream url
- * @param ctrl reference to pipeline control structure
- */
-uint32_t create_pipeline_multi_frame_manual(std::string rtsp_url, StreamCtrl *ctrl){
 
-    std::cout << ctrl->stream_ip << " Creating Streamer Pipeline\n";
-    //gst_init(NULL, NULL);
-    std::string gst_launch =
-        //"rtspsrc location=" + rtsp_url + " protocols=tcp latency=2000 retry=3 "
-        "rtspsrc location=" + rtsp_url + " protocols=tcp "
-        "! rtph264depay ! h264parse "
-        "! queue leaky=2 max-size-buffers=1 "
-        "! valve name=valve drop=false "
-        "! decodebin "
-        "! videoconvert "
-        "! video/x-raw,format=RGB "
-        "! queue leaky=2 max-size-buffers=1 "
-        "! appsink name=sink emit-signals=true sync=false";
-    //std::cout << "Get Pipeline pointer\n";
-    ctrl->pipeline = gst_parse_launch(gst_launch.c_str(), NULL);
-    //std::cout << "Get Appsink pointer\n";
-    ctrl->appsink = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "sink");
-    //std::cout << "Get Valve\n";
-    ctrl->valve = gst_bin_get_by_name(GST_BIN(ctrl->pipeline), "valve");
-    //std::cout << "Get main loop pointer\n";
-    ctrl->context = g_main_context_new();
-    ctrl->loop = g_main_loop_new(ctrl->context, FALSE);
-
-    //std::cout << "Set State to STARTUP\n";
-    if (!ctrl->pipeline || !ctrl->appsink || !ctrl->valve || !ctrl->loop || !ctrl->context) {
-        g_printerr("%s Failed to create pipeline/elements/loop\n", ctrl->stream_ip.c_str());
-        // cleanup everything allocated so far
-        if (ctrl->appsink)  { gst_object_unref(ctrl->appsink);  ctrl->appsink = nullptr; }
-        if (ctrl->valve)    { gst_object_unref(ctrl->valve);    ctrl->valve   = nullptr; }
-        if (ctrl->pipeline) { gst_object_unref(ctrl->pipeline); ctrl->pipeline = nullptr; }
-        if (ctrl->loop)     { g_main_loop_unref(ctrl->loop);    ctrl->loop    = nullptr; }
-        if (ctrl->context)  { g_main_context_unref(ctrl->context); ctrl->context = nullptr; }
+uint32_t new_simple_pipeline(int id, const char * rtsp_url, StreamCtrl *ctrl){
+    StreamPipeline p;
+    uint32_t ret;
+    ret = create_gst_pipeline(id, rtsp_url, &p);
+    if (!ret){
         return 0;
     }
-    g_object_set(ctrl->appsink, "drop", true, "max-buffers", 1, NULL);
-    g_object_set(ctrl->valve, "drop", FALSE, NULL);
+    ctrl->valve = p.valve;
+    ctrl->pipeline = p.pipeline;
+    guint padadd_sig = g_signal_connect(p.rtspsrc, "pad-added", G_CALLBACK(on_rtsp_pad_added), p.depay);
 
-    std::cout << ctrl->stream_ip << " Pipeline created!\n";
-    guint sample_handler_id = g_signal_connect(ctrl->appsink, "new-sample", G_CALLBACK(sample_ready_callback), ctrl);
-    ctrl->sampleh_id = sample_handler_id;
-    
+    GstPad *probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
+    ctrl->probe_id = gst_pad_add_probe(probe_pad, GST_PAD_PROBE_TYPE_BUFFER, frame_probe_cb, ctrl, NULL);
+    gst_object_unref(probe_pad);
 
-    gst_element_set_state(ctrl->pipeline, GST_STATE_PLAYING);
+    ret = reset_stream_control(ctrl);
+    if(!ret){
+        return 0;
+    }
 
+    /* Start playing */
+    GstStateChangeReturn g_ret = gst_element_set_state (p.pipeline, GST_STATE_PLAYING);
+    if (g_ret == GST_STATE_CHANGE_FAILURE) {
+        g_printerr ("Unable to set the pipeline to the playing state.\n");
+        gst_object_unref (p.pipeline);
+        return 0;
+    }
     //create bus
-    GstBus *bus = gst_element_get_bus(ctrl->pipeline);
-    GSource *bus_source = gst_bus_create_watch(bus);
-    g_source_set_callback(bus_source, (GSourceFunc)bus_call, ctrl, nullptr);
-    guint bus_watch_id = g_source_attach(bus_source, ctrl->context);
-    ctrl->bus_watch_id = bus_watch_id;
+    GstBus *bus = gst_element_get_bus(p.pipeline);
+    /* blocking bus function (pipeline will run until this exits) */
+    bus_listener(bus, p.pipeline, ctrl); 
+    gst_object_unref (bus);
+    ctrl->restart = TRUE;
 
-    std::mutex *mutex = (ctrl->lock);
-    mutex->lock();
-    reset_stream_control(ctrl);
-    mutex->unlock();
-
-    g_main_loop_run(ctrl->loop);
-    std::cout << ctrl->stream_ip << " Loop Returned\n";
-    
-    //cleanup
-    std::cout  << ctrl->stream_ip << " Destroying bus_source\n";
-    if (bus_source){
-        g_source_destroy(bus_source);
-        g_source_unref(bus_source);
-        gst_object_unref(bus);
-        std::cout  << ctrl->stream_ip << " bus destroyed\n";
+    probe_pad = gst_element_get_static_pad(p.capsfilter, "src");
+    if (probe_pad && ctrl->probe_id) {
+        gst_pad_remove_probe(probe_pad, ctrl->probe_id);
+        ctrl->probe_id = 0;
     }
-    // if (ctrl->bus_watch_id){
-    //     std::cout  << ctrl->stream_ip << "  removing bus_watch\n";
-    //     g_source_remove(ctrl->bus_watch_id);
-    //     ctrl->bus_watch_id=0;
-    //     std::cout << ctrl->stream_ip << " bus_watch removed\n";
-    // }
-    if(ctrl->appsink && sample_handler_id){
-        std::cout << ctrl->stream_ip << " removing sample_handler\n";
-        g_signal_handler_disconnect(ctrl->appsink, sample_handler_id);
-        std::cout << ctrl->stream_ip << "g_signal disconnected\n";
+    if (probe_pad){
+        gst_object_unref(probe_pad);
+    }
+        
+    if (p.rtspsrc && padadd_sig) {
+        g_signal_handler_disconnect(p.rtspsrc, padadd_sig);
+        padadd_sig = 0;
     }
 
-    GstState state, pending;
-    if(GST_IS_ELEMENT(ctrl->pipeline)){
+    gst_element_set_state (p.pipeline, GST_STATE_NULL);
+    gst_element_get_state(p.pipeline,NULL, NULL, GST_CLOCK_TIME_NONE);
 
-        std::cout << ctrl->stream_ip << " - Setting Pipeline to GST_STATE_NULL\n";
-
-        GstStateChangeReturn ret = gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
-        if (ret == GST_STATE_CHANGE_ASYNC){
-            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_ASYNC\n";
-        }
-        else if(ret == GST_STATE_CHANGE_FAILURE){
-            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_FAILURE\n";
-        }
-        else if(ret == GST_STATE_CHANGE_SUCCESS){
-            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_SUCCESS\n";
-        }
-        else if(ret == GST_STATE_CHANGE_NO_PREROLL){
-            std::cout << ctrl->stream_ip << " StateChangeReturn = GST_STATE_CHANGE_NO_PREROLL\n";
-        }
-        else{
-            std::cout << ctrl->stream_ip << " StateChangeReturn = Something else\n";
-        }
-
-        gst_element_get_state(ctrl->pipeline, &state, &pending, GST_CLOCK_TIME_NONE);
-        std::cout << ctrl->stream_ip << " pipeline state - " << gst_element_state_get_name(state) << std::endl;
-        std::cout << ctrl->stream_ip << " pipeline pending - " << gst_element_state_get_name(pending) << std::endl;
-    }
-
-    if(ctrl->appsink){
-        gst_object_unref(ctrl->appsink);
-        ctrl->appsink = nullptr;
-        std::cout << ctrl->stream_ip << " appsink unreffed\n";
-    }
-    if(ctrl->valve){
-        gst_object_unref(ctrl->valve);
+    if (p.pipeline){
+        gst_object_unref (p.pipeline);
         ctrl->valve = nullptr;
-        std::cout << ctrl->stream_ip << " valve unreffed\n";
-    }
-    if(ctrl->pipeline){
-        gst_object_unref(ctrl->pipeline);
         ctrl->pipeline = nullptr;
-        std::cout << ctrl->stream_ip << " pipeline unreffed\n";
     }
-    if(ctrl->loop){
-        g_main_loop_unref(ctrl->loop);
-        ctrl->loop = nullptr;
-        std::cout << ctrl->stream_ip << " loop unreffed\n";
-    }
-    if (ctrl->context){
-        g_main_context_pop_thread_default(ctrl->context);
-        g_main_context_unref(ctrl->context);
-        ctrl->context = nullptr;
-        std::cout << ctrl->stream_ip << " Context Unreffed\n";
-    }
-    //ctrl->context = NULL;
+    SAFE_UNREF(p.rtspsrc);
+    SAFE_UNREF(p.depay);
+    SAFE_UNREF(p.parser);
+    SAFE_UNREF(p.queue1);
+    SAFE_UNREF(p.valve);
+    SAFE_UNREF(p.decodebin);
+    SAFE_UNREF(p.videoconvert);
+    SAFE_UNREF(p.capsfilter);
+    SAFE_UNREF(p.queue2);
+    SAFE_UNREF(p.appsink);
+    ctrl->lock->lock();
     return 1;
 }
-
-
 
 /**
  * @brief Manual Pipeline loop
@@ -1120,6 +1050,21 @@ int pipeline_manual(int id, const char *rtsp_url, StreamCtrl *ctrl){
     return 1;
 }
 
+
+
+// no whiles or something. simple pipeline;
+int stream_thread(int id, const char *rtsp_url, StreamCtrl *ctrl){
+    StreamPipeline p;
+    uint32_t ret = new_simple_pipeline(id, rtsp_url, ctrl);
+    printf(" [child: %s] - pipeline exited\n", rtsp_url);
+    ctrl->ended = true;
+    return 1;
+}
+
+vstream load_video_stream(int id, const char *rtsp_url, StreamCtrl *ctrl){
+    return vstream(stream_thread, id, rtsp_url, ctrl);
+}
+
 /**
  * @brief Manual frame pulling gstreamer pipeline in a thread
  * @param rtsp_url rtsp stream url
@@ -1129,4 +1074,3 @@ int pipeline_manual(int id, const char *rtsp_url, StreamCtrl *ctrl){
 vstream load_manual_stream(int id, const char *rtsp_url, StreamCtrl *ctrl){
     return vstream(pipeline_manual, id, rtsp_url, ctrl);
 }
-

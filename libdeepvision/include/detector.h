@@ -22,6 +22,7 @@
 
 #include "camstream.h"
 #include "streammuxer.h"
+#include "gst_parent.h"
 
 #define USE_CUDA true
 #define YOLO_INPUT_W 640
@@ -1276,11 +1277,10 @@ class Detector{
     int nthreads = 0;
     bool visualize = false;
     time_t start_t=0;
-    std::vector <vstream> sources;
-    std::vector <StreamCtrl> src_handles;
+
     std::vector <stream_info> streams;
     std::vector <std::thread> task;
-    std::deque <std::mutex> locks;
+    std::vector <GstChildWorker> workers;
 
     std::string WORKDIR;
 
@@ -1288,18 +1288,11 @@ class Detector{
 
     void detection_task(bool *run, int nthreads, bool visualize){
         init_camstream();
-        src_handles.reserve(streams.size());
-        sources.reserve(streams.size());
-        locks.resize(streams.size()); //constructs all mutexes at this point
+        workers.reserve(streams.size());
         for (int i=0; i<streams.size(); i++){
             std::cout << "Creating srcbin "<< streams[i].index << " - " << streams[i].url << std::endl;
-            StreamCtrl ctrl;
-            ctrl.lock = &locks[i];
-            ctrl.index = streams[i].index;
-            ctrl.stream_ip = streams[i].ip;
-            src_handles.emplace_back(ctrl);
-            sources.emplace_back(load_manual_stream(i, streams[i].url.c_str(), &src_handles[i]));
-            muxer.link_stream(&sources[i], &src_handles[i]);
+            workers.emplace_back(streams[i].index, "./libdeepvision/camstream/gst_worker", streams[i].url.c_str());
+            muxer.link_stream(&workers[i]);
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // add streams with a delay
         }
         Inference inference (nthreads, visualize, WORKDIR);
@@ -1329,16 +1322,10 @@ class Detector{
                 this->nthreads = nsrc;
             }
             
-            //detection_task(&run, nthreads, visualize);
         }
 
         uint64_t get_perf_data(void){return perf_fps;}
         
-
-        int get_frame(uchar **img, uint32_t cid,  uint64_t *max_size){
-            int ret = muxer.pull_frame(img, cid, max_size);
-            return ret;
-        }
 
         void start(void){
             if (task.size() == 0){
