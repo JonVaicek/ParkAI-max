@@ -138,6 +138,7 @@ int StreamMuxer::muxer_thread(void){
                         frames[i].read = false;
                         frames[i].fid = nfr;
                         nfr ++;
+                        std::cout << " [streammux] Frame Updated\n";
                     }
                 }
                 mlock.unlock();
