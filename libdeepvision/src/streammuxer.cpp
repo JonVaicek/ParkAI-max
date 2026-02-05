@@ -125,7 +125,7 @@ uint32_t StreamMuxer::update_frame(uint32_t id){
 
 int StreamMuxer::child_epoller(void){
 
-
+    uint64_t nfr=0;
     std::cout << "EPPOLLING INIT DONE\n";
     while (true){
         int n = epoll_wait(epfd, events, MAX_EVENTS, -1); // BLOCK
@@ -149,7 +149,8 @@ int StreamMuxer::child_epoller(void){
                         frames[i].height = sources[i]->header()->h;
                         frames[i].ready  = true;
                         frames[i].read   = false;
-                        frames[i].fid++;
+                        frames[i].fid = nfr;
+                        nfr++;
                     }
                 }
                 mlock.unlock();
