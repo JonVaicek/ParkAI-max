@@ -142,22 +142,33 @@ int StreamMuxer::child_epoller(void){
             sources[i]->handle_event(evt);
 
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
-                mlock.lock();
-                if (!frames[i].ready) {
-                    if (sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)) {
-                        frames[i].width  = sources[i]->header()->w;
-                        frames[i].height = sources[i]->header()->h;
-                        frames[i].ready  = true;
-                        frames[i].read   = false;
-                        frames[i].fid = nfr;
-                        nfr++;
-                    }
-                }
-                mlock.unlock();
+                sources[i]->set_frame_waiting(true);
             }
         }
     }
     return 1;
+}
+
+int StreamMuxer::frame_reader(void){
+    uint64_t nfr = 0;
+    while(true){
+        for (int i = 0; i < sources.size(); i++){
+            if(sources[i]->is_frame_waiting() && !frames[i].ready){
+                mlock.lock();
+                if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
+                    frames[i].width  = sources[i]->header()->w;
+                    frames[i].height = sources[i]->header()->h;
+                    frames[i].ready  = true;
+                    frames[i].read   = false;
+                    frames[i].fid = nfr;
+                    nfr++;
+                    sources[i]->set_frame_waiting(false);
+                }
+                mlock.unlock();
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 }
 
 int StreamMuxer::child_poller(void){

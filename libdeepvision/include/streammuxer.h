@@ -68,6 +68,7 @@ class StreamMuxer{
     std::mutex mlock;
     std::thread mux_thread;
     std::thread tick_thread;
+    std::thread th_frame_reader;
     uint64_t frames_returned = 0;
     uint64_t fd[10];
     bool run=true;
@@ -80,7 +81,7 @@ class StreamMuxer{
     int update_fd(void);
     int periodic_tick(uint32_t period_ms);
     int muxer_thread(void);
-
+    int frame_reader(void);
     int init_epoll(void){
         epfd = epoll_create1(0);
         if (epfd == -1) {
@@ -98,6 +99,7 @@ class StreamMuxer{
         init_epoll();
         memset(fd, 0, sizeof(fd));
         //mux_thread = std::thread([this](){muxer_thread();});
+        th_frame_reader = std::thread([this](){frame_reader();});
         mux_thread = std::thread([this](){child_epoller();});
         tick_thread =std::thread([this](){periodic_tick(STREAMMUX_MS);});
     };
