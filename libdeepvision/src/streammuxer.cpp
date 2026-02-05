@@ -141,7 +141,7 @@ int StreamMuxer::child_poller(void){
         }
         if (pfds.size() == 0)
             continue;
-         
+        std::cout << "polling children\n";
         int ready = poll(pfds.data(), pfds.size(), 100); // BLOCK
         if (ready <= 0)
             continue;
