@@ -123,7 +123,7 @@ class StreamMuxer{
     int copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w, uint32_t *h);
 
     int reset_frame(uint32_t id){
-        
+        std::cout << "*** CLearing buffers\n";
         frames[id].fid = (uint64_t)-1;
         frames[id].ready = false;
         frames[id].read = true;
