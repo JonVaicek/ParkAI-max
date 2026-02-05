@@ -155,10 +155,21 @@ int StreamMuxer::child_poller(void){
                 auto evt = signal_parser(sig);
                 sources[i]->handle_event(evt);
                 /* always check if there is a frame waiting, and if so process it */
-                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING){
-                    /*  */
-                    sources[i]->set_frame_waiting(true);
-                    
+                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING && frames[i].ready == false){
+                    /* read the frame here */
+                    mlock.lock();
+                    if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
+                        frames[i].width = sources[i]->header()->w;
+                        frames[i].height = sources[i]->header()->h;
+                        //std::cout << "Read image at: " << frames[i].idata << "size: " << frames[i].nbytes << std::endl;
+                        frames[i].ready = true;
+                        frames[i].read = false;
+                        frames[i].fid = nfr;
+                        nfr++;
+                        //sources[i]->set_frame_waiting(false);
+                        std::cout << "New Image buffer was read\n";
+                    }
+                    mlock.unlock();
                 }
             }
         }
