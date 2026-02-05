@@ -123,6 +123,51 @@ uint32_t StreamMuxer::update_frame(uint32_t id){
     return 1;
 }
 
+int StreamMuxer::child_poller(void){
+    std::cout << "Child Pollester started\n";
+    uint64_t nfr = 0;
+
+    while(true){
+        std::cout << "Polling children \n";
+        std::vector<pollfd> pfds;
+        for (auto* w : sources) {
+            if(w == nullptr){
+                continue;
+            }
+            pollfd p{};
+            p.fd = w->get_evfd();
+            std::cout << "evfd " << p.fd << std::endl;
+            p.events = POLLIN;
+            pfds.push_back(p);
+        }
+        if (pfds.size() == 0) continue;
+        int ready = poll(pfds.data(), pfds.size(), -1); // BLOCK
+        if (ready <= 0) continue;
+        for (size_t i = 0; i < pfds.size(); i++) {
+            if (pfds[i].revents & POLLIN) {
+                uint64_t sig;
+                read(pfds[i].fd, &sig, sizeof(sig));
+                auto evt = signal_parser(sig);
+                sources[i]->handle_event(evt);
+                /* always check if there is a frame waiting, and if so process it */
+                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING){
+                    mlock.lock();
+                    if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
+                        frames[i].ready = true;
+                        frames[i].read = false;
+                        frames[i].fid = nfr;
+                        nfr++;
+                    }
+                    mlock.unlock();
+                    std::cout << "Unlocked\n";
+                }
+            }
+        }
+    }
+    std::cout << "Child pollester ended\n";
+}
+
+
 int StreamMuxer::muxer_thread(void){
     try{
     uint64_t nfr = 0;

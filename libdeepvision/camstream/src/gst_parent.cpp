@@ -41,5 +41,8 @@ uint64_t signal_parser(uint64_t val){
     if((val & EVT_CHILD_STARTED) == EVT_CHILD_STARTED){
         return EVT_CHILD_STARTED;
     }
+    if((val & EVT_FRAME_WAITING) == EVT_FRAME_WAITING){
+        return EVT_FRAME_WAITING;
+    }
     return 0;
 }

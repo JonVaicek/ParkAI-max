@@ -40,7 +40,6 @@ private:
     const char *rtsp_url;
     bool shm_ready = false;
     bool closed_ = false;
-
     time_t f_ts_ = 0;
 
 
@@ -229,6 +228,36 @@ public:
         }
     }
 
+    int read_frame(unsigned char **img_buf, uint64_t *size){
+        /* first check if data exists*/
+        DataHeader *d = header();
+        if (d == nullptr){
+            return 0;
+        }
+        if( closed_ || d->state != SHM_READY){
+            return 0;
+        }
+        /* allocate destination buffer if does not exist*/
+        if (*img_buf == nullptr){
+            std::cout << " [parent] allocating memory\n";
+            *img_buf = (unsigned char*)malloc(d->nbytes);
+        }
+        else{
+            if (*size != d->nbytes){
+                std::cout << "Reallocating provided buffer\n";
+                free(*img_buf);
+                *img_buf = (unsigned char*)malloc(d->nbytes);
+            }
+        }
+        *size = d->nbytes;
+        memcpy(*img_buf, data_ptr(), d->nbytes);
+        /* set buffer to read */
+        d->state = SHM_EMPTY;
+
+        time(&f_ts_);
+        return 1;
+    }
+
     /* @brief class method to pull frame. User must free the buffer after the frame is pulled*/
     int pull_frame(unsigned char **img_buf, uint64_t *size){
         uint64_t sig=0;
@@ -293,6 +322,21 @@ public:
             return 0;
         }
     }
+    void handle_event(uint64_t evt) {
+        switch (evt) {
+            case EVT_MMSH_COMPLETE:
+                shm_ready = init_shm();
+                break;
+
+            // case EVT_FRAME_WAITING:
+            //     pull_frame(...);
+            //     break;
+
+            case EVT_PIPELINE_EXIT:
+                reset();
+                break;
+        }
+    }
     
     DataHeader* header() const { return hdr_; }
     void* shm_ptr() const { return shm_; }
@@ -301,6 +345,9 @@ public:
     pid_t pid() const { return pid_; }
     int get_id() const { return id; }
     time_t get_ts() const {return f_ts_;}
+    int get_evfd() const {return evfd_;}
+
+
 };
 
 

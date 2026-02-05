@@ -157,11 +157,9 @@ int main(int argc, char** argv) {
                     header->state = SHM_READY;
                     ctrl.frame_rd = false;
                     g_object_set(ctrl.valve, "drop", FALSE, NULL);
-                    if(send_signal(EVT_MMSH_COMPLETE, evfd)){
+                    if(send_signal(EVT_MMSH_COMPLETE|EVT_FRAME_WAITING, evfd)){
                         std::cout << " [child] - memory shared complete sent\n";
                     }
-
-
                 }
                 else{
                     
@@ -175,10 +173,12 @@ int main(int argc, char** argv) {
                         hdr->h = ctrl.imgH;
                         hdr->w = ctrl.imgW;
                         hdr->state = SHM_READY;
-
                         /* let pipeline acquire new frame */
                         ctrl.frame_rd = false;
                         g_object_set(ctrl.valve, "drop", FALSE, NULL);
+                        if(send_signal(EVT_FRAME_WAITING, evfd)){
+                            std::cout << " [child] - new frame event sent\n";
+                        }
                     }
                 }
 

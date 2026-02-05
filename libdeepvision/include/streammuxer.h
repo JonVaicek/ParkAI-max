@@ -73,7 +73,8 @@ class StreamMuxer{
     public:
     StreamMuxer(void){
         memset(fd, 0, sizeof(fd));
-        mux_thread = std::thread([this](){muxer_thread();});
+        //mux_thread = std::thread([this](){muxer_thread();});
+        mux_thread = std::thread([this](){child_poller();});
         tick_thread =std::thread([this](){periodic_tick(STREAMMUX_MS);});
     };
 
@@ -166,6 +167,7 @@ class StreamMuxer{
     float get_fps(void);
     time_t get_stream_ts(int index);
     time_t get_stream_td(int index);
+    int child_poller(void);
 };
 
 
