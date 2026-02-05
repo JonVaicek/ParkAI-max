@@ -154,7 +154,7 @@ int StreamMuxer::frame_reader(void){
     while(true){
         for (int i = 0; i < sources.size(); i++){
             if(sources[i]->is_frame_waiting() && !frames[i].ready){
-                mlock.lock();
+                if(mlock.try_lock()){
                 if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
                     frames[i].width  = sources[i]->header()->w;
                     frames[i].height = sources[i]->header()->h;
@@ -165,6 +165,7 @@ int StreamMuxer::frame_reader(void){
                     sources[i]->set_frame_waiting(false);
                 }
                 mlock.unlock();
+            }
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

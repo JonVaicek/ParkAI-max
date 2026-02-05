@@ -73,7 +73,7 @@ class StreamMuxer{
     uint64_t fd[10];
     bool run=true;
 
-    static const int MAX_EVENTS = 254;
+    static const int MAX_EVENTS = 256;
     epoll_event events[MAX_EVENTS];
     int epfd = -1;
 
