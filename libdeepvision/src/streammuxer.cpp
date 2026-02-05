@@ -129,9 +129,11 @@ int StreamMuxer::child_poller(void){
 
     while(true){
         std::vector<pollfd> pfds;
+        bool error_pfd = false;
         for (auto* w : sources) {
             if(w == nullptr){
-                continue;
+                error_pfd = true;
+                break;
             }
             pollfd p{};
             p.fd = w->get_evfd();
@@ -139,9 +141,29 @@ int StreamMuxer::child_poller(void){
             pfds.push_back(p);
             /* copy frames that are ready */
         }
-        if (pfds.size() == 0)
+        if (pfds.size() == 0 || error_pfd)
             continue;
-        //before polling, check if frames need updating
+
+        std::cout << "polling children\n";
+        int ready = poll(pfds.data(), pfds.size(), -1); // BLOCK
+        if (ready <= 0)
+            continue;
+        for (size_t i = 0; i < pfds.size(); i++) {
+            if (pfds[i].revents & POLLIN) {
+                uint64_t sig;
+                read(pfds[i].fd, &sig, sizeof(sig));
+                auto evt = signal_parser(sig);
+                sources[i]->handle_event(evt);
+                /* always check if there is a frame waiting, and if so process it */
+                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING){
+                    /*  */
+                    sources[i]->set_frame_waiting(true);
+                    
+                }
+            }
+        }
+
+        /* check which streams has new data */
         for (size_t i=0; i < sources.size(); i++){
             mlock.lock();
             if(sources[i]->is_frame_waiting() && frames[i].ready==false){
@@ -159,27 +181,11 @@ int StreamMuxer::child_poller(void){
             }
             mlock.unlock();
         }
-        std::cout << "polling children\n";
-        int ready = poll(pfds.data(), pfds.size(), -1); // BLOCK
-        if (ready <= 0)
-            continue;
-
-        for (size_t i = 0; i < pfds.size(); i++) {
-            if (pfds[i].revents & POLLIN) {
-                uint64_t sig;
-                read(pfds[i].fd, &sig, sizeof(sig));
-                auto evt = signal_parser(sig);
-                sources[i]->handle_event(evt);
-                /* always check if there is a frame waiting, and if so process it */
-                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING){
-                    /*  */
-                    sources[i]->set_frame_waiting(true);
-                }
-            }
-        }
     }
+
     std::cout << "Child pollester ended\n";
 }
+
 
 
 int StreamMuxer::muxer_thread(void){

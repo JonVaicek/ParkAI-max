@@ -127,6 +127,7 @@ class StreamMuxer{
         frames[id].fid = (uint64_t)-1;
         frames[id].ready = false;
         frames[id].read = true;
+        sources[id]->allow_new_frame();
         //set buffer to 0??
         memset(frames[id].idata, 0, frames[id].nbytes);
         return 1;

@@ -253,7 +253,7 @@ public:
         *size = d->nbytes;
         memcpy(*img_buf, data_ptr(), d->nbytes);
         /* set buffer to read */
-        d->state = SHM_EMPTY;
+        //d->state = SHM_EMPTY;
 
         time(&f_ts_);
         return 1;
@@ -349,6 +349,13 @@ public:
     int get_evfd() const {return evfd_;}
     bool is_frame_waiting() const {return frame_waiting;}
     void set_frame_waiting(bool val){frame_waiting = val;}
+    void allow_new_frame(void){
+        DataHeader *d = header();
+        if (d == nullptr){
+            return;
+        }
+        d->state = SHM_EMPTY;
+    }
 
 
 };
