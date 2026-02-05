@@ -175,23 +175,23 @@ int StreamMuxer::child_poller(void){
         }
 
         /* check which streams has new data */
-        for (size_t i=0; i < sources.size(); i++){
-            mlock.lock();
-            if(sources[i]->is_frame_waiting() && frames[i].ready==false){
-                if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
-                    frames[i].width = sources[i]->header()->w;
-                    frames[i].height = sources[i]->header()->h;
-                    //std::cout << "Read image at: " << frames[i].idata << "size: " << frames[i].nbytes << std::endl;
-                    frames[i].ready = true;
-                    frames[i].read = false;
-                    frames[i].fid = nfr;
-                    nfr++;
-                    sources[i]->set_frame_waiting(false);
-                    std::cout << "New Image buffer was read\n";
-                }
-            }
-            mlock.unlock();
-        }
+        // for (size_t i=0; i < sources.size(); i++){
+        //     mlock.lock();
+        //     if(sources[i]->is_frame_waiting() && frames[i].ready==false){
+        //         if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
+        //             frames[i].width = sources[i]->header()->w;
+        //             frames[i].height = sources[i]->header()->h;
+        //             //std::cout << "Read image at: " << frames[i].idata << "size: " << frames[i].nbytes << std::endl;
+        //             frames[i].ready = true;
+        //             frames[i].read = false;
+        //             frames[i].fid = nfr;
+        //             nfr++;
+        //             sources[i]->set_frame_waiting(false);
+        //             std::cout << "New Image buffer was read\n";
+        //         }
+        //     }
+        //     mlock.unlock();
+        // }
     }
 
     std::cout << "Child pollester ended\n";
