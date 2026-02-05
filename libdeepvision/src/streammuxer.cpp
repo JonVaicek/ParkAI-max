@@ -150,7 +150,7 @@ int StreamMuxer::child_poller(void){
                 auto evt = signal_parser(sig);
                 sources[i]->handle_event(evt);
                 /* always check if there is a frame waiting, and if so process it */
-                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING){
+                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING && frames[i].ready==false){
                     mlock.lock();
                     if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
                         frames[i].ready = true;
