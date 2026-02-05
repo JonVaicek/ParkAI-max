@@ -1283,12 +1283,13 @@ class Detector{
     std::vector <GstChildWorker> workers;
 
     std::string WORKDIR;
-
-    StreamMuxer muxer;
+    StreamMuxer *pmuxer = nullptr;
 
     void detection_task(bool *run, int nthreads, bool visualize){
         init_camstream();
         workers.reserve(streams.size());
+        StreamMuxer muxer(streams.size());
+        pmuxer = &muxer;
         for (int i=0; i<streams.size(); i++){
             std::cout << "Creating srcbin "<< streams[i].index << " - " << streams[i].url << std::endl;
             workers.emplace_back(streams[i].index, "./libdeepvision/camstream/gst_worker", streams[i].url.c_str());

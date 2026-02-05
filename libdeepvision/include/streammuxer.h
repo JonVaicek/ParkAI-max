@@ -16,6 +16,12 @@
 #include "time.h"
 #include "gst_parent.h"
 
+#include <poll.h>
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
+#include <errno.h>
+
 typedef unsigned char uchar;
 
 #define STREAMMUX_MS 1
@@ -56,6 +62,7 @@ struct FrameInfo {
 class StreamMuxer{
 
     const static int MAX_STREAMS = 254;
+    int num_sources;
     std::vector <GstChildWorker *> sources;
     std::vector<FrameInfo> frames;
     std::mutex mlock;
@@ -65,16 +72,33 @@ class StreamMuxer{
     uint64_t fd[10];
     bool run=true;
 
+    static const int MAX_EVENTS = 254;
+    epoll_event events[MAX_EVENTS];
+    int epfd = -1;
+
     /* Private Methods */
     int update_fd(void);
     int periodic_tick(uint32_t period_ms);
     int muxer_thread(void);
 
+    int init_epoll(void){
+        epfd = epoll_create1(0);
+        if (epfd == -1) {
+            perror("epoll_create1");
+            exit(1);
+        }
+        return 1;
+    };
+
     public:
-    StreamMuxer(void){
+    StreamMuxer(int num_sources)
+    :num_sources(num_sources)
+    {
+        sources.reserve(num_sources);
+        init_epoll();
         memset(fd, 0, sizeof(fd));
         //mux_thread = std::thread([this](){muxer_thread();});
-        mux_thread = std::thread([this](){child_poller();});
+        mux_thread = std::thread([this](){child_epoller();});
         tick_thread =std::thread([this](){periodic_tick(STREAMMUX_MS);});
     };
 
@@ -85,6 +109,17 @@ class StreamMuxer{
         }
         frames.push_back(FrameInfo{});
         sources.push_back(source);
+        uint32_t idx = sources.size() - 1;
+        std::cout << "***Addding source num=" << idx << std::endl;
+
+        // register evfd for epoll
+        epoll_event ev{};
+        ev.events = EPOLLIN;
+        ev.data.u32 = idx;   // store source index
+        if (epoll_ctl(epfd, EPOLL_CTL_ADD, sources[idx]->get_evfd(), &ev) == -1) {
+            perror("epoll_ctl");
+            exit(1);
+        }
         return 1;
     }
 
@@ -169,6 +204,7 @@ class StreamMuxer{
     time_t get_stream_ts(int index);
     time_t get_stream_td(int index);
     int child_poller(void);
+    int child_epoller(void);
 };
 
 

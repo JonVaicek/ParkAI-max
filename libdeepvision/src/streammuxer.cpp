@@ -123,6 +123,42 @@ uint32_t StreamMuxer::update_frame(uint32_t id){
     return 1;
 }
 
+int StreamMuxer::child_epoller(void){
+
+
+    std::cout << "EPPOLLING INIT DONE\n";
+    while (true){
+        int n = epoll_wait(epfd, events, MAX_EVENTS, -1); // BLOCK
+        if (n <= 0)
+            continue;
+
+        for (int e = 0; e < n; e++) {
+            size_t i = events[e].data.u32;
+
+            uint64_t sig;
+            read(sources[i]->get_evfd(), &sig, sizeof(sig));
+
+            auto evt = signal_parser(sig);
+            sources[i]->handle_event(evt);
+
+            if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
+                mlock.lock();
+                if (!frames[i].ready) {
+                    if (sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)) {
+                        frames[i].width  = sources[i]->header()->w;
+                        frames[i].height = sources[i]->header()->h;
+                        frames[i].ready  = true;
+                        frames[i].read   = false;
+                        frames[i].fid++;
+                    }
+                }
+                mlock.unlock();
+            }
+        }
+    }
+    return 1;
+}
+
 int StreamMuxer::child_poller(void){
     std::cout << "Child Pollester started\n";
     uint64_t nfr = 0;
@@ -173,28 +209,8 @@ int StreamMuxer::child_poller(void){
                 }
             }
         }
-
-        /* check which streams has new data */
-        // for (size_t i=0; i < sources.size(); i++){
-        //     mlock.lock();
-        //     if(sources[i]->is_frame_waiting() && frames[i].ready==false){
-        //         if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
-        //             frames[i].width = sources[i]->header()->w;
-        //             frames[i].height = sources[i]->header()->h;
-        //             //std::cout << "Read image at: " << frames[i].idata << "size: " << frames[i].nbytes << std::endl;
-        //             frames[i].ready = true;
-        //             frames[i].read = false;
-        //             frames[i].fid = nfr;
-        //             nfr++;
-        //             sources[i]->set_frame_waiting(false);
-        //             std::cout << "New Image buffer was read\n";
-        //         }
-        //     }
-        //     mlock.unlock();
-        // }
     }
-
-    std::cout << "Child pollester ended\n";
+    return 1;
 }
 
 

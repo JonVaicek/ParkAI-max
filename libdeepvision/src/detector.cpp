@@ -659,7 +659,10 @@ int Engine::pipeline_run(uchar *imgbuf, uint64_t nbytes, uint32_t img_uid, std::
 
 /* Detector Methods Begin */
 float Detector::get_fps(void){
-    return muxer.get_fps();
+    if(pmuxer)
+        return pmuxer->get_fps();
+    else
+        return 0.0;
 }
 
 time_t Detector::get_start_time(void){
@@ -671,14 +674,18 @@ bool Detector::is_running(void){
 };
 
 time_t Detector::get_stream_ts(int index){
-    return muxer.get_stream_ts(index);
+    if (pmuxer)
+        return pmuxer->get_stream_ts(index);
+    else
+        return 0;
 }
 
 
 
 int Detector::read_timestamps(std::vector<stream_info> &streams){
     for (auto & s:streams){
-        s.ts = muxer.get_stream_ts(s.index);
+        if (pmuxer)
+            s.ts = pmuxer->get_stream_ts(s.index);
         //std::cout << "s.ts = " << s.ts << std::endl;
     }
     return 1;
