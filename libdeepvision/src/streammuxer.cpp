@@ -128,7 +128,6 @@ int StreamMuxer::child_poller(void){
     uint64_t nfr = 0;
 
     while(true){
-        std::cout << "Polling children \n";
         std::vector<pollfd> pfds;
         for (auto* w : sources) {
             if(w == nullptr){
@@ -136,13 +135,17 @@ int StreamMuxer::child_poller(void){
             }
             pollfd p{};
             p.fd = w->get_evfd();
-            std::cout << "evfd " << p.fd << std::endl;
             p.events = POLLIN;
             pfds.push_back(p);
+            /* copy frames that are ready */
         }
-        if (pfds.size() == 0) continue;
-        int ready = poll(pfds.data(), pfds.size(), -1); // BLOCK
-        if (ready <= 0) continue;
+        if (pfds.size() == 0)
+            continue;
+         
+        int ready = poll(pfds.data(), pfds.size(), 100); // BLOCK
+        if (ready <= 0)
+            continue;
+
         for (size_t i = 0; i < pfds.size(); i++) {
             if (pfds[i].revents & POLLIN) {
                 uint64_t sig;
@@ -150,18 +153,23 @@ int StreamMuxer::child_poller(void){
                 auto evt = signal_parser(sig);
                 sources[i]->handle_event(evt);
                 /* always check if there is a frame waiting, and if so process it */
-                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING && frames[i].ready==false){
-                    mlock.lock();
-                    if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
-                        frames[i].ready = true;
-                        frames[i].read = false;
-                        frames[i].fid = nfr;
-                        nfr++;
-                    }
-                    mlock.unlock();
-                    std::cout << "Unlocked\n";
+                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING){
+                    /*  */
+                    sources[i]->set_frame_waiting(true);
                 }
             }
+
+            mlock.lock();
+            if(sources[i]->is_frame_waiting() && frames[i].ready==false){
+                if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
+                    frames[i].ready = true;
+                    frames[i].read = false;
+                    frames[i].fid = nfr;
+                    nfr++;
+                    sources[i]->set_frame_waiting(false);
+                }
+            }
+            mlock.unlock();
         }
     }
     std::cout << "Child pollester ended\n";

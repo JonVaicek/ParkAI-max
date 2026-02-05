@@ -40,6 +40,7 @@ private:
     const char *rtsp_url;
     bool shm_ready = false;
     bool closed_ = false;
+    bool frame_waiting = false;
     time_t f_ts_ = 0;
 
 
@@ -346,6 +347,8 @@ public:
     int get_id() const { return id; }
     time_t get_ts() const {return f_ts_;}
     int get_evfd() const {return evfd_;}
+    bool is_frame_waiting() const {return frame_waiting;}
+    void set_frame_waiting(bool val){frame_waiting = val;}
 
 
 };
