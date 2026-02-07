@@ -142,12 +142,12 @@ int StreamMuxer::child_epoller(void){
             }
 
             auto evt = signal_parser(sig);
-            if((sig&EVT_PIPELINE_EXIT)==EVT_PIPELINE_EXIT){
-                epoll_ctl(epfd, EPOLL_CTL_DEL, sources[i]->get_evfd(), nullptr); //unregister epoll eventfd
-                std::cout << "Resetting\n";
-                sources[i]->reset();
-                relink_stream(sources[i]);
-            }
+            // if((sig&EVT_PIPELINE_EXIT)==EVT_PIPELINE_EXIT){
+            //     epoll_ctl(epfd, EPOLL_CTL_DEL, sources[i]->get_evfd(), nullptr); //unregister epoll eventfd
+            //     std::cout << "Resetting\n";
+            //     sources[i]->reset();
+            //     relink_stream(sources[i]);
+            // }
             sources[i]->handle_event(evt);
 
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
