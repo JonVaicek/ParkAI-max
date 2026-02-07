@@ -142,6 +142,7 @@ int StreamMuxer::child_epoller(void){
             if((sig&EVT_PIPELINE_EXIT)==EVT_PIPELINE_EXIT){
                 epoll_ctl(epfd, EPOLL_CTL_DEL, sources[i]->get_evfd(), nullptr); //unregister epoll eventfd
                 sources[i]->reset();
+                relink_stream(sources[i]);
             }
             sources[i]->handle_event(evt);
 
@@ -157,9 +158,9 @@ int StreamMuxer::frame_reader(void){
     uint64_t nfr = 0;
     while(true){
         for (int i = 0; i < sources.size(); i++){
-            if(!sources[i]->get_epoll_reg_flag()){
-                relink_stream(sources[i]);
-            }
+            // if(!sources[i]->get_epoll_reg_flag()){
+            //     relink_stream(sources[i]);
+            // }
 
             if(sources[i]->is_frame_waiting() && !frames[i].ready){
                 if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
