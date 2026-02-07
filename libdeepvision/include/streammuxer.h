@@ -145,6 +145,7 @@ class StreamMuxer{
             exit(1);
         }
         src->set_epoll_reg_flag(true);
+        return 1;
     }
 
     uint32_t update_frame(uint32_t id);
