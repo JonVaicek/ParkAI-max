@@ -122,7 +122,29 @@ class StreamMuxer{
             perror("epoll_ctl");
             exit(1);
         }
+        source->set_epoll_reg_flag(true);
         return 1;
+    }
+
+    int relink_stream(GstChildWorker *src){
+
+        uint32_t idx = 0xFFFFFFFF;
+        for (uint32_t i = 0; i < sources.size(); i++){
+            if (sources[i] == src){
+                idx = i;
+            }
+        }
+        if(idx == 0xFFFFFFFF)
+            return 0;
+
+        epoll_event ev{};
+        ev.events = EPOLLIN;
+        ev.data.u32 = idx;   // store source index
+        if (epoll_ctl(epfd, EPOLL_CTL_ADD, src->get_evfd(), &ev) == -1) {
+            perror("epoll_ctl");
+            exit(1);
+        }
+        src->set_epoll_reg_flag(true);
     }
 
     uint32_t update_frame(uint32_t id);

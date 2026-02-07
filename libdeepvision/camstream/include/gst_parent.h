@@ -42,6 +42,7 @@ private:
     bool closed_ = false;
     bool frame_waiting = false;
     time_t f_ts_ = 0;
+    bool epoll_reg_ = false;
 
 
 public:
@@ -170,6 +171,7 @@ public:
     uint32_t reset(void){
         std::cout << " RESETING STREAM " << this->rtsp_url << std::endl;
         f_ts_ = 0;
+        epoll_reg_ = false;
         deinit();
         init();
         return 1;
@@ -333,9 +335,9 @@ public:
             //     pull_frame(...);
             //     break;
 
-            case EVT_PIPELINE_EXIT:
-                //reset();
-                break;
+            // case EVT_PIPELINE_EXIT:
+            //     reset();
+            //     break;
         }
     }
     
@@ -356,7 +358,8 @@ public:
         }
         d->state = SHM_EMPTY;
     }
-
+    void set_epoll_reg_flag(bool val){epoll_reg_ = val;}
+    bool get_epoll_reg_flag(void)const{return epoll_reg_;}
 
 };
 
