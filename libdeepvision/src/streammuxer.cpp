@@ -136,7 +136,10 @@ int StreamMuxer::child_epoller(void){
             size_t i = events[e].data.u32;
 
             uint64_t sig;
-            read(sources[i]->get_evfd(), &sig, sizeof(sig));
+            ssize_t s = read(sources[i]->get_evfd(), &sig, sizeof(sig));
+            if (s != sizeof(sig)) {
+                continue; // ignore invalid wakeups
+            }
 
             auto evt = signal_parser(sig);
             if((sig&EVT_PIPELINE_EXIT)==EVT_PIPELINE_EXIT){
