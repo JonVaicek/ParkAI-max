@@ -132,9 +132,9 @@ int StreamMuxer::child_epoller(void){
 
         std::cout << "Epolling\n";
         int n = epoll_wait(epfd, events, MAX_EVENTS, -1); // BLOCK
-        if (n <= 0)
+        if (n == 0)
             continue;
-        else{
+        else if(n < 0){
             perror("epoll_wait failed");
             if (errno == EINTR)
                 continue; // signal interrupted, retry   
