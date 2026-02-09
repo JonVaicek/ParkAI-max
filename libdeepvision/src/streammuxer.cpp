@@ -161,9 +161,10 @@ int StreamMuxer::child_epoller(void){
                     epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
             }
         }
+
         if (this->pending_epoll_reg){
             for (int i=0; i < sources.size(); i++){
-                if (!sources[i]->is_registered())
+                if (!sources[i]->is_registered() && !sources[i]->is_closed())
                     this->relink_stream(sources[i]);
             }
             this->pending_epoll_reg = false;
@@ -177,7 +178,6 @@ int StreamMuxer::frame_reader(void){
     uint64_t nfr = 0;
     while(true){
         for (int i = 0; i < sources.size(); i++){
-
             if (sources[i]->is_closed())
                 if(sources[i]->is_past_timeout()){
                     /* reconnect stream here*/
