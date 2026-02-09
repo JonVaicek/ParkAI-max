@@ -165,15 +165,15 @@ int StreamMuxer::child_epoller(void){
             }
         }
 
-        for (uint32_t i = 0; i < sources.size(); i++){
-            if(sources[i]->is_closed()){
-                if(sources[i]->is_past_timeout()){
-                    if(sources[i]->init()){
-                        //this->relink_stream(sources[i]);
-                    }
-                }
-            }
-        }
+        // for (uint32_t i = 0; i < sources.size(); i++){
+        //     if(sources[i]->is_closed()){
+        //         if(sources[i]->is_past_timeout()){
+        //             if(sources[i]->init()){
+        //                 //this->relink_stream(sources[i]);
+        //             }
+        //         }
+        //     }
+        // }
         
         // if(this->pending_epoll_reg){
         //     std::cout << "Epoll Linking required\n";
