@@ -126,7 +126,8 @@ class StreamMuxer{
             std::cout << "****!!!!****!!!!EXITING HERE when linking\n";
             exit(1);
         }
-        source->set_epoll_flag(true);
+        //source->set_epoll_flag(true);
+        sources[idx]->set_epoll_flag(true);
         return 1;
     }
 
@@ -150,7 +151,7 @@ class StreamMuxer{
             //exit(1);
             return 0;
         }
-        source->set_epoll_flag(true);
+        sources[idx]->set_epoll_flag(true);
         return 1;
     }
 
