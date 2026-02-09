@@ -145,8 +145,10 @@ class StreamMuxer{
         ev.data.u32 = idx;   // store source index
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, source->get_evfd(), &ev) == -1) {
             perror("epoll_ctl");
+            std::cout << "****!!!!****!!!!Caused by: \n";
             std::cout << "****!!!!****!!!!EXITING HERE when relinking\n";
-            exit(1);
+            //exit(1);
+            return 0;
         }
         source->set_epoll_flag(true);
         return 1;

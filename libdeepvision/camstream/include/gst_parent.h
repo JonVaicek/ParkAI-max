@@ -60,7 +60,7 @@ public:
     }
 
     uint32_t init(void){
-        closed_ = false;
+        
         if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv_) != 0) {
             printf(" [child-%d] socket pair error\n", id);
             return 0;
@@ -101,6 +101,7 @@ public:
         }
         close(sv_[1]);
         fn = std::string("image-") + std::to_string(id) + std::string(".jpeg");
+        closed_ = false;
         closed_ts = 0;
         //time(&f_ts_);
         return 1;
