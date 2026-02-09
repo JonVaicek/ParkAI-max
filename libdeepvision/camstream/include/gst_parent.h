@@ -389,6 +389,7 @@ public:
     bool is_closed(void)const{return closed_;}
     bool is_registered(void) const {return epoll_registered;}
     void set_epoll_flag(bool val){ epoll_registered = val;}
+    
 
 };
 
