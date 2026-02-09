@@ -126,7 +126,6 @@ class StreamMuxer{
             std::cout << "****!!!!****!!!!EXITING HERE when linking\n";
             exit(1);
         }
-        //source->set_epoll_flag(true);
         sources[idx]->set_epoll_flag(true);
         return 1;
     }
@@ -144,6 +143,12 @@ class StreamMuxer{
         epoll_event ev{};
         ev.events = EPOLLIN;
         ev.data.u32 = idx;   // store source index
+        uint32_t pending_evfd = source->get_evfd();
+        if (pending_evfd <= 0){
+            std::cout << "pending evfd = " << pending_evfd << std::endl;
+            return 0;
+        }
+        
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, source->get_evfd(), &ev) == -1) {
             perror("epoll_ctl");
             std::cout << "****!!!!****!!!!Caused by evfd:"<< source->get_evfd() << " \n";

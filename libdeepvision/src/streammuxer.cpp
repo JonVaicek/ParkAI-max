@@ -184,6 +184,7 @@ int StreamMuxer::child_epoller(void){
 int StreamMuxer::frame_reader(void){
     uint64_t nfr = 0;
     while(true){
+        
         for (int i = 0; i < sources.size(); i++){
             if (sources[i]->deinit_==false && sources[i]->is_closed())
                 if(sources[i]->is_past_timeout()){
