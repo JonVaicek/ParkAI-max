@@ -157,20 +157,22 @@ int StreamMuxer::child_epoller(void){
         /* epoll control management */
         if (epoll_del){
             for (auto & s:sources){
-                if ( s->deinit_ && s->is_registered())
+                if ( s->deinit_ && s->is_registered()){
                     epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
                     s->set_epoll_flag(false);
                     s->deinit_ = false;
                     std::cout << "[streammux] - source evfd removed from epoll\n";
+                }
             }
         }
 
         if (this->pending_epoll_reg){
             for (int i=0; i < sources.size(); i++){
-                if (!sources[i]->is_registered() && !sources[i]->is_closed())
+                if (!sources[i]->is_registered() && !sources[i]->is_closed()){
                     std::cout << "Linkink source - "<< i <<" back to epoll\n";
                     std::cout << "registered - "<< sources[i]->is_registered() <<" closed - "<<sources[i]->is_closed()<<"\n";
                     this->relink_stream(sources[i]);
+                }
             }
             this->pending_epoll_reg = false;
         }
