@@ -156,9 +156,10 @@ int StreamMuxer::child_epoller(void){
 
         /* epoll control management */
         if (epoll_del){
-            for (const auto & s:sources){
-                if (s->is_closed())
+            for (auto & s:sources){
+                if (s->is_closed() && s->is_registered())
                     epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
+                    s->set_epoll_flag(false);
             }
         }
 
