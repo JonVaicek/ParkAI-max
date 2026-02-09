@@ -40,6 +40,7 @@ private:
     const char *rtsp_url;
     bool shm_ready = false;
     bool closed_ = false;
+    
     bool frame_waiting = false;
     time_t f_ts_ = 0;
     time_t closed_ts = 0;
@@ -48,6 +49,7 @@ private:
 
 
 public:
+    bool deinit_ = false;
 
     //GstChildWorker(int id, const char *workerpath):
     GstChildWorker(int id, const char *workerpath, const char *rtsp_url):
@@ -200,6 +202,7 @@ public:
 
         shm_ = nullptr;
         pid_ = -1;
+        deinit_ = false;
         return 1;
     }
 
@@ -362,8 +365,9 @@ public:
             //     break;
 
             case EVT_PIPELINE_EXIT:
-                closed_ = true;
-                frame_waiting = false;
+                this->closed_ = true;
+                this->frame_waiting = false;
+                this->deinit_ = true;
                 time(&closed_ts);
                 break;
         }
