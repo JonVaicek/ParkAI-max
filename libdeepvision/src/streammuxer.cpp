@@ -166,7 +166,7 @@ int StreamMuxer::child_epoller(void){
         if (this->pending_epoll_reg){
             for (int i=0; i < sources.size(); i++){
                 if (!sources[i]->is_registered() && !sources[i]->is_closed())
-                    std::cout << "Linkink source back to epoll\n";
+                    std::cout << "Linkink source - "<< i <<" back to epoll\n";
                     this->relink_stream(sources[i]);
             }
             this->pending_epoll_reg = false;
