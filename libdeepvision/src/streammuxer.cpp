@@ -165,18 +165,18 @@ int StreamMuxer::child_epoller(void){
                 }
             }
         }
-
-        if (this->pending_epoll_reg){
-            for (int i=0; i < sources.size(); i++){
-                if (!sources[i]->is_registered() && !sources[i]->is_closed()){
-                    std::cout << "Linkink source - "<< i <<" back to epoll\n";
-                    std::cout << "registered - "<< sources[i]->is_registered() <<" closed - "<<sources[i]->is_closed()<<"\n";
-                    this->relink_stream(sources[i]);
-                }
-            }
-            this->pending_epoll_reg = false;
-        }
         
+        // if(this->pending_epoll_reg){
+        //     std::cout << "Epoll Linking required\n";
+        //     for (int i=0; i < sources.size(); i++){
+        //         if (!sources[i]->is_registered() && !sources[i]->is_closed()){
+        //             std::cout << "Linkink source - "<< i <<" back to epoll\n";
+        //             std::cout << "registered - "<< sources[i]->is_registered() <<" closed - "<<sources[i]->is_closed()<<"\n";
+        //             this->relink_stream(sources[i]);
+        //         }
+        //     }
+        //     this->pending_epoll_reg = false;
+        // }
     }
     return 1;
 }
@@ -186,12 +186,13 @@ int StreamMuxer::frame_reader(void){
     while(true){
         
         for (int i = 0; i < sources.size(); i++){
-            if (sources[i]->deinit_==false && sources[i]->is_closed())
+            if (sources[i]->is_closed())
                 if(sources[i]->is_past_timeout()){
                     /* reconnect stream here*/
                     sources[i]->soft_deinit();
-                    if(sources[i]->init())
-                        this->pending_epoll_reg = true;
+                    if(sources[i]->init()){
+                        //this->pending_epoll_reg = true;
+                    }
                 }
 
             if(sources[i]->is_frame_waiting() && !frames[i].ready){
