@@ -169,7 +169,7 @@ int StreamMuxer::child_epoller(void){
             if(sources[i]->is_closed()){
                 if(sources[i]->is_past_timeout()){
                     if(sources[i]->init()){
-                        this->relink_stream(sources[i]);
+                        //this->relink_stream(sources[i]);
                     }
                 }
             }

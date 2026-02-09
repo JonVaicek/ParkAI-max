@@ -58,7 +58,7 @@ public:
     pid_(-1), id(id), worker_path(workerpath), rtsp_url(rtsp_url)
     {
         uint32_t ret = init();
-        if (ret){
+        if (!ret){
             std::cout << " [parent] failed to initialize\n";
         }
     }
@@ -109,6 +109,7 @@ public:
         epoll_registered = false;
         closed_ts = 0;
         init_complete_ = true;
+        deinit_ = false;
         //time(&f_ts_);
         return 1;
     }
