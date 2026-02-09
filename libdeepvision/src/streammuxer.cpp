@@ -129,22 +129,9 @@ int StreamMuxer::child_epoller(void){
     std::cout << "EPPOLLING INIT DONE\n";
     while (true){
         bool epoll_del = false;
-        uint32_t n_epoll_src = 0;
-        /* count sources*/
-        for (uint32_t i=0; i < sources.size(); i++){
-            if (sources[i]->is_registered()){
-                n_epoll_src++;
-            }
-            else{
-                this->relink_stream(sources[i]);
-            }
-        }
 
-        if (n_epoll_src < 1)
-            continue;
         std::cout << "Epolling\n";
         int n = epoll_wait(epfd, events, MAX_EVENTS, -1); // BLOCK
-        std::cout << "Returning\n";
         if (n <= 0)
             continue;
         else{
@@ -176,16 +163,6 @@ int StreamMuxer::child_epoller(void){
 
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
                 sources[i]->set_frame_waiting(true);
-            }
-        }
-
-        for (uint32_t i = 0; i < sources.size(); i++){
-            if(sources[i]->is_closed()){
-                if(sources[i]->is_past_timeout()){
-                    if(sources[i]->init()){
-                        this->relink_stream(sources[i]);
-                    }
-                }
             }
         }
     }
