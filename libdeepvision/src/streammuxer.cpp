@@ -182,8 +182,8 @@ int StreamMuxer::frame_reader(void){
                 if(sources[i]->is_past_timeout()){
                     /* reconnect stream here*/
                     sources[i]->soft_deinit();
-                    sources[i]->init();
-                    this->pending_epoll_reg = true;
+                    if(sources[i]->init())
+                        this->pending_epoll_reg = true;
                 }
 
             if(sources[i]->is_frame_waiting() && !frames[i].ready){

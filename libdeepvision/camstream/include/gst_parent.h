@@ -17,7 +17,7 @@
 #include <poll.h>
 #include <time.h>
 
-#define STREAM_IS_OFF_AFTER 180 /* seconds */
+#define STREAM_IS_OFF_AFTER 10 /* seconds */
 
 int recv_fd(int sock);
 uint64_t signal_parser(uint64_t val);
@@ -102,6 +102,7 @@ public:
         close(sv_[1]);
         fn = std::string("image-") + std::to_string(id) + std::string(".jpeg");
         closed_ = false;
+        epoll_registered = false;
         closed_ts = 0;
         //time(&f_ts_);
         return 1;
@@ -199,7 +200,6 @@ public:
 
         shm_ = nullptr;
         pid_ = -1;
-        epoll_registered = false;
         return 1;
     }
 
@@ -389,7 +389,7 @@ public:
     bool is_closed(void)const{return closed_;}
     bool is_registered(void) const {return epoll_registered;}
     void set_epoll_flag(bool val){ epoll_registered = val;}
-    
+
 
 };
 
