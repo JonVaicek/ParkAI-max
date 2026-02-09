@@ -45,11 +45,13 @@ private:
     time_t f_ts_ = 0;
     time_t closed_ts = 0;
     bool epoll_registered = false;
+    
 
 
 
 public:
     bool deinit_ = false;
+    bool init_complete_ = false;
 
     //GstChildWorker(int id, const char *workerpath):
     GstChildWorker(int id, const char *workerpath, const char *rtsp_url):
@@ -106,6 +108,7 @@ public:
         closed_ = false;
         epoll_registered = false;
         closed_ts = 0;
+        init_complete_ = true;
         //time(&f_ts_);
         return 1;
     }
@@ -176,6 +179,7 @@ public:
 
     uint32_t soft_deinit(){
         // release resources safely
+        init_complete_ = false;
         if (pid_ > 0) {
             kill(pid_, SIGKILL);
             int status;
@@ -209,6 +213,7 @@ public:
         }
 
         shm_ = nullptr;
+        closed_ = true;
         return 1;
     }
 
@@ -352,8 +357,12 @@ public:
     }
 
     time_t is_past_timeout(void){
+        if (closed_ts == 0){
+            return false;
+        }
         time_t now;
         time(&now);
+
         if (now - closed_ts > STREAM_IS_OFF_AFTER){
             return true;
         }

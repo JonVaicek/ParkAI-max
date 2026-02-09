@@ -160,8 +160,17 @@ int StreamMuxer::child_epoller(void){
                 if ( s->deinit_ && s->is_registered()){
                     epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
                     s->set_epoll_flag(false);
-                    s->deinit_ = false;
                     std::cout << "[streammux] - source evfd removed from epoll\n";
+                }
+            }
+        }
+
+        for (uint32_t i = 0; i < sources.size(); i++){
+            if(sources[i]->is_closed()){
+                if(sources[i]->is_past_timeout()){
+                    if(sources[i]->init()){
+                        this->relink_stream(sources[i]);
+                    }
                 }
             }
         }
@@ -186,14 +195,9 @@ int StreamMuxer::frame_reader(void){
     while(true){
         
         for (int i = 0; i < sources.size(); i++){
-            if (sources[i]->is_closed())
-                if(sources[i]->is_past_timeout()){
-                    /* reconnect stream here*/
-                    sources[i]->soft_deinit();
-                    if(sources[i]->init()){
-                        this->pending_epoll_reg = true;
-                    }
-                }
+            if (sources[i]->deinit_){
+                sources[i]->soft_deinit();
+            }
 
             if(sources[i]->is_frame_waiting() && !frames[i].ready){
                 if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
