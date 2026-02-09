@@ -381,7 +381,7 @@ public:
             //     break;
 
             case EVT_PIPELINE_EXIT:
-                this->closed_ = true;
+                //this->closed_ = true;
                 this->frame_waiting = false;
                 this->deinit_ = true;
                 time(&closed_ts);
