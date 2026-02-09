@@ -176,6 +176,14 @@ public:
 
     uint32_t soft_deinit(){
         // release resources safely
+        if (pid_ > 0) {
+            kill(pid_, SIGKILL);
+            int status;
+            while (waitpid(pid_, &status, 0) == -1 && errno == EINTR) {
+                // retry
+            }
+            pid_ = -1;
+        }
         if (shm_ != MAP_FAILED) {
             munmap(shm_, shm_bytes_);
             shm_ = MAP_FAILED;
@@ -201,7 +209,6 @@ public:
         }
 
         shm_ = nullptr;
-        pid_ = -1;
         return 1;
     }
 
