@@ -42,7 +42,9 @@ private:
     bool closed_ = false;
     bool frame_waiting = false;
     time_t f_ts_ = 0;
-    bool epoll_reg_ = false;
+    time_t closed_ts = 0;
+    bool epoll_registered = false;
+
 
 
 public:
@@ -99,7 +101,8 @@ public:
         }
         close(sv_[1]);
         fn = std::string("image-") + std::to_string(id) + std::string(".jpeg");
-        time(&f_ts_);
+        closed_ts = 0;
+        //time(&f_ts_);
         return 1;
     }
 
@@ -165,17 +168,48 @@ public:
         pid_ = -1;
         closed_ = true;
         return 1;
+    }
 
+    uint32_t soft_deinit(){
+        // release resources safely
+        if (shm_ != MAP_FAILED) {
+            munmap(shm_, shm_bytes_);
+            shm_ = MAP_FAILED;
+        }
+        hdr_ = nullptr;
+        shm_bytes_ = 0;
+
+        if (shmfd_ >= 0) {
+            close(shmfd_);
+            shmfd_ = -1;
+        }
+        if (evfd_ >= 0) {
+            close(evfd_);
+            evfd_ = -1;
+        }
+        if (sv_[0] >= 0) {
+            close(sv_[0]);
+            sv_[0] = -1;
+        }
+        if (sv_[1] >= 0) {
+            close(sv_[1]);
+            sv_[1] = -1;
+        }
+
+        shm_ = nullptr;
+        pid_ = -1;
+        epoll_registered = false;
+        return 1;
     }
 
     uint32_t reset(void){
         std::cout << " RESETING STREAM " << this->rtsp_url << std::endl;
         f_ts_ = 0;
-        epoll_reg_ = false;
         deinit();
         init();
         return 1;
     }
+
 
     bool wait_for_signal(uint64_t &out_val) {
         struct pollfd pfd{};
@@ -277,10 +311,6 @@ public:
         if (!shm_ready){
             return 0;
         }
-        if(is_offline()){
-            //this->reset();
-            return 0;
-        }
 
         /* first check if data exists*/
         DataHeader *d = header();
@@ -311,20 +341,15 @@ public:
         return 1;
     }
 
-    time_t get_timediff(void){
-        time_t now, dt;
+    time_t is_past_timeout(void){
+        time_t now;
         time(&now);
-        dt = now - f_ts_;
-        return dt;
-    }
-    uint32_t is_offline(){
-        if (get_timediff() > STREAM_IS_OFF_AFTER){
-            return 1;
+        if (now - closed_ts > STREAM_IS_OFF_AFTER){
+            return true;
         }
-        else{
-            return 0;
-        }
+        return false;
     }
+
     void handle_event(uint64_t evt) {
         switch (evt) {
             case EVT_MMSH_COMPLETE:
@@ -335,9 +360,11 @@ public:
             //     pull_frame(...);
             //     break;
 
-            // case EVT_PIPELINE_EXIT:
-            //     reset();
-            //     break;
+            case EVT_PIPELINE_EXIT:
+                closed_ = true;
+                frame_waiting = false;
+                time(&closed_ts);
+                break;
         }
     }
     
@@ -358,8 +385,9 @@ public:
         }
         d->state = SHM_EMPTY;
     }
-    void set_epoll_reg_flag(bool val){epoll_reg_ = val;}
-    bool get_epoll_reg_flag(void)const{return epoll_reg_;}
+    bool is_closed(void)const{return closed_;}
+    bool is_registered(void) const {return epoll_registered;}
+    void set_epoll_flag(bool val){ epoll_registered = val;}
 
 };
 

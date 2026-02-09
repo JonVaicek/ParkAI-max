@@ -128,6 +128,8 @@ int StreamMuxer::child_epoller(void){
     uint64_t nfr=0;
     std::cout << "EPPOLLING INIT DONE\n";
     while (true){
+        bool epoll_del = false;
+
         int n = epoll_wait(epfd, events, MAX_EVENTS, -1); // BLOCK
         if (n <= 0)
             continue;
@@ -142,18 +144,31 @@ int StreamMuxer::child_epoller(void){
             }
 
             auto evt = signal_parser(sig);
-            // if((sig&EVT_PIPELINE_EXIT)==EVT_PIPELINE_EXIT){
-            //     epoll_ctl(epfd, EPOLL_CTL_DEL, sources[i]->get_evfd(), nullptr); //unregister epoll eventfd
-            //     std::cout << "Resetting\n";
-            //     sources[i]->reset();
-            //     relink_stream(sources[i]);
-            // }
             sources[i]->handle_event(evt);
+            /* check if epoll changes need to be made*/
+            if(evt == EVT_PIPELINE_EXIT)
+                epoll_del = true;
 
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
                 sources[i]->set_frame_waiting(true);
             }
         }
+
+        /* epoll control management */
+        if (epoll_del){
+            for (const auto & s:sources){
+                if (s->is_closed())
+                    epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
+            }
+        }
+        if (this->pending_epoll_reg){
+            for (int i=0; i < sources.size(); i++){
+                if (!sources[i]->is_registered())
+                    this->relink_stream(sources[i]);
+            }
+            this->pending_epoll_reg = false;
+        }
+        
     }
     return 1;
 }
@@ -162,9 +177,14 @@ int StreamMuxer::frame_reader(void){
     uint64_t nfr = 0;
     while(true){
         for (int i = 0; i < sources.size(); i++){
-            // if(!sources[i]->get_epoll_reg_flag()){
-            //     relink_stream(sources[i]);
-            // }
+
+            if (sources[i]->is_closed())
+                if(sources[i]->is_past_timeout()){
+                    /* reconnect stream here*/
+                    sources[i]->soft_deinit();
+                    sources[i]->init();
+                    this->pending_epoll_reg = true;
+                }
 
             if(sources[i]->is_frame_waiting() && !frames[i].ready){
                 if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
