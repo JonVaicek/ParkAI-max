@@ -148,7 +148,7 @@ class StreamMuxer{
             std::cout << "pending evfd = " << pending_evfd << std::endl;
             return 0;
         }
-        
+
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, source->get_evfd(), &ev) == -1) {
             perror("epoll_ctl");
             std::cout << "****!!!!****!!!!Caused by evfd:"<< source->get_evfd() << " \n";
@@ -195,7 +195,7 @@ class StreamMuxer{
     int copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w, uint32_t *h);
 
     int reset_frame(uint32_t id){
-        std::cout << "*** CLearing buffers\n";
+        //std::cout << "*** CLearing buffers\n";
         frames[id].fid = (uint64_t)-1;
         frames[id].ready = false;
         frames[id].read = true;

@@ -603,8 +603,8 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
             GError *err;
             gchar *debug;
             gst_message_parse_error(msg, &err, &debug);
-            std::cerr << "Error from element " << GST_OBJECT_NAME(msg->src)
-                      << ": " << err->message << std::endl;
+            // std::cerr << "Error from element " << GST_OBJECT_NAME(msg->src)
+            //           << ": " << err->message << std::endl;
             g_error_free(err);
             g_free(debug);
             ctrl->lock->lock();
@@ -616,7 +616,7 @@ static gboolean bus_call(GstBus *bus, GstMessage *msg, gpointer user_data) {
         }
 
         case GST_MESSAGE_EOS:
-            std::cout << "End of Stream received — restarting pipeline" << std::endl;
+            //std::cout << "End of Stream received — restarting pipeline" << std::endl;
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             //gst_element_set_state(ctrl->pipeline, GST_STATE_NULL);
             //gst_element_get_state(ctrl->pipeline, NULL, NULL, 0);
@@ -636,7 +636,7 @@ static gboolean periodic_tick_continious(gpointer user_data){
 
   if (! ctrl->run || ctrl->restart == true) {
         //std::lock_guard<std::mutex> lock(*(ctrl->lock));
-        std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
+        //std::cout << "Cam " << ctrl->index << " Playback is closing!\n";
         return false;
     }
     return true;
@@ -832,16 +832,16 @@ int bus_listener(GstBus *bus, GstElement *pipeline, StreamCtrl *ctrl){
       switch (GST_MESSAGE_TYPE (msg)) {
         case GST_MESSAGE_ERROR:
           gst_message_parse_error (msg, &err, &debug_info);
-          g_printerr ("Error received from element %s: %s\n",
-              GST_OBJECT_NAME (msg->src), err->message);
-          g_printerr ("Debugging information: %s\n",
-              debug_info ? debug_info : "none");
+        //   g_printerr ("Error received from element %s: %s\n",
+        //       GST_OBJECT_NAME (msg->src), err->message);
+        //   g_printerr ("Debugging information: %s\n",
+        //       debug_info ? debug_info : "none");
           g_clear_error (&err);
           g_free (debug_info);
           terminate = TRUE;
           break;
         case GST_MESSAGE_EOS:
-          g_print ("End-Of-Stream reached.\n");
+          //g_print ("End-Of-Stream reached.\n");
           terminate = TRUE;
           break;
         case GST_MESSAGE_STATE_CHANGED:
@@ -850,13 +850,13 @@ int bus_listener(GstBus *bus, GstElement *pipeline, StreamCtrl *ctrl){
             GstState old_state, new_state, pending_state;
             gst_message_parse_state_changed (msg, &old_state, &new_state,
                 &pending_state);
-            g_print ("Pipeline state changed from %s to %s:\n",
-                gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+            // g_print ("Pipeline state changed from %s to %s:\n",
+            //     gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
           }
           break;
         default:
           /* We should not reach here */
-          g_printerr ("Unexpected message received.\n");
+          //g_printerr ("Unexpected message received.\n");
           break;
       }
       gst_message_unref (msg);
@@ -868,13 +868,13 @@ int bus_listener(GstBus *bus, GstElement *pipeline, StreamCtrl *ctrl){
 
 uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     StreamPipeline p;
-    std::cout << ctrl->stream_ip << " Building pipeline\n";
+    //std::cout << ctrl->stream_ip << " Building pipeline\n";
     uint32_t ret = create_gst_pipeline(id, rtsp_url, &p);
     if (!ret){
-        std::cout << "Failed to create pipeline for " << rtsp_url << std::endl;
+        //std::cout << "Failed to create pipeline for " << rtsp_url << std::endl;
         return 0;
     }
-    std::cout << ctrl->stream_ip << " Pipeline Created\n";
+    //std::cout << ctrl->stream_ip << " Pipeline Created\n";
     //copy the required pointer to ctrl structure
     ctrl->pipeline = p.pipeline;
     ctrl->valve = p.valve;
@@ -895,7 +895,7 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     /* Start playing */
     ret = gst_element_set_state (ctrl->pipeline, GST_STATE_PLAYING);
     if (ret == GST_STATE_CHANGE_FAILURE) {
-        g_printerr ("Unable to set the pipeline to the playing state.\n");
+        //g_printerr ("Unable to set the pipeline to the playing state.\n");
         gst_object_unref (ctrl->pipeline);
         return 0;
     }
@@ -905,7 +905,7 @@ uint32_t start_manual_pipeline(int id, std::string rtsp_url, StreamCtrl *ctrl){
     // manual bus listener
     bus_listener(bus, ctrl->pipeline, ctrl);
     gst_object_unref (bus);
-    std::cout << ctrl->stream_ip << " bus listener returned\n";
+    //std::cout << ctrl->stream_ip << " bus listener returned\n";
 
     //free resources
     mutex->lock();
@@ -984,7 +984,7 @@ uint32_t new_simple_pipeline(int id, const char * rtsp_url, StreamCtrl *ctrl){
     /* Start playing */
     GstStateChangeReturn g_ret = gst_element_set_state (p.pipeline, GST_STATE_PLAYING);
     if (g_ret == GST_STATE_CHANGE_FAILURE) {
-        g_printerr ("Unable to set the pipeline to the playing state.\n");
+        //g_printerr ("Unable to set the pipeline to the playing state.\n");
         gst_object_unref (p.pipeline);
         return 0;
     }

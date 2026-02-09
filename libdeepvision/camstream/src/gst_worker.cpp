@@ -190,6 +190,6 @@ int main(int argc, char** argv) {
         stream.join();
     }
 
-    std::cout << "[child] exiting" << std::endl;
+    std::cout << " [child] exiting" << std::endl;
     return 0;
 }
