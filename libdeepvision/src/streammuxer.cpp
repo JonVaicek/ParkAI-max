@@ -145,12 +145,12 @@ int StreamMuxer::child_epoller(void){
 
             uint64_t sig;
             ssize_t s = read(sources[i]->get_evfd(), &sig, sizeof(sig));
-            if (s == -1 && errno != EAGAIN) {
-                perror("read evfd failed");
-            }
-            if (s != sizeof(sig)) {
-                continue; // ignore invalid wakeups
-            }
+            // if (s == -1 && errno != EAGAIN) {
+            //     perror("read evfd failed");
+            // }
+            // if (s != sizeof(sig)) {
+            //     continue; // ignore invalid wakeups
+            // }
 
             auto evt = signal_parser(sig);
             
