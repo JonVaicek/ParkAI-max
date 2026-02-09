@@ -148,9 +148,9 @@ int StreamMuxer::child_epoller(void){
         if (n <= 0)
             continue;
         else{
-            if (errno == EINTR)
-                continue; // signal interrupted, retry
             perror("epoll_wait failed");
+            if (errno == EINTR)
+                continue; // signal interrupted, retry   
         }
 
         for (int e = 0; e < n; e++) {
