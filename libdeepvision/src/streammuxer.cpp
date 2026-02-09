@@ -129,6 +129,19 @@ int StreamMuxer::child_epoller(void){
     std::cout << "EPPOLLING INIT DONE\n";
     while (true){
         bool epoll_del = false;
+        uint32_t n_epoll_src = 0;
+        /* count sources*/
+        for (uint32_t i=0; i < sources.size(); i++){
+            if (sources[i]->is_registered()){
+                n_epoll_src++;
+            }
+            else{
+                this->relink_stream(sources[i]);
+            }
+        }
+
+        if (n_epoll_src < 1)
+            continue;
 
         int n = epoll_wait(epfd, events, MAX_EVENTS, -1); // BLOCK
         if (n <= 0)
@@ -169,23 +182,11 @@ int StreamMuxer::child_epoller(void){
             if(sources[i]->is_closed()){
                 if(sources[i]->is_past_timeout()){
                     if(sources[i]->init()){
-                        //this->relink_stream(sources[i]);
+                        this->relink_stream(sources[i]);
                     }
                 }
             }
         }
-        
-        // if(this->pending_epoll_reg){
-        //     std::cout << "Epoll Linking required\n";
-        //     for (int i=0; i < sources.size(); i++){
-        //         if (!sources[i]->is_registered() && !sources[i]->is_closed()){
-        //             std::cout << "Linkink source - "<< i <<" back to epoll\n";
-        //             std::cout << "registered - "<< sources[i]->is_registered() <<" closed - "<<sources[i]->is_closed()<<"\n";
-        //             this->relink_stream(sources[i]);
-        //         }
-        //     }
-        //     this->pending_epoll_reg = false;
-        // }
     }
     return 1;
 }
