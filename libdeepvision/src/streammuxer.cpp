@@ -192,6 +192,7 @@ int StreamMuxer::frame_reader(void){
                     sources[i]->soft_deinit();
                     if(sources[i]->init()){
                         //this->pending_epoll_reg = true;
+                        //commentaras
                     }
                 }
 
