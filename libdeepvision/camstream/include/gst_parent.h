@@ -103,6 +103,7 @@ public:
 
     uint32_t init(void){
         killed_ = false;
+        unreg_ = false;
         if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv_) != 0) {
             printf(" [child-%d] socket pair error\n", id);
             return 0;
@@ -444,7 +445,6 @@ public:
                 //this->closed_ = true;
                 this->frame_waiting = false;
                 //this->deinit_ = true;
-                this->unreg_ = true;
                 //soft_deinit();
                 //time(&closed_ts);
                 break;

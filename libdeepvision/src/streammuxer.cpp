@@ -136,10 +136,12 @@ std::vector <GstChildWorker *> delete_from_epoll(int epfd, std::vector <GstChild
     std::vector <GstChildWorker *> survivors;
         for (auto & s:remove_list){
             if(epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr) == 0){
-                printf("src - %s deleted from epoll\n", s->rtsp_url);
+                printf("[src - %s] fd-%d deleted from epoll\n", s->rtsp_url, s->get_evfd());
+                s->unreg_ = true;
+                s->set_epoll_flag(false);
             }
             else{
-                printf("src - %s could not delete from epoll\n", s->rtsp_url);
+                printf("[src - %s] fd-%d could not delete from epoll\n", s->rtsp_url, s->get_evfd());
             }
         }
     return survivors;
@@ -161,11 +163,8 @@ int StreamMuxer::child_epoller(void){
     if(mlock.try_lock()){
         bool epoll_del = false;
         //print_sources_table(sources);
-        std::cout << "Epolling\n";
         epoll_event events[MAX_EVENTS];
         int n;
-
-
         remove_list = delete_from_epoll(epfd, remove_list);
 
         do {
@@ -186,7 +185,6 @@ int StreamMuxer::child_epoller(void){
                 continue;
             }
             uint64_t sig;   
-            
             ssize_t s = read(src->get_evfd(), &sig, sizeof(sig));
             if (s == -1) {
                 if (errno == EAGAIN) continue;
@@ -194,6 +192,12 @@ int StreamMuxer::child_epoller(void){
                 continue;
             }
             if (s != sizeof(sig)) continue;
+
+            /* clear the epoll events with deleted evfds */
+            if(!src->is_registered()){
+                printf("[src-%s] received events after deletion\n", src->rtsp_url);
+                continue; //
+            }
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
                 remove_list.push_back(src);
