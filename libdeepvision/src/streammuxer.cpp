@@ -227,8 +227,11 @@ int StreamMuxer::child_epoller(void){
         //print_sources_table(sources);
         epoll_event events[MAX_EVENTS];
         int n;
-        infected = delete_from_epoll(epfd, infected, to_kill);
-        
+        //infected = delete_from_epoll(epfd, infected, to_kill);
+        survivors = kill_children_in_list(epfd, infected, to_kill);
+        infected = survivors;
+        survivors.clear();
+
         do {
             n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
         } while (n < 0 && errno == EINTR);
@@ -274,7 +277,7 @@ int StreamMuxer::child_epoller(void){
             }
         }
 
-        survivors = kill_children_in_list(epfd, to_kill, to_bury);
+        survivors = delete_from_epoll(epfd, to_kill, to_bury);
         to_kill = survivors;
         survivors.clear();
         close_children_fds(epfd, to_bury, to_revive);
@@ -303,7 +306,6 @@ else{
 int StreamMuxer::frame_reader(void){
     uint64_t nfr = 0;
     while(true){
-        
         for (int i = 0; i < sources.size(); i++){
             if(sources[i]->is_frame_waiting() && !frames[i].ready){
                 if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
