@@ -223,6 +223,7 @@ public:
             close(evfd_);
             evfd_ = -1;
         }
+        std::cout << "[parent] - closing sv_={"<<sv_[0] <<", " <<sv_[1] << "}\n";
         if (sv_[0] >= 0) {
             close(sv_[0]);
             sv_[0] = -1;

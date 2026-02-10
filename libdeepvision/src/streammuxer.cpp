@@ -190,6 +190,10 @@ int StreamMuxer::child_epoller(void){
                     s->deinit_ = false;
                 }
             }
+            if(s->killed_ && !s->deinit_){
+                std::cout << "Closing child fds\n";
+                s->soft_deinit();
+            }
             // if(s->deinit_ && !s->killed_){
             //     s->soft_deinit();
             // }
