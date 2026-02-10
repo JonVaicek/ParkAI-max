@@ -27,10 +27,9 @@ uint64_t signal_parser(uint64_t val);
 class GstChildWorker{
 private:
     int id;
-    int sv_[2];
+    
     int evfd_;
     pid_t pid_;
-    int shmfd_;
     void* shm_;
     size_t shm_bytes_;
     DataHeader* hdr_ = nullptr;
@@ -47,6 +46,7 @@ private:
 
 
 public:
+    int shmfd_;int sv_[2];
     const char *rtsp_url;
     bool unreg_ = false;
     bool deinit_ = false;

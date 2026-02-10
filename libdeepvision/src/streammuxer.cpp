@@ -87,6 +87,15 @@ int StreamMuxer::update_fd(void){
     return bi;
 }
 
+int print_sources_table(std::vector <GstChildWorker *> &vec){
+    std::cout << "---|-------------------------------------------------------|-----|-----|-----|-----\n";
+    printf(" id| rtsp_url ---------------------------------------------| evfd|  sv1|  sv2|  shm\n");
+    for (const auto & ch:vec){
+        printf("%3d|%-55s|%5d|%5d|%5d|%5d\n", ch->get_id(), ch->rtsp_url, ch->get_evfd(), ch->sv_[0], ch->sv_[1], ch->shmfd_);
+    }
+    std::cout << "---|-------------------------------------------------------|-----|-----|-----|-----\n";
+    return 1;
+}
 
 int StreamMuxer::periodic_tick(uint32_t period_ms){
     static uint32_t tick = 0;
@@ -129,7 +138,7 @@ int StreamMuxer::child_epoller(void){
     std::cout << "EPPOLLING INIT DONE\n";
     while (true){
         bool epoll_del = false;
-
+        print_sources_table(sources);
         std::cout << "Epolling\n";
         epoll_event events[MAX_EVENTS];
         int n;
