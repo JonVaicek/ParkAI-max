@@ -30,8 +30,8 @@ private:
     
     int evfd_;
     pid_t pid_;
-    void* shm_;
-    size_t shm_bytes_;
+    void* shm_ = MAP_FAILED;
+    size_t shm_bytes_ = -1;
     DataHeader* hdr_ = nullptr;
     uint64_t n_read=0;
     std::string fn;
@@ -46,7 +46,7 @@ private:
 
 
 public:
-    int shmfd_;int sv_[2];
+    int shmfd_;int sv_[2] = {-1, -1};
     const char *rtsp_url;
     bool unreg_ = false;
     bool deinit_ = false;
@@ -55,7 +55,8 @@ public:
 
     //GstChildWorker(int id, const char *workerpath):
     GstChildWorker(int id, const char *workerpath, const char *rtsp_url):
-    pid_(-1), id(id), worker_path(workerpath), rtsp_url(rtsp_url)
+    pid_(-1), id(id), worker_path(workerpath), rtsp_url(rtsp_url),
+    shmfd_(-1), evfd_(-1)
     {
         uint32_t ret = init();
         if (!ret){
