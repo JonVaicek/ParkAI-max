@@ -132,20 +132,42 @@ uint32_t StreamMuxer::update_frame(uint32_t id){
     return 1;
 }
 
-std::vector <GstChildWorker *> delete_from_epoll(int epfd, std::vector <GstChildWorker *> remove_list){
+std::vector <GstChildWorker *> delete_from_epoll(int epfd, std::vector <GstChildWorker *> remove_list,
+                                                    std::vector <GstChildWorker *> &deleted){
     std::vector <GstChildWorker *> survivors;
         for (auto & s:remove_list){
             if(epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr) == 0){
+                deleted.push_back(s);
                 printf("[src - %s] fd-%d deleted from epoll\n", s->rtsp_url, s->get_evfd());
                 s->unreg_ = true;
                 s->set_epoll_flag(false);
             }
             else{
+                survivors.push_back(s);
                 printf("[src - %s] fd-%d could not delete from epoll\n", s->rtsp_url, s->get_evfd());
             }
         }
     return survivors;
 }
+
+std::vector <GstChildWorker *> kill_children_in_list(int epfd, std::vector <GstChildWorker *> kill_list,
+                                                    std::vector <GstChildWorker *> &killed){
+    std::vector <GstChildWorker *> survivors;
+        for (auto & s:kill_list){
+            if(s->kill_children()){
+                killed.push_back(s);
+                printf("[src - %s] child dead\n", s->rtsp_url);
+                s->unreg_ = true;
+                s->set_epoll_flag(false);
+            }
+            else{
+                 survivors.push_back(s);
+                printf("[src - %s] could not kill\n", s->rtsp_url);
+            }
+        }
+    return survivors;
+}
+
 
 int StreamMuxer::child_epoller(void){
 
@@ -153,10 +175,13 @@ int StreamMuxer::child_epoller(void){
     std::cout << "EPPOLLING INIT DONE\n";
     std::vector <GstChildWorker *> reset_list;
     std::vector <GstChildWorker *> did_not_reset;
-    std::vector <GstChildWorker *> to_kill;
-    std::vector <GstChildWorker *> survivors;
 
+    std::vector <GstChildWorker *> to_kill;
+    std::vector <GstChildWorker *> to_bury;
+
+    std::vector <GstChildWorker *> survivors;
     std::vector <GstChildWorker *> remove_list;
+
     while (true){
         
     if(!sources.empty()){
@@ -165,8 +190,8 @@ int StreamMuxer::child_epoller(void){
         //print_sources_table(sources);
         epoll_event events[MAX_EVENTS];
         int n;
-        remove_list = delete_from_epoll(epfd, remove_list);
-
+        remove_list = delete_from_epoll(epfd, remove_list, to_kill);
+        
         do {
             n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
         } while (n < 0 && errno == EINTR);
@@ -210,6 +235,10 @@ int StreamMuxer::child_epoller(void){
                 src->set_frame_waiting(true);
             }
         }
+
+        survivors = kill_children_in_list(epfd, to_kill, to_bury);
+        to_kill = survivors;
+        survivors.clear();
 
         mlock.unlock();
     }
