@@ -140,6 +140,11 @@ std::vector <GstChildWorker *> delete_from_epoll(int epfd, std::vector <GstChild
                 deleted.push_back(s);
                 printf("[src - %s] fd-%d deleted from epoll\n", s->rtsp_url, s->get_evfd());
                 s->unreg_ = true;
+                shutdown(s->sv_[0], SHUT_RDWR);
+                shutdown(s->sv_[1], SHUT_RDWR);
+                close(s->sv_[0]);
+                close(s->sv_[1]);
+                s->sv_[0]=s->sv_[1]=-1;
                 s->set_epoll_flag(false);
             }
             else{
