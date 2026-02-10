@@ -108,10 +108,12 @@ class StreamMuxer{
     };
 
     int link_stream(GstChildWorker * source){
+        
         if(sources.size() >= MAX_STREAMS){
             std::cerr << "Maximal amount of streams reached\n";
             return 0;
         }
+        mlock.lock();
         frames.push_back(FrameInfo{});
         sources.push_back(source);
         // register evfd for epoll
@@ -125,6 +127,7 @@ class StreamMuxer{
             exit(1);
         }
         source->set_epoll_flag(true);
+        mlock.unlock();
         return 1;
     }
 
