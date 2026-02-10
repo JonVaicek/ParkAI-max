@@ -148,7 +148,7 @@ int StreamMuxer::child_epoller(void){
         epoll_event events[MAX_EVENTS];
         int n;
         do {
-            n = epoll_wait(epfd, events, MAX_EVENTS, 1);
+            n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
         } while (n < 0 && errno == EINTR);
 
         if(n < 0){
@@ -213,47 +213,13 @@ int StreamMuxer::child_epoller(void){
         to_kill.clear();
         to_kill = survivors;
         survivors.clear();
+        mlock.unlock();
     }
 }
 else{
     std::cout << "empty sources\n";
 }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        // for (uint32_t i = 0; i < sources.size(); i++){
-        //     auto *s = sources[i];
-        //     if(s->unreg_){
-        //             std::cout << "Removing evfd " << s->get_evfd() << "from epoll\n";
-        //             epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
-        //             s->set_epoll_flag(false);
-        //             s->unreg_ = false;
-        //             s->deinit_ = true;
-        //     }
-        //     if(s->deinit_){
-        //         if(s->kill_children()){
-        //             std::cout << "[" << sources[i]->rtsp_url << "] deinitializing\n";
-        //             s->soft_deinit();
-        //             s->deinit_ = false;
-        //         }
-        //     }
-        //     // if(s->killed_ && !s->is_closed()){
-        //     //     if(s->is_past_timeout()){
-        //     //         std::cout << "Starting children\n";
-        //     //     }
-        //     // }
-
-        //     // if(s->deinit_ && !s->killed_){
-        //     //     s->soft_deinit();
-        //     // }
-
-
-        //     // if(s->is_closed() && s->killed_){
-        //     //     if(s->is_past_timeout()){
-        //     //         if(s->init()){
-        //     //             this->relink_stream(s);
-        //     //         }
-        //     //     }
-        //     // }
-        // }
     }
     return 1;
 }
