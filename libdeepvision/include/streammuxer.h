@@ -138,6 +138,7 @@ class StreamMuxer{
             std::cout << "Error relinking: evfd is less than 0\n";
             return 0;
         }
+        std::cout << " Adding evfd " << ev.data.fd << " to the epoll\n";
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
             std::cout << "****!!!!****!!!!Could not add evfd:"<< ev.data.fd << "to epoll \n";
             return 0;
