@@ -142,28 +142,34 @@ int StreamMuxer::child_epoller(void){
         }
 
         for (int e = 0; e < n; e++) {
-            size_t i = events[e].data.u32;
-            std::cout << "Reading event from " << sources[i]->get_evfd() << std::endl;
+            //size_t i = events[e].data.u32;
+            std::cout << "Reading event from fd = " << events[e].data.fd << std::endl;
             uint64_t sig;   
-            ssize_t s = read(sources[i]->get_evfd(), &sig, sizeof(sig));
+            ssize_t s = read(events[e].data.fd, &sig, sizeof(sig));
             // if (s == -1 && errno != EAGAIN) {
             //     perror("read evfd failed");
             // }
             // if (s != sizeof(sig)) {
             //     continue; // ignore invalid wakeups
             // }
+            uint32_t idx=0xffffffff;
+            for (uint32_t i = 0; i < sources.size(); i++){
+                if (sources[i]->get_evfd()== events[e].data.fd){
+                    idx = i;
+                }
+            }
 
             auto evt = signal_parser(sig);
             
             if(evt == EVT_PIPELINE_EXIT){
-                epoll_ctl(epfd, EPOLL_CTL_DEL, sources[i]->get_evfd(), nullptr);
-                sources[i]->set_epoll_flag(false);
+                epoll_ctl(epfd, EPOLL_CTL_DEL, sources[idx]->get_evfd(), nullptr);
+                sources[idx]->set_epoll_flag(false);
                 std::cout << "[streammux] - source evfd removed from epoll\n";
             }
-            sources[i]->handle_event(evt);
+            sources[idx]->handle_event(evt);
 
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
-                sources[i]->set_frame_waiting(true);
+                sources[idx]->set_frame_waiting(true);
             }
         }
     }
