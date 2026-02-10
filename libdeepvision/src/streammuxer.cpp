@@ -161,9 +161,9 @@ std::vector <GstChildWorker *> kill_children_in_list(int epfd, std::vector <GstC
                 s->set_epoll_flag(false);
                 shutdown(s->sv_[0], SHUT_RDWR);
                 shutdown(s->sv_[1], SHUT_RDWR);
-                close(s->sv_[0]);
-                close(s->sv_[1]);
-                s->sv_[0]=s->sv_[1]=-1;
+                //close(s->sv_[0]);
+                //close(s->sv_[1]);
+                //s->sv_[0]=s->sv_[1]=-1;
             }
             else{
                  survivors.push_back(s);
