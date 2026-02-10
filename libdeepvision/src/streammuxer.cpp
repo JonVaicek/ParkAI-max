@@ -160,7 +160,7 @@ int StreamMuxer::child_epoller(void){
         for (int e = 0; e < n; e++) {
             //size_t i = events[e].data.u32;
             auto* src = static_cast<GstChildWorker*>(events[e].data.ptr);
-            std::cout << "Reading event from fd = " << events[e].data.fd << std::endl;
+            std::cout << "Reading event from fd = " << src->get_evfd() << std::endl;
             uint64_t sig;   
             
             ssize_t s = read(src->get_evfd(), &sig, sizeof(sig));
