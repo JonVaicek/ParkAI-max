@@ -215,6 +215,7 @@ public:
         }
 
         shm_ = nullptr;
+        deinit_=false;
         closed_ = true;
         return 1;
     }
@@ -385,7 +386,7 @@ public:
                 //this->closed_ = true;
                 this->frame_waiting = false;
                 this->deinit_ = true;
-                time(&closed_ts);
+                //time(&closed_ts);
                 break;
         }
     }

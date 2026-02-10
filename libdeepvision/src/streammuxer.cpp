@@ -158,7 +158,7 @@ int StreamMuxer::child_epoller(void){
 
             uint32_t idx=0xffffffff;
             for (uint32_t i = 0; i < sources.size(); i++){
-                if (sources[i]->get_evfd()== events[e].data.fd){
+                if (sources[i]->get_evfd() == events[e].data.fd){
                     idx = i;
                 }
             }
