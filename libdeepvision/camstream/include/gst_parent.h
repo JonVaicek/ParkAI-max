@@ -17,7 +17,7 @@
 #include <poll.h>
 #include <time.h>
 
-#define STREAM_IS_OFF_AFTER 180 /* seconds */
+#define STREAM_IS_OFF_AFTER 30 /* seconds */
 
 int recv_fd(int sock);
 uint64_t signal_parser(uint64_t val);
@@ -45,13 +45,12 @@ private:
     time_t f_ts_ = 0;
     time_t closed_ts = 0;
     bool epoll_registered = false;
-    
-
 
 
 public:
     bool deinit_ = false;
     bool init_complete_ = false;
+    bool killed_ = false;
 
     //GstChildWorker(int id, const char *workerpath):
     GstChildWorker(int id, const char *workerpath, const char *rtsp_url):
@@ -64,7 +63,7 @@ public:
     }
 
     uint32_t init(void){
-        
+        killed_ = false;
         if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv_) != 0) {
             printf(" [child-%d] socket pair error\n", id);
             return 0;
@@ -191,6 +190,7 @@ public:
             } else if (result == pid_) {
                 // child exited, handle status
                 pid_ = -1;
+                killed_ = true;
             } else {
                 // error
                 std::cout << "Error reaping children\n";

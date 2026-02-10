@@ -134,7 +134,7 @@ int StreamMuxer::child_epoller(void){
         epoll_event events[MAX_EVENTS];
         int n;
         do {
-            n = epoll_wait(epfd, events, MAX_EVENTS, -1);
+            n = epoll_wait(epfd, events, MAX_EVENTS, 10000);
         } while (n < 0 && errno == EINTR);
 
         if(n < 0){
@@ -177,18 +177,22 @@ int StreamMuxer::child_epoller(void){
         }
 
         for (uint32_t i = 0; i < sources.size(); i++){
-            // if(sources[i]->is_closed()){
-            //     if(sources[i]->is_past_timeout()){
-            //         if(sources[i]->init()){
-            //             this->relink_stream(sources[i]);
-            //         }
-            //     }
-            // }
-            if(sources[i]->deinit_ && sources[i]->is_registered()){
-                    std::cout << "Removing evfd " << sources[i]->get_evfd() << "from epoll\n";
-                    epoll_ctl(epfd, EPOLL_CTL_DEL, sources[i]->get_evfd(), nullptr);
-                    sources[i]->set_epoll_flag(false);
-                    sources[i]->soft_deinit();
+            auto *s = sources[i];
+            if(s->deinit_ && s->is_registered()){
+                    std::cout << "Removing evfd " << s->get_evfd() << "from epoll\n";
+                    epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
+                    s->set_epoll_flag(false);
+            }
+            if(s->deinit_ && !s->is_registered() && !s->killed_){
+                s->soft_deinit();
+            }
+
+            if(s->is_closed() && s->killed_){
+                if(s->is_past_timeout()){
+                    if(s->init()){
+                        this->relink_stream(s);
+                    }
+                }
             }
         }
     }
