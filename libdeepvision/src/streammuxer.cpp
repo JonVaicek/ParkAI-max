@@ -136,10 +136,10 @@ std::vector <GstChildWorker *> delete_from_epoll(int epfd, std::vector <GstChild
     std::vector <GstChildWorker *> survivors;
         for (auto & s:remove_list){
             if(epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr) == 0){
-                printf("src - %s deleted from epoll\n");
+                printf("src - %s deleted from epoll\n", s->rtsp_url);
             }
             else{
-                printf("src - %s could not delete from epoll\n");
+                printf("src - %s could not delete from epoll\n", s->rtsp_url);
             }
         }
     return survivors;
@@ -206,7 +206,7 @@ int StreamMuxer::child_epoller(void){
                 src->set_frame_waiting(true);
             }
         }
-        
+
         mlock.unlock();
     }
 }
