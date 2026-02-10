@@ -169,13 +169,12 @@ int StreamMuxer::child_epoller(void){
             uint64_t sig;   
             
             ssize_t s = read(src->get_evfd(), &sig, sizeof(sig));
-            if (s == -1 && errno != EAGAIN) {
+            if (s == -1) {
+                if (errno == EAGAIN) continue;
                 perror("read evfd failed");
                 continue;
             }
-            else if(errno == EAGAIN){
-                std::cout << "Error Events not fully drained\n";
-            }
+            if (s != sizeof(sig)) continue;
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
                 epoll_del = true;
