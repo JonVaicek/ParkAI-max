@@ -84,6 +84,7 @@ int create_shared_mem(DataHeader &dh, int ctrlfd){
         _exit(1); 
     }
     if (send_fd(ctrlfd, shmfd) == -1) {
+        printf("[child - %s] - failed to send fd\n", ctrl.stream_ip);
         perror("send_fd");
         _exit(1);
     }
