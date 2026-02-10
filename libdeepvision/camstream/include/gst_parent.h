@@ -17,7 +17,7 @@
 #include <poll.h>
 #include <time.h>
 
-#define STREAM_IS_OFF_AFTER 30 /* seconds */
+#define STREAM_IS_OFF_AFTER 20 /* seconds */
 
 int recv_fd(int sock);
 uint64_t signal_parser(uint64_t val);
@@ -61,6 +61,43 @@ public:
         if (!ret){
             std::cout << " [parent] failed to initialize\n";
         }
+    }
+
+    uint32_t start_child(void){
+        killed_ = false;
+        pid_ = fork();
+        if (pid_ < 0) {
+            std::cerr << "[parent] fork failed: " << std::strerror(errno) << "\n";
+            return 0;
+        }
+        if (pid_ == 0) {
+            close(sv_[0]);// parent end
+            if (sv_[1] != 3) {
+                dup2(sv_[1], 3);// move to fd 3
+                close(sv_[1]);
+            }
+
+            // map eventfd to FD 4
+            if (evfd_ != 4) {
+                dup2(evfd_, 4);
+                close(evfd_);
+            }
+            std::cout << "[parent] evfd = " << evfd_ << std::endl;
+            // child branch: replace process image
+            execl(worker_path, worker_path, rtsp_url, (char*)nullptr);
+            // only reached if exec fails
+            std::cerr << "[parent->child] exec failed: " << std::strerror(errno) << "\n";
+            return 0;
+        }
+        close(sv_[1]);
+        fn = std::string("image-") + std::to_string(id) + std::string(".jpeg");
+        closed_ = false;
+        epoll_registered = false;
+        closed_ts = 0;
+        init_complete_ = true;
+        deinit_ = false;
+        //time(&f_ts_);
+        return 1;
     }
 
     uint32_t init(void){
@@ -235,7 +272,7 @@ public:
         hdr_ = nullptr;
         shm_bytes_ = 0;
         shm_ = nullptr;
-        
+
         closed_ = true;
         time(&closed_ts);
         return 1;
