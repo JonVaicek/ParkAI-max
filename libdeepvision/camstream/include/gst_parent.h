@@ -116,6 +116,7 @@ public:
 
     int init_shm(void){
         std::cout << "sv_[0] = " << sv_[0] << std::endl;
+        std::cout << "closed = " << closed_ << killed_ <<std::endl;
         shmfd_ = recv_fd(sv_[0]);
         if (shmfd_ < 0) {
             //std::cerr << "Failed to receive shmfd\n";
