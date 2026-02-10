@@ -135,9 +135,8 @@ class StreamMuxer{
         epoll_event ev{};
         ev.events = EPOLLIN;
         ev.data.ptr = source;
-        std::cout << " Adding evfd " << ev.data.fd << " to the epoll\n";
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, source->get_evfd(), &ev) == -1) {
-            std::cout << "****!!!!****!!!!Could not add evfd:"<< ev.data.fd << "to epoll \n";
+            std::cout << "****!!!!****!!!!Could not add evfd:"<< source->get_evfd() << "to epoll \n";
             return 0;
         }
         source->set_epoll_flag(true);

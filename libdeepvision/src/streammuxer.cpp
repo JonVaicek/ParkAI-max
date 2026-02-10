@@ -189,8 +189,18 @@ std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChil
                 close(s->sv_[1]);
                 s->sv_[1] = -1;
             }
+            done.push_back(s);
         }
     return survivors;
+}
+
+void revive_children(int epfd, std::vector <GstChildWorker *> src_list,
+                                                    std::vector <GstChildWorker *> &done){
+    std::vector <GstChildWorker *> survivors;
+        for (auto & s:src_list){
+            s->init();
+
+        }
 }
 
 
@@ -198,14 +208,16 @@ int StreamMuxer::child_epoller(void){
 
     uint64_t nfr=0;
     std::cout << "EPPOLLING INIT DONE\n";
-    std::vector <GstChildWorker *> reset_list;
-    std::vector <GstChildWorker *> done;
-
+    
+    std::vector <GstChildWorker *> infected;
     std::vector <GstChildWorker *> to_kill;
     std::vector <GstChildWorker *> to_bury;
+    std::vector <GstChildWorker *> to_revive;
+    std::vector <GstChildWorker *> still_dead;
+
 
     std::vector <GstChildWorker *> survivors;
-    std::vector <GstChildWorker *> remove_list;
+    
 
     while (true){
         
@@ -215,7 +227,7 @@ int StreamMuxer::child_epoller(void){
         //print_sources_table(sources);
         epoll_event events[MAX_EVENTS];
         int n;
-        remove_list = delete_from_epoll(epfd, remove_list, to_kill);
+        infected = delete_from_epoll(epfd, infected, to_kill);
         
         do {
             n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
@@ -250,7 +262,8 @@ int StreamMuxer::child_epoller(void){
             }
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
-                remove_list.push_back(src);
+                src->mark_closed();
+                infected.push_back(src);
                 std::cout << "[" << src->rtsp_url << "] exited\n";
                 continue;
             }
@@ -264,7 +277,18 @@ int StreamMuxer::child_epoller(void){
         survivors = kill_children_in_list(epfd, to_kill, to_bury);
         to_kill = survivors;
         survivors.clear();
-        survivors = close_children_fds(epfd, to_bury, done);
+        close_children_fds(epfd, to_bury, to_revive);
+        /* revive children here */
+        for (auto & s:to_revive){
+            if (s->is_past_timeout()){
+                s->init();
+                relink_stream(s);
+            }
+            else{
+            still_dead.push_back(s);
+            }
+        }
+        to_revive = still_dead;
         mlock.unlock();
     }
 }
