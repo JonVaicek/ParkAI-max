@@ -150,9 +150,11 @@ int StreamMuxer::child_epoller(void){
             ssize_t s = read(events[e].data.fd, &sig, sizeof(sig));
             if (s == -1 && errno != EAGAIN) {
                 perror("read evfd failed");
+                continue;
             }
             else if(errno == EAGAIN){
                 std::cout << "Error Events not fully drained\n";
+                continue;
             }
             if (s != sizeof(sig)) {
                 continue; // ignore invalid wakeups
