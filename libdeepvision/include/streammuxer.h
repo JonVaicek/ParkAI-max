@@ -114,9 +114,6 @@ class StreamMuxer{
         }
         frames.push_back(FrameInfo{});
         sources.push_back(source);
-        uint32_t idx = sources.size() - 1;
-        std::cout << "***Addding source num=" << idx << std::endl;
-
         // register evfd for epoll
         epoll_event ev{};
         ev.events = EPOLLIN;
@@ -126,7 +123,7 @@ class StreamMuxer{
             std::cout << "****!!!!****!!!!EXITING HERE when linking\n";
             exit(1);
         }
-        sources[idx]->set_epoll_flag(true);
+        source->set_epoll_flag(true);
         return 1;
     }
 

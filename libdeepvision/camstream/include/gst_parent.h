@@ -200,8 +200,9 @@ public:
             close(shmfd_);
             shmfd_ = -1;
         }
+        std::cout << "[parent] - closing evfd " << evfd_ << std::endl;
         if (evfd_ >= 0) {
-            std::cout << "[parent] - closing evfd " << evfd_ << std::endl;
+            
             close(evfd_);
             evfd_ = -1;
         }
