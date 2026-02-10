@@ -117,9 +117,9 @@ class StreamMuxer{
         // register evfd for epoll
         epoll_event ev{};
         ev.events = EPOLLIN;
-        ev.data.fd = source->get_evfd();   // store source index
-        ev.data.u32 = sources.size() - 1;
-        if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
+        //ev.data.fd = source->get_evfd();   // store source index
+        ev.data.ptr = source;
+        if (epoll_ctl(epfd, EPOLL_CTL_ADD, source->get_evfd(), &ev) == -1) {
             perror("epoll_ctl");
             std::cout << "****!!!!****!!!!EXITING HERE when linking\n";
             exit(1);

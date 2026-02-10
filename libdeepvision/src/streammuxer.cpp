@@ -152,11 +152,12 @@ int StreamMuxer::child_epoller(void){
         }
 
         for (int e = 0; e < n; e++) {
-            size_t i = events[e].data.u32;
+            //size_t i = events[e].data.u32;
+            auto* src = static_cast<GstChildWorker*>(events[e].data.ptr);
             std::cout << "Reading event from fd = " << events[e].data.fd << std::endl;
             uint64_t sig;   
             
-            ssize_t s = read(events[e].data.fd, &sig, sizeof(sig));
+            ssize_t s = read(src->get_evfd(), &sig, sizeof(sig));
             if (s == -1 && errno != EAGAIN) {
                 perror("read evfd failed");
                 continue;
@@ -167,13 +168,13 @@ int StreamMuxer::child_epoller(void){
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
                 epoll_del = true;
-                std::cout << "[" << sources[i]->rtsp_url << "] exited\n";
+                std::cout << "[" << src->rtsp_url << "] exited\n";
             }
 
-            sources[i]->handle_event(evt); // this handles the shm_init event and deinit_
+            src->handle_event(evt); // this handles the shm_init event and deinit_
 
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
-                sources[i]->set_frame_waiting(true);
+                src->set_frame_waiting(true);
             }
         }
 
