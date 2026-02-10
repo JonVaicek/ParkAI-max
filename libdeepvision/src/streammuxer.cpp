@@ -136,6 +136,8 @@ int StreamMuxer::child_epoller(void){
 
     uint64_t nfr=0;
     std::cout << "EPPOLLING INIT DONE\n";
+    std::vector <GstChildWorker *> reset_list;
+    std::vector <GstChildWorker *> did_not_reset;
     std::vector <GstChildWorker *> to_kill;
     std::vector <GstChildWorker *> survivors;
     while (true){
@@ -155,8 +157,7 @@ int StreamMuxer::child_epoller(void){
             std::cout << "epoll error\n";
             continue;
         }
-        std::vector <GstChildWorker*> reset_list;
-
+        
         for (int e = 0; e < n; e++) {
             //size_t i = events[e].data.u32;
             auto* src = static_cast<GstChildWorker*>(events[e].data.ptr);
@@ -193,20 +194,27 @@ int StreamMuxer::child_epoller(void){
         
         if(epoll_del){
             for (auto & s:reset_list){
-                epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
-                s->set_epoll_flag(false);
-                if (s->sv_[0] >= 0) shutdown(s->sv_[0], SHUT_RDWR);
-                if (s->sv_[1] >= 0) shutdown(s->sv_[1], SHUT_RDWR);
-                
-                if (s->kill_children()){
-                    std::cout << "Deinitializing child\n";
-                    s->soft_deinit();
+                int eret = epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
+                if (eret == 0){
+                    s->set_epoll_flag(false);
+                    if (s->kill_children()){
+                        std::cout << "Deinitializing child\n";
+                        s->soft_deinit();
+                    }
+                    else{
+                        to_kill.push_back(s);
+                    }
                 }
                 else{
-                    to_kill.push_back(s);
+                    did_not_reset.push_back(s);
                 }
+                //if (s->sv_[0] >= 0) shutdown(s->sv_[0], SHUT_RDWR);
+                //if (s->sv_[1] >= 0) shutdown(s->sv_[1], SHUT_RDWR);
             }
         }
+        reset_list.clear();
+        reset_list = did_not_reset;
+        did_not_reset.clear();
 
         for (auto & s:to_kill){
             if(s->kill_children()){
