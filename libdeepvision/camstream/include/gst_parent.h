@@ -196,7 +196,6 @@ public:
                 std::cout << "Error reaping children\n";
                 return 0;
             }
-            
         }
         if (shm_ != MAP_FAILED) {
             munmap(shm_, shm_bytes_);
