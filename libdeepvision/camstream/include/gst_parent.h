@@ -17,7 +17,7 @@
 #include <poll.h>
 #include <time.h>
 
-#define STREAM_IS_OFF_AFTER 180 /* seconds */
+#define STREAM_IS_OFF_AFTER 20 /* seconds */
 
 int recv_fd(int sock);
 uint64_t signal_parser(uint64_t val);

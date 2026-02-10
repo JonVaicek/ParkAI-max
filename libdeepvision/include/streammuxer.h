@@ -131,32 +131,18 @@ class StreamMuxer{
     }
 
     int relink_stream(GstChildWorker *source){
-        uint32_t idx = 0xFFFFFFFF;
-        for (uint32_t i =0; i< sources.size(); i++){
-            if (sources[i] == source){
-                idx = i;
-            }
-        }
-        if (idx == 0xFFFFFFFF){
-            return 0;
-        }
         epoll_event ev{};
         ev.events = EPOLLIN;
-        ev.data.u32 = idx;   // store source index
-        uint32_t pending_evfd = source->get_evfd();
-        if (pending_evfd <= 0){
-            std::cout << "pending evfd = " << pending_evfd << std::endl;
+        ev.data.fd = source->get_evfd();   // store source index
+        if(ev.data.fd <= 0){
+            std::cout << "Error relinking: evfd is less than 0\n";
             return 0;
         }
-
-        if (epoll_ctl(epfd, EPOLL_CTL_ADD, source->get_evfd(), &ev) == -1) {
-            perror("epoll_ctl");
-            std::cout << "****!!!!****!!!!Caused by evfd:"<< source->get_evfd() << " \n";
-            std::cout << "****!!!!****!!!!EXITING HERE when relinking\n";
-            //exit(1);
+        if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
+            std::cout << "****!!!!****!!!!Could not add evfd:"<< ev.data.fd << "to epoll \n";
             return 0;
         }
-        sources[idx]->set_epoll_flag(true);
+        source->set_epoll_flag(true);
         return 1;
     }
 
