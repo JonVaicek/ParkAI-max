@@ -161,6 +161,10 @@ int StreamMuxer::child_epoller(void){
             //size_t i = events[e].data.u32;
             auto* src = static_cast<GstChildWorker*>(events[e].data.ptr);
             std::cout << "Reading event from fd = " << src->get_evfd() << std::endl;
+            if(src->get_evfd() <= 0){
+                std::cout << "invalid evfd\n";
+                continue;
+            }
             uint64_t sig;   
             
             ssize_t s = read(src->get_evfd(), &sig, sizeof(sig));
