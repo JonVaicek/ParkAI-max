@@ -178,12 +178,14 @@ int StreamMuxer::child_epoller(void){
 
         for (uint32_t i = 0; i < sources.size(); i++){
             auto *s = sources[i];
-            if(s->deinit_ && s->is_registered()){
+            if(s->unreg_){
                     std::cout << "Removing evfd " << s->get_evfd() << "from epoll\n";
                     epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
                     s->set_epoll_flag(false);
+                    s->unreg_ = false;
+                    s->deinit_ = true;
             }
-            if(s->deinit_ && !s->is_registered() && !s->killed_){
+            if(s->deinit_ && !s->killed_){
                 s->soft_deinit();
             }
 

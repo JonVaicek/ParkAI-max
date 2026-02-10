@@ -48,6 +48,7 @@ private:
 
 
 public:
+    bool unreg_ = false;
     bool deinit_ = false;
     bool init_complete_ = false;
     bool killed_ = false;
@@ -396,7 +397,8 @@ public:
             case EVT_PIPELINE_EXIT:
                 //this->closed_ = true;
                 this->frame_waiting = false;
-                this->deinit_ = true;
+                //this->deinit_ = true;
+                this->unreg_ = true;
                 //soft_deinit();
                 //time(&closed_ts);
                 break;
