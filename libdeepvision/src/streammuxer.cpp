@@ -143,8 +143,8 @@ int StreamMuxer::child_epoller(void){
 
         for (int e = 0; e < n; e++) {
             size_t i = events[e].data.u32;
-
-            uint64_t sig;
+            std::cout << "Reading event from " << sources[i]->get_evfd() << std::endl;
+            uint64_t sig;   
             ssize_t s = read(sources[i]->get_evfd(), &sig, sizeof(sig));
             // if (s == -1 && errno != EAGAIN) {
             //     perror("read evfd failed");
