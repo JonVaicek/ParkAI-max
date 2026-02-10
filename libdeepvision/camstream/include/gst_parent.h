@@ -207,23 +207,17 @@ public:
         // release resources safely
         init_complete_ = false;
 
-        if (shm_ != MAP_FAILED) {
-            munmap(shm_, shm_bytes_);
-            shm_ = MAP_FAILED;
-        }
-        hdr_ = nullptr;
-        shm_bytes_ = 0;
-
         if (shmfd_ >= 0) {
             close(shmfd_);
             shmfd_ = -1;
         }
+
         std::cout << "[parent] - closing evfd " << evfd_ << std::endl;
         if (evfd_ >= 0) {
-            
             close(evfd_);
             evfd_ = -1;
         }
+
         std::cout << "[parent] - closing sv_={"<<sv_[0] <<", " <<sv_[1] << "}\n";
         if (sv_[0] >= 0) {
             close(sv_[0]);
@@ -234,8 +228,14 @@ public:
             sv_[1] = -1;
         }
 
+        if (shm_ != MAP_FAILED) {
+            munmap(shm_, shm_bytes_);
+            shm_ = MAP_FAILED;
+        }
+        hdr_ = nullptr;
+        shm_bytes_ = 0;
         shm_ = nullptr;
-        deinit_=false;
+        
         closed_ = true;
         time(&closed_ts);
         return 1;
