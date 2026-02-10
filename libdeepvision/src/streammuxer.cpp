@@ -139,6 +139,7 @@ int StreamMuxer::child_epoller(void){
     std::vector <GstChildWorker *> to_kill;
     std::vector <GstChildWorker *> survivors;
     while (true){
+    if(!sources.empty()){
     if(mlock.try_lock()){
         bool epoll_del = false;
         //print_sources_table(sources);
@@ -211,7 +212,7 @@ int StreamMuxer::child_epoller(void){
         to_kill.clear();
         to_kill = survivors;
         survivors.clear();
-    }
+    }}
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
         // for (uint32_t i = 0; i < sources.size(); i++){
         //     auto *s = sources[i];
