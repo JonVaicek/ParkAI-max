@@ -132,7 +132,7 @@ int StreamMuxer::child_epoller(void){
 
         std::cout << "Epolling\n";
         epoll_event events[MAX_EVENTS];
-        int n = epoll_wait(epfd, events, MAX_EVENTS, 100); // BLOCK
+        int n = epoll_wait(epfd, events, MAX_EVENTS, -1); // BLOCK
         if (n == 0)
             continue;
         else if(n < 0){
