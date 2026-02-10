@@ -218,6 +218,7 @@ public:
         shm_ = nullptr;
         deinit_=false;
         closed_ = true;
+        time(&closed_ts);
         return 1;
     }
 

@@ -175,14 +175,20 @@ int StreamMuxer::child_epoller(void){
                 sources[idx]->set_frame_waiting(true);
             }
         }
-        if (epoll_del){
-            for (uint32_t i = 0; i < sources.size(); i++){
-                if(sources[i]->deinit_ && sources[i]->is_registered()){
-                std::cout << "Removing evfd " << sources[i]->get_evfd() << "from epoll\n";
-                epoll_ctl(epfd, EPOLL_CTL_DEL, sources[i]->get_evfd(), nullptr);
-                sources[i]->set_epoll_flag(false);
-                sources[i]->soft_deinit();
+
+        for (uint32_t i = 0; i < sources.size(); i++){
+            if(sources[i]->is_closed()){
+                if(sources[i]->is_past_timeout()){
+                    if(sources[i]->init()){
+                        this->relink_stream(sources[i]);
+                    }
                 }
+            }
+            if(sources[i]->deinit_ && sources[i]->is_registered()){
+                    std::cout << "Removing evfd " << sources[i]->get_evfd() << "from epoll\n";
+                    epoll_ctl(epfd, EPOLL_CTL_DEL, sources[i]->get_evfd(), nullptr);
+                    sources[i]->set_epoll_flag(false);
+                    sources[i]->soft_deinit();
             }
         }
     }
@@ -197,13 +203,13 @@ int StreamMuxer::frame_reader(void){
             // if (sources[i]->deinit_){
             //     sources[i]->soft_deinit();
             // }
-            if(sources[i]->is_closed()){
-                if(sources[i]->is_past_timeout()){
-                    if(sources[i]->init()){
-                        this->relink_stream(sources[i]);
-                    }
-                }
-            }
+            // if(sources[i]->is_closed()){
+            //     if(sources[i]->is_past_timeout()){
+            //         if(sources[i]->init()){
+            //             this->relink_stream(sources[i]);
+            //         }
+            //     }
+            // }
 
             if(sources[i]->is_frame_waiting() && !frames[i].ready){
                 if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
