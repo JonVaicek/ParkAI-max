@@ -136,6 +136,7 @@ int StreamMuxer::child_epoller(void){
 
     uint64_t nfr=0;
     std::cout << "EPPOLLING INIT DONE\n";
+    std::vector <GstChildWorker *> to_kill;
     while (true){
         bool epoll_del = false;
         print_sources_table(sources);
@@ -150,6 +151,7 @@ int StreamMuxer::child_epoller(void){
             std::cout << "epoll error\n";
             continue;
         }
+        std::vector <GstChildWorker*> reset_list;
 
         for (int e = 0; e < n; e++) {
             //size_t i = events[e].data.u32;
@@ -169,6 +171,7 @@ int StreamMuxer::child_epoller(void){
             if(evt == EVT_PIPELINE_EXIT){
                 epoll_del = true;
                 std::cout << "[" << src->rtsp_url << "] exited\n";
+                reset_list.push_back(src);
             }
 
             src->handle_event(evt); // this handles the shm_init event and deinit_
@@ -178,41 +181,57 @@ int StreamMuxer::child_epoller(void){
             }
         }
 
-        for (uint32_t i = 0; i < sources.size(); i++){
-            auto *s = sources[i];
-            if(s->unreg_){
-                    std::cout << "Removing evfd " << s->get_evfd() << "from epoll\n";
-                    epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
-                    s->set_epoll_flag(false);
-                    s->unreg_ = false;
-                    s->deinit_ = true;
-            }
-            if(s->deinit_){
-                if(s->kill_children()){
-                    std::cout << "[" << sources[i]->rtsp_url << "] deinitializing\n";
+        
+        if(!reset_list.empty()){
+            for (auto & s:reset_list){
+                epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
+                s->set_epoll_flag(false);
+                if (s->kill_children()){
                     s->soft_deinit();
-                    s->deinit_ = false;
+                }
+                else{
+                    to_kill.push_back(s);
                 }
             }
-            // if(s->killed_ && !s->is_closed()){
-            //     if(s->is_past_timeout()){
-            //         std::cout << "Starting children\n";
-            //     }
-            // }
-
-            // if(s->deinit_ && !s->killed_){
-            //     s->soft_deinit();
-            // }
-
-
-            // if(s->is_closed() && s->killed_){
-            //     if(s->is_past_timeout()){
-            //         if(s->init()){
-            //             this->relink_stream(s);
-            //         }
-            //     }
-            // }
         }
+
+
+
+        // for (uint32_t i = 0; i < sources.size(); i++){
+        //     auto *s = sources[i];
+        //     if(s->unreg_){
+        //             std::cout << "Removing evfd " << s->get_evfd() << "from epoll\n";
+        //             epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
+        //             s->set_epoll_flag(false);
+        //             s->unreg_ = false;
+        //             s->deinit_ = true;
+        //     }
+        //     if(s->deinit_){
+        //         if(s->kill_children()){
+        //             std::cout << "[" << sources[i]->rtsp_url << "] deinitializing\n";
+        //             s->soft_deinit();
+        //             s->deinit_ = false;
+        //         }
+        //     }
+        //     // if(s->killed_ && !s->is_closed()){
+        //     //     if(s->is_past_timeout()){
+        //     //         std::cout << "Starting children\n";
+        //     //     }
+        //     // }
+
+        //     // if(s->deinit_ && !s->killed_){
+        //     //     s->soft_deinit();
+        //     // }
+
+
+        //     // if(s->is_closed() && s->killed_){
+        //     //     if(s->is_past_timeout()){
+        //     //         if(s->init()){
+        //     //             this->relink_stream(s);
+        //     //         }
+        //     //     }
+        //     // }
+        // }
     }
     return 1;
 }
