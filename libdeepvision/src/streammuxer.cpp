@@ -167,15 +167,20 @@ int StreamMuxer::child_epoller(void){
             }
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
-                std::cout << "Removing evfd " << events[e].data.fd << "from epoll\n";
-                epoll_ctl(epfd, EPOLL_CTL_DEL, events[e].data.fd, nullptr);
-                sources[idx]->set_epoll_flag(false);
-                std::cout << "[streammux] - source evfd removed from epoll\n";
+                epoll_del = true;
             }
             sources[idx]->handle_event(evt); // this handles the shm_init event and deinit_
 
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
                 sources[idx]->set_frame_waiting(true);
+            }
+        }
+        if (epoll_del){
+            for (uint32_t i = 0; i < sources.size(); i++){
+                epoll_ctl(epfd, EPOLL_CTL_DEL, sources[i]->get_evfd(), nullptr);
+                std::cout << "Removing evfd " << sources[i]->get_evfd() << "from epoll\n";
+                sources[i]->set_epoll_flag(false);
+                sources[i]->soft_deinit();
             }
         }
     }
@@ -187,9 +192,9 @@ int StreamMuxer::frame_reader(void){
     while(true){
         
         for (int i = 0; i < sources.size(); i++){
-            if (sources[i]->deinit_){
-                sources[i]->soft_deinit();
-            }
+            // if (sources[i]->deinit_){
+            //     sources[i]->soft_deinit();
+            // }
             if(sources[i]->is_closed()){
                 if(sources[i]->is_past_timeout()){
                     if(sources[i]->init()){
