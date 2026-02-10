@@ -132,6 +132,19 @@ uint32_t StreamMuxer::update_frame(uint32_t id){
     return 1;
 }
 
+std::vector <GstChildWorker *> delete_from_epoll(int epfd, std::vector <GstChildWorker *> remove_list){
+    std::vector <GstChildWorker *> survivors;
+        for (auto & s:remove_list){
+            if(epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr) == 0){
+                printf("src - %s deleted from epoll\n");
+            }
+            else{
+                printf("src - %s could not delete from epoll\n");
+            }
+        }
+    return survivors;
+}
+
 int StreamMuxer::child_epoller(void){
 
     uint64_t nfr=0;
@@ -140,6 +153,8 @@ int StreamMuxer::child_epoller(void){
     std::vector <GstChildWorker *> did_not_reset;
     std::vector <GstChildWorker *> to_kill;
     std::vector <GstChildWorker *> survivors;
+
+    std::vector <GstChildWorker *> remove_list;
     while (true){
         
     if(!sources.empty()){
@@ -149,6 +164,10 @@ int StreamMuxer::child_epoller(void){
         std::cout << "Epolling\n";
         epoll_event events[MAX_EVENTS];
         int n;
+
+
+        remove_list = delete_from_epoll(epfd, remove_list);
+
         do {
             n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
         } while (n < 0 && errno == EINTR);
@@ -177,55 +196,17 @@ int StreamMuxer::child_epoller(void){
             if (s != sizeof(sig)) continue;
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
-                epoll_del = true;
+                remove_list.push_back(src);
                 std::cout << "[" << src->rtsp_url << "] exited\n";
-                reset_list.push_back(src);
                 continue;
             }
 
             src->handle_event(evt); // this handles the shm_init event and deinit_
-
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
                 src->set_frame_waiting(true);
             }
         }
-
         
-        if(epoll_del){
-            for (auto & s:reset_list){
-                int eret = epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
-                if (eret == 0){
-                    s->set_epoll_flag(false);
-                    if (s->kill_children()){
-                        std::cout << "Deinitializing child\n";
-                        s->soft_deinit();
-                    }
-                    else{
-                        to_kill.push_back(s);
-                    }
-                }
-                else{
-                    printf("Could not delete evfd %d from epoll\n", s->get_evfd());
-                    did_not_reset.push_back(s);
-                }
-            }
-        }
-        reset_list.clear();
-        reset_list = did_not_reset;
-        did_not_reset.clear();
-
-        for (auto & s:to_kill){
-            if(s->kill_children()){
-                std::cout << "Deinitializing child\n";
-                s->soft_deinit();
-            }
-            else{
-                survivors.push_back(s);
-            }
-        }
-        to_kill.clear();
-        to_kill = survivors;
-        survivors.clear();
         mlock.unlock();
     }
 }
