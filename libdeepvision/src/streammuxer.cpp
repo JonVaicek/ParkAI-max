@@ -187,13 +187,13 @@ int StreamMuxer::child_epoller(void){
                 s->soft_deinit();
             }
 
-            if(s->is_closed() && s->killed_){
-                if(s->is_past_timeout()){
-                    if(s->init()){
-                        this->relink_stream(s);
-                    }
-                }
-            }
+            // if(s->is_closed() && s->killed_){
+            //     if(s->is_past_timeout()){
+            //         if(s->init()){
+            //             this->relink_stream(s);
+            //         }
+            //     }
+            // }
         }
     }
     return 1;
