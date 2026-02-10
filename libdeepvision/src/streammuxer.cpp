@@ -154,11 +154,8 @@ int StreamMuxer::child_epoller(void){
             }
             else if(errno == EAGAIN){
                 std::cout << "Error Events not fully drained\n";
-                continue;
             }
-            if (s != sizeof(sig)) {
-                continue; // ignore invalid wakeups
-            }
+
             uint32_t idx=0xffffffff;
             for (uint32_t i = 0; i < sources.size(); i++){
                 if (sources[i]->get_evfd()== events[e].data.fd){
@@ -171,8 +168,6 @@ int StreamMuxer::child_epoller(void){
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
                 std::cout << "Removing evfd " << events[e].data.fd << "from epoll\n";
-                uint64_t dummy;
-                    while (read(events[e].data.fd, &dummy, sizeof(dummy)) > 0) {}
                 epoll_ctl(epfd, EPOLL_CTL_DEL, events[e].data.fd, nullptr);
                 sources[idx]->set_epoll_flag(false);
                 std::cout << "[streammux] - source evfd removed from epoll\n";
