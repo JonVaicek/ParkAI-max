@@ -137,6 +137,7 @@ int StreamMuxer::child_epoller(void){
     uint64_t nfr=0;
     std::cout << "EPPOLLING INIT DONE\n";
     std::vector <GstChildWorker *> to_kill;
+    std::vector <GstChildWorker *> survivors;
     while (true){
         bool epoll_del = false;
         //print_sources_table(sources);
@@ -196,7 +197,18 @@ int StreamMuxer::child_epoller(void){
             }
         }
 
-
+        for (auto & s:to_kill){
+            if(s->kill_children()){
+                std::cout << "Deinitializing child\n";
+                s->soft_deinit();
+            }
+            else{
+                survivors.push_back(s);
+            }
+        }
+        to_kill.clear();
+        to_kill = survivors;
+        survivors.clear();
 
         // for (uint32_t i = 0; i < sources.size(); i++){
         //     auto *s = sources[i];
