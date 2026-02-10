@@ -136,22 +136,22 @@ int StreamMuxer::child_epoller(void){
         if (n == 0)
             continue;
         else if(n < 0){
-            perror("epoll_wait failed");
-            if (errno == EINTR)
-                continue; // signal interrupted, retry   
+            std::cout << "epoll error\n";
+            continue;
         }
 
         for (int e = 0; e < n; e++) {
             //size_t i = events[e].data.u32;
             std::cout << "Reading event from fd = " << events[e].data.fd << std::endl;
             uint64_t sig;   
+            
             ssize_t s = read(events[e].data.fd, &sig, sizeof(sig));
-            // if (s == -1 && errno != EAGAIN) {
-            //     perror("read evfd failed");
-            // }
-            // if (s != sizeof(sig)) {
-            //     continue; // ignore invalid wakeups
-            // }
+            if (s == -1 && errno != EAGAIN) {
+                perror("read evfd failed");
+            }
+            if (s != sizeof(sig)) {
+                continue; // ignore invalid wakeups
+            }
             uint32_t idx=0xffffffff;
             for (uint32_t i = 0; i < sources.size(); i++){
                 if (sources[i]->get_evfd()== events[e].data.fd){
