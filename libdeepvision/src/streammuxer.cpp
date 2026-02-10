@@ -181,14 +181,14 @@ std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChil
                 close(s->get_evfd());
                 s->evfd_ = -1;
             }
-            // if(s->sv_[0] > 0){
-            //     close(s->sv_[0]);
-            //     s->sv_[0] = -1;
-            // }
-            // if(s->sv_[1] > 0){
-            //     close(s->sv_[1]);
-            //     s->sv_[1] = -1;
-            // }
+            if(s->sv_[0] > 0){
+                close(s->sv_[0]);
+                s->sv_[0] = -1;
+            }
+            if(s->sv_[1] > 0){
+                close(s->sv_[1]);
+                s->sv_[1] = -1;
+            }
             done.push_back(s);
         }
     return survivors;
