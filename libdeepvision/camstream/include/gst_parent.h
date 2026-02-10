@@ -185,10 +185,18 @@ public:
             kill(pid_, SIGKILL);
             int status;
             std::cout << "Wait pid blocks\n";
-            while (waitpid(pid_, &status, 0) == -1 && errno == EINTR) {
-                // retry
+            pid_t result = waitpid(pid_, &status, WNOHANG);
+            if (result == 0) {
+                return 0;
+            } else if (result == pid_) {
+                // child exited, handle status
+                pid_ = -1;
+            } else {
+                // error
+                std::cout << "Error reaping children\n";
+                return 0;
             }
-            pid_ = -1;
+            
         }
         if (shm_ != MAP_FAILED) {
             munmap(shm_, shm_bytes_);
