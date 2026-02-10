@@ -184,6 +184,7 @@ public:
         if (pid_ > 0) {
             kill(pid_, SIGKILL);
             int status;
+            std::cout << "Wait pid blocks\n";
             while (waitpid(pid_, &status, 0) == -1 && errno == EINTR) {
                 // retry
             }
@@ -388,6 +389,7 @@ public:
                 //this->closed_ = true;
                 this->frame_waiting = false;
                 this->deinit_ = true;
+                //soft_deinit();
                 //time(&closed_ts);
                 break;
         }
