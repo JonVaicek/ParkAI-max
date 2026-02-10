@@ -166,8 +166,20 @@ std::vector <GstChildWorker *> kill_children_in_list(int epfd, std::vector <GstC
                 //s->sv_[0]=s->sv_[1]=-1;
             }
             else{
-                 survivors.push_back(s);
+                survivors.push_back(s);
                 printf("[src - %s] could not kill\n", s->rtsp_url);
+            }
+        }
+    return survivors;
+}
+
+std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChildWorker *> src_list,
+                                                    std::vector <GstChildWorker *> &done){
+    std::vector <GstChildWorker *> survivors;
+        for (auto & s:src_list){
+            if(s->get_evfd() > 0){
+                close(s->get_evfd());
+                s->evfd_ = -1;
             }
         }
     return survivors;
@@ -179,7 +191,7 @@ int StreamMuxer::child_epoller(void){
     uint64_t nfr=0;
     std::cout << "EPPOLLING INIT DONE\n";
     std::vector <GstChildWorker *> reset_list;
-    std::vector <GstChildWorker *> did_not_reset;
+    std::vector <GstChildWorker *> done;
 
     std::vector <GstChildWorker *> to_kill;
     std::vector <GstChildWorker *> to_bury;
@@ -244,7 +256,7 @@ int StreamMuxer::child_epoller(void){
         survivors = kill_children_in_list(epfd, to_kill, to_bury);
         to_kill = survivors;
         survivors.clear();
-
+        survivors = close_children_fds(epfd, to_bury, done);
         mlock.unlock();
     }
 }

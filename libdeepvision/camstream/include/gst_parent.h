@@ -28,7 +28,7 @@ class GstChildWorker{
 private:
     int id;
     
-    int evfd_;
+    
     pid_t pid_;
     void* shm_ = MAP_FAILED;
     size_t shm_bytes_ = -1;
@@ -47,6 +47,7 @@ private:
 
 public:
     int shmfd_;int sv_[2] = {-1, -1};
+    int evfd_;
     const char *rtsp_url;
     bool unreg_ = false;
     bool deinit_ = false;
