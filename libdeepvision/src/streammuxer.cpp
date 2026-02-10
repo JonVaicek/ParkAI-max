@@ -182,7 +182,7 @@ int StreamMuxer::child_epoller(void){
         }
 
         
-        if(!reset_list.empty()){
+        if(epoll_del){
             for (auto & s:reset_list){
                 epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
                 s->set_epoll_flag(false);
