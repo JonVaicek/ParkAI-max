@@ -185,9 +185,14 @@ int StreamMuxer::child_epoller(void){
                     s->unreg_ = false;
                     s->deinit_ = true;
             }
-            if(s->deinit_ && !s->killed_){
-                s->soft_deinit();
+            if(s->deinit_){
+                if(s->kill_children()){
+                    s->deinit_ = false;
+                }
             }
+            // if(s->deinit_ && !s->killed_){
+            //     s->soft_deinit();
+            // }
 
             // if(s->is_closed() && s->killed_){
             //     if(s->is_past_timeout()){

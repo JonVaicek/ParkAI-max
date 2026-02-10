@@ -179,17 +179,16 @@ public:
         return 1;
     }
 
-    uint32_t soft_deinit(){
-        // release resources safely
-        init_complete_ = false;
+    uint32_t kill_children(void){
+        std::cout << "[parent] Killing child with pid= "<< pid_ << std::endl;
         if (pid_ > 0) {
             kill(pid_, SIGKILL);
             int status;
-            std::cout << "Wait pid blocks\n";
             pid_t result = waitpid(pid_, &status, WNOHANG);
             if (result == 0) {
-                return 0;
-            } else if (result == pid_) {
+                return 0; // still running, must check later
+            }
+            else if (result == pid_){
                 // child exited, handle status
                 pid_ = -1;
                 killed_ = true;
@@ -199,6 +198,13 @@ public:
                 return 0;
             }
         }
+        return 0;
+    }
+
+    uint32_t soft_deinit(){
+        // release resources safely
+        init_complete_ = false;
+
         if (shm_ != MAP_FAILED) {
             munmap(shm_, shm_bytes_);
             shm_ = MAP_FAILED;
