@@ -103,7 +103,7 @@ class StreamMuxer{
         memset(fd, 0, sizeof(fd));
         //mux_thread = std::thread([this](){muxer_thread();});
         th_frame_reader = std::thread([this](){frame_reader();});
-        mux_thread = std::thread([this](){child_epoller();});
+        mux_thread = std::thread([this](){child_poller();});
         tick_thread =std::thread([this](){periodic_tick(STREAMMUX_MS);});
     };
 
