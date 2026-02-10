@@ -173,6 +173,7 @@ int StreamMuxer::child_epoller(void){
                 epoll_del = true;
                 std::cout << "[" << src->rtsp_url << "] exited\n";
                 reset_list.push_back(src);
+                continue;
             }
 
             src->handle_event(evt); // this handles the shm_init event and deinit_
