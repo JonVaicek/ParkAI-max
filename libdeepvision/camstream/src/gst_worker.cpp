@@ -84,6 +84,10 @@ int create_shared_mem(DataHeader &dh, int ctrlfd){
         _exit(1); 
     }
     if (send_fd(ctrlfd, shmfd) == -1) {
+        if(errno == EPIPE || errno == ECONNRESET){
+            printf("[child - %s] - got error on EPIPE\n", ctrl.stream_ip.c_str());
+            exit(0);
+        }
         printf("[child - %s] - failed to send fd\n", ctrl.stream_ip.c_str());
         perror("send_fd");
         _exit(1);
