@@ -242,8 +242,6 @@ public:
 
     uint32_t soft_deinit(){
         // release resources safely
-        init_complete_ = false;
-
         if (shmfd_ >= 0) {
             close(shmfd_);
             shmfd_ = -1;

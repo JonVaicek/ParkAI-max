@@ -169,6 +169,7 @@ int StreamMuxer::child_epoller(void){
             if(evt == EVT_PIPELINE_EXIT){
                 epoll_del = true;
             }
+
             sources[idx]->handle_event(evt); // this handles the shm_init event and deinit_
 
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
@@ -187,18 +188,21 @@ int StreamMuxer::child_epoller(void){
             }
             if(s->deinit_){
                 if(s->kill_children()){
+                    s->soft_deinit();
                     s->deinit_ = false;
                     
                 }
             }
-            if(s->killed_ && !s->is_closed()){
-                if(s->is_past_timeout()){
-                    std::cout << "Starting children\n";
-                }
-            }
+            // if(s->killed_ && !s->is_closed()){
+            //     if(s->is_past_timeout()){
+            //         std::cout << "Starting children\n";
+            //     }
+            // }
+
             // if(s->deinit_ && !s->killed_){
             //     s->soft_deinit();
             // }
+
 
             // if(s->is_closed() && s->killed_){
             //     if(s->is_past_timeout()){
