@@ -212,6 +212,7 @@ int StreamMuxer::child_epoller(void){
         to_kill = survivors;
         survivors.clear();
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
         // for (uint32_t i = 0; i < sources.size(); i++){
         //     auto *s = sources[i];
         //     if(s->unreg_){
