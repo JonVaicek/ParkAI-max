@@ -160,6 +160,7 @@ int StreamMuxer::child_epoller(void){
             for (uint32_t i = 0; i < sources.size(); i++){
                 if (sources[i]->get_evfd() == events[e].data.fd){
                     idx = i;
+                    std::cout << "[" << sources[i]->rtsp_url << "] received event\n";
                 }
             }
             if (idx == 0xffffffff){
@@ -168,6 +169,7 @@ int StreamMuxer::child_epoller(void){
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
                 epoll_del = true;
+                std::cout << "[" << sources[idx]->rtsp_url << "] exited\n";
             }
 
             sources[idx]->handle_event(evt); // this handles the shm_init event and deinit_
@@ -188,9 +190,9 @@ int StreamMuxer::child_epoller(void){
             }
             if(s->deinit_){
                 if(s->kill_children()){
+                    std::cout << "[" << sources[i]->rtsp_url << "] deinitializing\n";
                     s->soft_deinit();
                     s->deinit_ = false;
-                    
                 }
             }
             // if(s->killed_ && !s->is_closed()){

@@ -647,7 +647,7 @@ void init_camstream(void){
 }
 
 uint32_t create_gst_pipeline(uint32_t id, std::string url, StreamPipeline *p){
-    std::cout << url << " Creating Streamer Pipeline\n";
+    //std::cout << url << " Creating Streamer Pipeline\n";
     std::string name = "rtsp-" + url;
     p->pipeline     = gst_pipeline_new(name.c_str());
     p->rtspsrc      = gst_element_factory_make("rtspsrc", "src");
@@ -1053,7 +1053,7 @@ int pipeline_manual(int id, const char *rtsp_url, StreamCtrl *ctrl){
 int stream_thread(int id, const char *rtsp_url, StreamCtrl *ctrl){
     StreamPipeline p;
     uint32_t ret = new_simple_pipeline(id, rtsp_url, ctrl);
-    printf(" [child: %s] - pipeline exited\n", rtsp_url);
+    //printf(" [child: %s] - pipeline exited\n", rtsp_url);
     ctrl->ended = true;
     return 1;
 }

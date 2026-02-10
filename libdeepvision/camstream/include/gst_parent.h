@@ -37,7 +37,6 @@ private:
     uint64_t n_read=0;
     std::string fn;
     const char *worker_path;
-    const char *rtsp_url;
     bool shm_ready = false;
     bool closed_ = false;
     
@@ -48,6 +47,7 @@ private:
 
 
 public:
+    const char *rtsp_url;
     bool unreg_ = false;
     bool deinit_ = false;
     bool init_complete_ = false;

@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
 
     gst_init(&argc, &argv);
 
-    std::cout << "[worker] starting gstreamer worker, pid=" << getpid() << std::endl;
+    //std::cout << "[worker] starting gstreamer worker, pid=" << getpid() << std::endl;
 
     const char* rtsp_url = (argc > 1) ? argv[1] : "EMPTY";
     /* Creating gstreamer pipeline */
@@ -124,13 +124,13 @@ int main(int argc, char** argv) {
 
     int ret = send_signal(EVT_CHILD_STARTED, evfd);
     if(ret){
-        std::cout << " [child] sent signal = " << EVT_CHILD_STARTED << "\n"; 
+        //std::cout << " [child] sent signal = " << EVT_CHILD_STARTED << "\n"; 
     }
     
     while(g_run){
             if (ctrl.ended){
                 if(send_signal(EVT_PIPELINE_EXIT, evfd)){
-                    std::cout << " [child] sent signal = " << EVT_PIPELINE_EXIT << "\n"; 
+                    //std::cout << " [child] sent signal = " << EVT_PIPELINE_EXIT << "\n"; 
                     g_run = false;
                 }
             }
@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
                     ctrl.frame_rd = false;
                     g_object_set(ctrl.valve, "drop", FALSE, NULL);
                     if(send_signal(EVT_MMSH_COMPLETE|EVT_FRAME_WAITING, evfd)){
-                        std::cout << " [child] - memory shared complete sent\n";
+                        //std::cout << " [child] - memory shared complete sent\n";
                     }
                 }
                 else{
@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
                         ctrl.frame_rd = false;
                         g_object_set(ctrl.valve, "drop", FALSE, NULL);
                         if(send_signal(EVT_FRAME_WAITING, evfd)){
-                            std::cout << " [child] - new frame event sent\n";
+                            //std::cout << " [child] - new frame event sent\n";
                         }
                     }
                 }
@@ -190,6 +190,6 @@ int main(int argc, char** argv) {
         stream.join();
     }
 
-    std::cout << " [child] exiting" << std::endl;
+    //std::cout << " [child] exiting" << std::endl;
     return 0;
 }
