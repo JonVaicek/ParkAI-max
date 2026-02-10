@@ -139,7 +139,7 @@ int StreamMuxer::child_epoller(void){
     std::vector <GstChildWorker *> to_kill;
     while (true){
         bool epoll_del = false;
-        print_sources_table(sources);
+        //print_sources_table(sources);
         std::cout << "Epolling\n";
         epoll_event events[MAX_EVENTS];
         int n;
