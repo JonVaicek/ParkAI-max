@@ -195,6 +195,9 @@ int StreamMuxer::child_epoller(void){
             for (auto & s:reset_list){
                 epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
                 s->set_epoll_flag(false);
+                if (s->sv_[0] >= 0) shutdown(s->sv_[0], SHUT_RDWR);
+                if (s->sv_[1] >= 0) shutdown(s->sv_[1], SHUT_RDWR);
+                
                 if (s->kill_children()){
                     std::cout << "Deinitializing child\n";
                     s->soft_deinit();
