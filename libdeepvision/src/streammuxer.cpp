@@ -204,17 +204,6 @@ int StreamMuxer::frame_reader(void){
     while(true){
         
         for (int i = 0; i < sources.size(); i++){
-            // if (sources[i]->deinit_){
-            //     sources[i]->soft_deinit();
-            // }
-            // if(sources[i]->is_closed()){
-            //     if(sources[i]->is_past_timeout()){
-            //         if(sources[i]->init()){
-            //             this->relink_stream(sources[i]);
-            //         }
-            //     }
-            // }
-
             if(sources[i]->is_frame_waiting() && !frames[i].ready){
                 if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
                     frames[i].width  = sources[i]->header()->w;

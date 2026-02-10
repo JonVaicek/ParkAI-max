@@ -386,6 +386,7 @@ public:
     void handle_event(uint64_t evt) {
         switch (evt) {
             case EVT_MMSH_COMPLETE:
+            std::cout << "Init SHM Blocks\n";
                 shm_ready = init_shm();
                 break;
 
