@@ -118,6 +118,7 @@ class StreamMuxer{
         epoll_event ev{};
         ev.events = EPOLLIN;
         ev.data.fd = source->get_evfd();   // store source index
+        ev.data.u32 = sources.size() - 1;
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
             perror("epoll_ctl");
             std::cout << "****!!!!****!!!!EXITING HERE when linking\n";
@@ -127,10 +128,11 @@ class StreamMuxer{
         return 1;
     }
 
-    int relink_stream(GstChildWorker *source){
+    int relink_stream(GstChildWorker *source, uint32_t index){
         epoll_event ev{};
         ev.events = EPOLLIN;
         ev.data.fd = source->get_evfd();   // store source index
+        ev.data.u32 = index;
         if(ev.data.fd <= 0){
             std::cout << "Error relinking: evfd is less than 0\n";
             return 0;

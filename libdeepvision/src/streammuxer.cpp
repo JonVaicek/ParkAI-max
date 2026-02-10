@@ -152,7 +152,7 @@ int StreamMuxer::child_epoller(void){
         }
 
         for (int e = 0; e < n; e++) {
-            //size_t i = events[e].data.u32;
+            size_t i = events[e].data.u32;
             std::cout << "Reading event from fd = " << events[e].data.fd << std::endl;
             uint64_t sig;   
             
@@ -164,27 +164,16 @@ int StreamMuxer::child_epoller(void){
             else if(errno == EAGAIN){
                 std::cout << "Error Events not fully drained\n";
             }
-
-            uint32_t idx=0xffffffff;
-            for (uint32_t i = 0; i < sources.size(); i++){
-                if (sources[i]->get_evfd() == events[e].data.fd){
-                    idx = i;
-                    std::cout << "[" << sources[i]->rtsp_url << "] received event\n";
-                }
-            }
-            if (idx == 0xffffffff){
-                continue;
-            }
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
                 epoll_del = true;
-                std::cout << "[" << sources[idx]->rtsp_url << "] exited\n";
+                std::cout << "[" << sources[i]->rtsp_url << "] exited\n";
             }
 
-            sources[idx]->handle_event(evt); // this handles the shm_init event and deinit_
+            sources[i]->handle_event(evt); // this handles the shm_init event and deinit_
 
             if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
-                sources[idx]->set_frame_waiting(true);
+                sources[i]->set_frame_waiting(true);
             }
         }
 
