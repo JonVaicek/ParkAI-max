@@ -279,16 +279,16 @@ int StreamMuxer::child_epoller(void){
         survivors.clear();
         close_children_fds(epfd, to_bury, to_revive);
         /* revive children here */
-        for (auto & s:to_revive){
-            if (s->is_past_timeout()){
-                s->init();
-                relink_stream(s);
-            }
-            else{
-            still_dead.push_back(s);
-            }
-        }
-        to_revive = still_dead;
+        // for (auto & s:to_revive){
+        //     if (s->is_past_timeout()){
+        //         s->init();
+        //         relink_stream(s);
+        //     }
+        //     else{
+        //     still_dead.push_back(s);
+        //     }
+        // }
+        // to_revive = still_dead;
         mlock.unlock();
     }
 }
