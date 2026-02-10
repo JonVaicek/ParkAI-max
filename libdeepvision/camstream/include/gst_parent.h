@@ -192,6 +192,7 @@ public:
                 // child exited, handle status
                 pid_ = -1;
                 killed_ = true;
+                return 1;
             } else {
                 // error
                 std::cout << "Error reaping children\n";
