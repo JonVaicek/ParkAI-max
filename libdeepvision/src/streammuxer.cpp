@@ -195,6 +195,8 @@ int StreamMuxer::child_epoller(void){
         if(epoll_del){
             for (auto & s:reset_list){
                 int eret = epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr);
+                if (s->sv_[0] >= 0) shutdown(s->sv_[0], SHUT_RDWR);
+                if (s->sv_[1] >= 0) shutdown(s->sv_[1], SHUT_RDWR);
                 if (eret == 0){
                     s->set_epoll_flag(false);
                     if (s->kill_children()){
@@ -208,8 +210,6 @@ int StreamMuxer::child_epoller(void){
                 else{
                     did_not_reset.push_back(s);
                 }
-                //if (s->sv_[0] >= 0) shutdown(s->sv_[0], SHUT_RDWR);
-                //if (s->sv_[1] >= 0) shutdown(s->sv_[1], SHUT_RDWR);
             }
         }
         reset_list.clear();
