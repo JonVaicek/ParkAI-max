@@ -18,6 +18,7 @@
 #include <time.h>
 
 #define STREAM_IS_OFF_AFTER 20 /* seconds */
+#define MINUTES_5_IN_SECONDS 300
 
 int recv_fd(int sock);
 uint64_t signal_parser(uint64_t val);
@@ -65,43 +66,6 @@ public:
         }
     }
 
-    uint32_t start_child(void){
-        killed_ = false;
-        pid_ = fork();
-        if (pid_ < 0) {
-            std::cerr << "[parent] fork failed: " << std::strerror(errno) << "\n";
-            return 0;
-        }
-        if (pid_ == 0) {
-            close(sv_[0]);// parent end
-            if (sv_[1] != 3) {
-                dup2(sv_[1], 3);// move to fd 3
-                close(sv_[1]);
-            }
-
-            // map eventfd to FD 4
-            if (evfd_ != 4) {
-                dup2(evfd_, 4);
-                close(evfd_);
-            }
-            std::cout << "[parent] evfd = " << evfd_ << std::endl;
-            // child branch: replace process image
-            execl(worker_path, worker_path, rtsp_url, (char*)nullptr);
-            // only reached if exec fails
-            std::cerr << "[parent->child] exec failed: " << std::strerror(errno) << "\n";
-            return 0;
-        }
-        close(sv_[1]);
-        fn = std::string("image-") + std::to_string(id) + std::string(".jpeg");
-        closed_ = false;
-        epoll_registered = false;
-        closed_ts = 0;
-        init_complete_ = true;
-        deinit_ = false;
-        //time(&f_ts_);
-        return 1;
-    }
-
     uint32_t init(void){
         killed_ = false;
         unreg_ = false;
@@ -109,6 +73,7 @@ public:
             printf(" [child-%d] socket pair error\n", id);
             return 0;
         }
+        printf("[src-%s] socket pair created sv_={ %d, %d }\n", rtsp_url, sv_[0], sv_[1]);
 
         // create eventfd
         evfd_ = eventfd(0, 0);
@@ -116,7 +81,7 @@ public:
             printf(" [child-%d] eventfd error\n", id);
             return 0;
         }
-        std::cout << "[parent] evfd = " << evfd_ << std::endl;
+        printf("[src-%s] evfd created evfd={ %d }\n", rtsp_url, evfd_);
 
         pid_ = fork();
 
@@ -150,6 +115,7 @@ public:
         closed_ts = 0;
         init_complete_ = true;
         deinit_ = false;
+        printf("[src-%s] init complete\n", rtsp_url);
         //time(&f_ts_);
         return 1;
     }
@@ -473,6 +439,16 @@ public:
     bool is_registered(void) const {return epoll_registered;}
     void set_epoll_flag(bool val){ epoll_registered = val;}
     void mark_closed(void){closed_=true;time(&closed_ts);}
+    bool is_stale(void){
+        time_t now;
+        time(&now);
+        if (f_ts_ != 0 && now - f_ts_ > MINUTES_5_IN_SECONDS){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
 
 
 };

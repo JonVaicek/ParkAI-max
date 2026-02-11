@@ -177,13 +177,17 @@ std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChil
                                                     std::vector <GstChildWorker *> &done){
     std::vector <GstChildWorker *> survivors;
         for (auto & s:src_list){
-            if(s->get_evfd() > 0){
+            int evfd = s->get_evfd();
+            if(evfd > 0){
                 close(s->get_evfd());
                 s->evfd_ = -1;
+                printf("[%s] evfd (%d) closed successfully\n", s->rtsp_url, evfd);
             }
+            int socketfd = s->sv_[0];
             if(s->sv_[0] > 0){
                 close(s->sv_[0]);
                 s->sv_[0] = -1;
+                printf("[%s] socketfd (%d) closed successfully\n", s->rtsp_url, socketfd);
             }
             // if(s->sv_[1] > 0){
             //     close(s->sv_[1]);
@@ -199,7 +203,6 @@ void revive_children(int epfd, std::vector <GstChildWorker *> src_list,
     std::vector <GstChildWorker *> survivors;
         for (auto & s:src_list){
             s->init();
-
         }
 }
 
@@ -229,6 +232,7 @@ int StreamMuxer::child_epoller(void){
         int n;
         //infected = delete_from_epoll(epfd, infected, to_kill);
         survivors = kill_children_in_list(epfd, infected, to_kill);
+        infected.clear();
         infected = survivors;
         survivors.clear();
 
@@ -267,6 +271,7 @@ int StreamMuxer::child_epoller(void){
             if(evt == EVT_PIPELINE_EXIT){
                 src->mark_closed();
                 infected.push_back(src);
+                printf("[%s] adding to infected\n", src->rtsp_url);
                 std::cout << "[" << src->rtsp_url << "] exited\n";
                 continue;
             }
@@ -278,20 +283,34 @@ int StreamMuxer::child_epoller(void){
         }
 
         survivors = delete_from_epoll(epfd, to_kill, to_bury);
+        to_kill.clear();
         to_kill = survivors;
         survivors.clear();
+
         close_children_fds(epfd, to_bury, to_revive);
+        to_bury.clear();
+
         /* revive children here */
-        // for (auto & s:to_revive){
-        //     if (s->is_past_timeout()){
-        //         s->init();
-        //         relink_stream(s);
-        //     }
-        //     else{
-        //     still_dead.push_back(s);
+        still_dead.clear();
+        for (auto & s:to_revive){
+            if (s->is_past_timeout()){
+                printf("[src-%s] initializing again\n", s->rtsp_url);
+                s->init();
+                relink_stream(s);
+            }
+            else{
+                still_dead.push_back(s);
+            }
+        }
+        to_revive.clear();
+        to_revive = still_dead;
+
+        // for (const auto & s:sources){
+        //     if (s->is_stale()){
+        //         infected.push_back(s);
         //     }
         // }
-        // to_revive = still_dead;
+
         mlock.unlock();
     }
 }
