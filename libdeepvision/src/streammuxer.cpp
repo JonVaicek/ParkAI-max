@@ -189,10 +189,14 @@ std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChil
                 s->sv_[0] = -1;
                 printf("[%s] socketfd (%d) closed successfully\n", s->rtsp_url, socketfd);
             }
-            // if(s->sv_[1] > 0){
-            //     close(s->sv_[1]);
-            //     s->sv_[1] = -1;
-            // }
+            /* close shared mem if was created */
+            s->release_mem();
+            int sharedmemfd = s->shmfd_;
+            if (s->shmfd_ >= 0) {
+                close(s->shmfd_);
+                s->shmfd_ = -1;
+                printf("[%s] shared mem fd (%d) closed successfully\n", s->rtsp_url, sharedmemfd);
+            }
             done.push_back(s);
         }
     return survivors;
@@ -305,11 +309,12 @@ int StreamMuxer::child_epoller(void){
         to_revive.clear();
         to_revive = still_dead;
 
-        // for (const auto & s:sources){
-        //     if (s->is_stale()){
-        //         infected.push_back(s);
-        //     }
-        // }
+        /* force check stale sources */
+        for (const auto & s:sources){
+            if (s->is_stale()){
+                infected.push_back(s);
+            }
+        }
 
         mlock.unlock();
     }

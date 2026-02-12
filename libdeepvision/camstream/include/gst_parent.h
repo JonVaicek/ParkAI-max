@@ -150,6 +150,16 @@ public:
         deinit();
     }
 
+    uint32_t release_mem(void){
+        if (shm_ != MAP_FAILED) {
+            munmap(shm_, shm_bytes_);
+            shm_ = MAP_FAILED;
+        }
+        hdr_ = nullptr;
+        shm_bytes_ = 0;
+        return 1;
+    }
+
     uint32_t deinit(void){
         if (closed_) return 0;
         // stop child first
