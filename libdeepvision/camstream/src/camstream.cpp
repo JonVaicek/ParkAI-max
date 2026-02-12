@@ -576,7 +576,7 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
     
     if ( !ctl->image || ctl->im_size < map.size ) {
         if(ctl->image){
-            printf("[child - %s] reallocating memory \n");
+            printf("[child - %s] reallocating memory \n", ctl->stream_ip);
             free(ctl->image);
         }
         ctl->image = (unsigned char *)malloc(map.size);
