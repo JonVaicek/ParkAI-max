@@ -302,6 +302,7 @@ int StreamMuxer::child_epoller(void){
         /* revive children here */
         still_dead.clear();
         still_dead.shrink_to_fit();
+        
         for (auto & s:to_revive){
             if (s->is_past_timeout()){
                 printf("[src-%s] initializing again\n", s->rtsp_url);

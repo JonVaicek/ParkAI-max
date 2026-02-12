@@ -113,6 +113,7 @@ public:
         closed_ = false;
         epoll_registered = false;
         closed_ts = 0;
+        f_ts_= 0; // start fresh
         init_complete_ = true;
         deinit_ = false;
         printf("[src-%s] init complete\n", rtsp_url);
