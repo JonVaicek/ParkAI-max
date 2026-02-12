@@ -237,8 +237,10 @@ int StreamMuxer::child_epoller(void){
         //infected = delete_from_epoll(epfd, infected, to_kill);
         survivors = kill_children_in_list(epfd, infected, to_kill);
         infected.clear();
+        infected.shrink_to_fit();
         infected = survivors;
         survivors.clear();
+        survivors.shrink_to_fit();
 
         do {
             n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
@@ -288,14 +290,18 @@ int StreamMuxer::child_epoller(void){
 
         survivors = delete_from_epoll(epfd, to_kill, to_bury);
         to_kill.clear();
+        to_kill.shrink_to_fit();
         to_kill = survivors;
         survivors.clear();
+        survivors.shrink_to_fit();
 
         close_children_fds(epfd, to_bury, to_revive);
         to_bury.clear();
+        to_bury.shrink_to_fit();
 
         /* revive children here */
         still_dead.clear();
+        still_dead.shrink_to_fit();
         for (auto & s:to_revive){
             if (s->is_past_timeout()){
                 printf("[src-%s] initializing again\n", s->rtsp_url);
@@ -307,6 +313,7 @@ int StreamMuxer::child_epoller(void){
             }
         }
         to_revive.clear();
+        to_revive.shrink_to_fit();
         to_revive = still_dead;
 
         /* force check stale sources */
