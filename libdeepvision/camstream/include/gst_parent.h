@@ -152,12 +152,14 @@ public:
     }
 
     uint32_t release_mem(void){
+        shm_ready = false;
         if (shm_ != MAP_FAILED) {
             munmap(shm_, shm_bytes_);
             shm_ = MAP_FAILED;
         }
         hdr_ = nullptr;
         shm_bytes_ = 0;
+        
         return 1;
     }
 
