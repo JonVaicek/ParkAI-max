@@ -154,6 +154,7 @@ public:
     uint32_t release_mem(void){
         shm_ready = false;
         if (shm_ != MAP_FAILED) {
+            printf("[%s] - memory unmaped\n", rtsp_url);
             munmap(shm_, shm_bytes_);
             shm_ = MAP_FAILED;
         }

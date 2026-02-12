@@ -573,16 +573,18 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
         gst_caps_unref(caps);
     }
 
-    ctl->im_size = map.size;
-    if (!ctl->image || width != ctl->imgW || height != ctl->imgH) {
-        if (ctl->image){
-            //std::cout << ctl->stream_ip << " Allocating memory\n";
-            free(ctl->image);
+    
+    if ( !ctl->image || ctl->im_size < map.size ) {
+        void* p = (unsigned char*)realloc(ctl->image, map.size);
+        if (!p){
+            gst_buffer_unmap(buffer, &map);
+            return GST_PAD_PROBE_OK; // or handle OOM differently
         }
-        ctl->image = (unsigned char*)malloc(map.size);
+        ctl->im_size = map.size;
         ctl->imgW = width;
         ctl->imgH = height;
     }
+    
     memcpy(ctl->image, map.data, map.size);
     ctl->frame_rd = true;
     ctl->timestamp = std::time(nullptr);

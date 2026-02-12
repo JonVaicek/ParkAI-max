@@ -161,9 +161,6 @@ std::vector <GstChildWorker *> kill_children_in_list(int epfd, std::vector <GstC
                 s->set_epoll_flag(false);
                 shutdown(s->sv_[0], SHUT_RDWR);
                 shutdown(s->sv_[1], SHUT_RDWR);
-                //close(s->sv_[0]);
-                //close(s->sv_[1]);
-                //s->sv_[0]=s->sv_[1]=-1;
             }
             else{
                 survivors.push_back(s);
@@ -302,7 +299,7 @@ int StreamMuxer::child_epoller(void){
         /* revive children here */
         still_dead.clear();
         still_dead.shrink_to_fit();
-        
+
         for (auto & s:to_revive){
             if (s->is_past_timeout()){
                 printf("[src-%s] initializing again\n", s->rtsp_url);
