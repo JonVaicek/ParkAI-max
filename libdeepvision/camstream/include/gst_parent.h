@@ -450,6 +450,7 @@ public:
     void set_epoll_flag(bool val){ epoll_registered = val;}
     void mark_closed(void){closed_=true;time(&closed_ts);}
     bool is_stale(void){
+        if (closed_){return false;}
         time_t now;
         time(&now);
         if (f_ts_ != 0 && now - f_ts_ > MINUTES_5_IN_SECONDS){

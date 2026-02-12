@@ -312,6 +312,7 @@ int StreamMuxer::child_epoller(void){
         /* force check stale sources */
         for (const auto & s:sources){
             if (s->is_stale()){
+                s->mark_closed();
                 infected.push_back(s);
             }
         }
