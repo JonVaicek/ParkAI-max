@@ -228,6 +228,7 @@ int StreamMuxer::child_epoller(void){
         
     if(!sources.empty()){
     if(mlock.try_lock()){
+        printf("Program has restarted streams - %lld times\n", n_restarted);
         bool epoll_del = false;
         //print_sources_table(sources);
         epoll_event events[MAX_EVENTS];
@@ -323,7 +324,7 @@ int StreamMuxer::child_epoller(void){
                 infected.push_back(s);
             }
         }
-        printf("Program has restarted streams - %lld times\n", n_restarted);
+        
 
         mlock.unlock();
     }
