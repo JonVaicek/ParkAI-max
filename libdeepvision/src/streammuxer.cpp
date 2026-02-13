@@ -211,6 +211,7 @@ void revive_children(int epfd, std::vector <GstChildWorker *> src_list,
 int StreamMuxer::child_epoller(void){
 
     uint64_t nfr=0;
+    uint64_t n_restarted = 0;
     std::cout << "EPPOLLING INIT DONE\n";
     
     std::vector <GstChildWorker *> infected;
@@ -305,6 +306,7 @@ int StreamMuxer::child_epoller(void){
                 printf("[src-%s] initializing again\n", s->rtsp_url);
                 s->init();
                 relink_stream(s);
+                n_restarted ++;
             }
             else{
                 still_dead.push_back(s);
@@ -321,6 +323,7 @@ int StreamMuxer::child_epoller(void){
                 infected.push_back(s);
             }
         }
+        printf("Program has restarted streams - %lld times\n", n_restarted);
 
         mlock.unlock();
     }

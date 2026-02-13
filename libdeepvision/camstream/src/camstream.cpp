@@ -524,7 +524,6 @@ uint32_t pull_image(StreamCtrl *ctrl, ImgFormat format, unsigned char **img_buf,
 }
 
 static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
-
     static int let_pass=0;
     if (let_pass < 5){
         let_pass++;
