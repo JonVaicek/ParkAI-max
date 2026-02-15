@@ -31,13 +31,10 @@ private:
     
     
     pid_t pid_;
-    void* shm_ = MAP_FAILED;
-    size_t shm_bytes_ = -1;
-    DataHeader* hdr_ = nullptr;
+
     uint64_t n_read=0;
     std::string fn;
     const char *worker_path;
-    bool shm_ready = false;
     bool closed_ = false;
     
     bool frame_waiting = false;
@@ -45,9 +42,17 @@ private:
     time_t closed_ts = 0;
     bool epoll_registered = false;
 
+    /* private shmfd variables*/
+    void* shm_ = MAP_FAILED;
+    size_t shm_bytes_ = -1;
+    DataHeader* hdr_ = nullptr;
+    bool shm_ready = false;
+    bool shm_mapped = false;
+    
 
 public:
-    int shmfd_;int sv_[2] = {-1, -1};
+    int shmfd_;
+    int sv_[2] = {-1, -1};
     int evfd_;
     const char *rtsp_url;
     bool unreg_ = false;
@@ -143,6 +148,7 @@ public:
             return 0;
         }
         hdr_ = reinterpret_cast<DataHeader*>(shm_);
+        shm_mapped = true;
         std::cout << "[parent] mapped shared buffer, size [" << shm_bytes_ << "]\n";
         return 1;
     }
@@ -151,17 +157,41 @@ public:
         deinit();
     }
 
-    uint32_t release_mem(void){
-        shm_ready = false;
-        if (shm_ != MAP_FAILED) {
-            printf("[%s] - memory unmaped\n", rtsp_url);
-            munmap(shm_, shm_bytes_);
-            shm_ = MAP_FAILED;
+    uint32_t close_shmfd(void){
+        if (shmfd_ >= 0) {
+            close(shmfd_);
+            printf("[%s] shared mem fd (%d) closed successfully\n", rtsp_url, shmfd_);
+            shmfd_ = -1;
+            return 1;
         }
-        hdr_ = nullptr;
-        shm_bytes_ = 0;
-        
         return 1;
+    }
+
+    uint32_t release_mem(void){
+        
+        if (shm_mapped){
+            if(munmap(shm_, shm_bytes_) != -1){
+                shm_mapped = false;
+                shm_ = MAP_FAILED;
+                hdr_ = nullptr;
+                shm_bytes_ = 0;
+                if(close_shmfd()){
+                    shm_ready = false;
+                    printf("[%s] - memory unmaped\n", rtsp_url);
+                    return 1;
+                }
+            }
+            else{
+                printf(" [%s] - Error Unmapping Shared Memory\n", rtsp_url);
+            }
+        }
+        else{
+            if(close_shmfd()){
+                shm_ready = false;
+                return 1;
+            }
+        }
+        return 0;
     }
 
     uint32_t deinit(void){

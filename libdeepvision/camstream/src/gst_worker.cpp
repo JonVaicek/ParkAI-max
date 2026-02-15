@@ -14,6 +14,7 @@
 #include <sys/uio.h>
 #include <sys/syscall.h>
 #include <linux/memfd.h>
+//#include <sys/select.h>
 #include <sys/mman.h>
 
 /* THESE WILL HAVE TO BE SOFT PROGRAMMED LATER*/
@@ -27,6 +28,7 @@ int memhandle = 0;
 void* shm = nullptr;
 
 StreamCtrl ctrl;
+
 
 
 static int memfd_create_compat(const char* name, unsigned int flags) {
@@ -73,7 +75,11 @@ static int send_signal(uint64_t sig, int evfd){
 }
 
 int create_shared_mem(DataHeader &dh, int ctrlfd){
-    int shmfd = memfd_create_compat("camframe", 0);
+    
+    char *shmf_name;
+    //sprintf(shmf_name, "mem-%s", ctrl.stream_ip.c_str());
+    int shmfd = memfd_create("camframe", 0);
+    //int shmfd = memfd_create_compat("camframe", 0);
     uint64_t total_bytes = dh.nbytes + sizeof(DataHeader);
     if (shmfd < 0) { 
         perror("memfd_create"); 
@@ -96,6 +102,7 @@ int create_shared_mem(DataHeader &dh, int ctrlfd){
     mem_shared = true;
     return shmfd;
 }
+
 
 static void on_signal(int) {
     g_run = false;

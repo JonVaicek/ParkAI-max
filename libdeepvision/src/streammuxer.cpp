@@ -175,26 +175,25 @@ std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChil
     std::vector <GstChildWorker *> survivors;
         for (auto & s:src_list){
             int evfd = s->get_evfd();
-            if(evfd > 0){
+            if(evfd >= 0){
                 close(s->get_evfd());
                 s->evfd_ = -1;
                 printf("[%s] evfd (%d) closed successfully\n", s->rtsp_url, evfd);
             }
             int socketfd = s->sv_[0];
-            if(s->sv_[0] > 0){
+            if(s->sv_[0] >= 0){
                 close(s->sv_[0]);
                 s->sv_[0] = -1;
                 printf("[%s] socketfd (%d) closed successfully\n", s->rtsp_url, socketfd);
             }
             /* close shared mem if was created */
-            s->release_mem();
-            int sharedmemfd = s->shmfd_;
-            if (s->shmfd_ >= 0) {
-                close(s->shmfd_);
-                s->shmfd_ = -1;
-                printf("[%s] shared mem fd (%d) closed successfully\n", s->rtsp_url, sharedmemfd);
+            if(s->release_mem()){
+                int sharedmemfd = s->shmfd_;
+                done.push_back(s);
             }
-            done.push_back(s);
+            else{
+                survivors.push_back(s);
+            }
         }
     return survivors;
 }
@@ -294,9 +293,12 @@ int StreamMuxer::child_epoller(void){
         survivors.clear();
         survivors.shrink_to_fit();
 
-        close_children_fds(epfd, to_bury, to_revive);
+        survivors = close_children_fds(epfd, to_bury, to_revive);
         to_bury.clear();
         to_bury.shrink_to_fit();
+        to_bury = survivors;
+        survivors.clear();
+        survivors.shrink_to_fit();
 
         /* revive children here */
         still_dead.clear();
