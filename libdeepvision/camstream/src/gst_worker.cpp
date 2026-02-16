@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
                     memhandle = create_shared_mem(dh, ctrl_fd);
                     uint64_t tbytes = dh.nbytes + sizeof(DataHeader);
                     shm = mmap(nullptr, tbytes, PROT_READ | PROT_WRITE, MAP_SHARED, memhandle, 0);
+                    close(memhandle); // close memfd
 
                     /* init data header */
                     DataHeader * header = (DataHeader *)shm;
