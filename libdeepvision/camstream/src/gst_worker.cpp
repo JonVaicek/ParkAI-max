@@ -78,7 +78,7 @@ int create_shared_mem(DataHeader &dh, int ctrlfd){
     
     char *shmf_name;
     //sprintf(shmf_name, "mem-%s", ctrl.stream_ip.c_str());
-    int shmfd = memfd_create("camframe", 0);
+    int shmfd = memfd_create("camframe", MFD_CLOEXEC);
     //int shmfd = memfd_create_compat("camframe", 0);
     uint64_t total_bytes = dh.nbytes + sizeof(DataHeader);
     if (shmfd < 0) { 
@@ -201,6 +201,10 @@ int main(int argc, char** argv) {
 
     if(stream.joinable()){
         stream.join();
+    }
+
+    if (shm != nullptr) {
+        munmap(shm, ctrl.im_size + sizeof(DataHeader));
     }
 
     //std::cout << " [child] exiting" << std::endl;

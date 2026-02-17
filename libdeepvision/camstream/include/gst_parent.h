@@ -94,6 +94,7 @@ public:
             std::cerr << "[parent] fork failed: " << std::strerror(errno) << "\n";
             return 0;
         }
+        
         if (pid_ == 0) {
             close(sv_[0]);// parent end
             if (sv_[1] != 3) {
