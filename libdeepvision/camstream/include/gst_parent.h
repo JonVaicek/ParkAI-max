@@ -14,6 +14,7 @@
 #include <sys/eventfd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <time.h>
 
@@ -74,14 +75,14 @@ public:
     uint32_t init(void){
         killed_ = false;
         unreg_ = false;
-        if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv_) != 0) {
+        if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sv_) != 0) {
             printf(" [child-%d] socket pair error\n", id);
             return 0;
         }
         printf("[src-%s] socket pair created sv_={ %d, %d }\n", rtsp_url, sv_[0], sv_[1]);
 
         // create eventfd
-        evfd_ = eventfd(0, 0);
+        evfd_ = eventfd(0, EFD_CLOEXEC);
         if (evfd_ < 0) {
             printf(" [child-%d] eventfd error\n", id);
             return 0;
@@ -96,6 +97,10 @@ public:
         }
         
         if (pid_ == 0) {
+            // remove CLOEXEC flags from fds that are passed to the child
+            fcntl(sv_[1], F_SETFD, fcntl(sv_[1], F_GETFD) & ~FD_CLOEXEC);
+            fcntl(evfd_, F_SETFD, fcntl(evfd_, F_GETFD) & ~FD_CLOEXEC);
+
             close(sv_[0]);// parent end
             if (sv_[1] != 3) {
                 dup2(sv_[1], 3);// move to fd 3
@@ -137,7 +142,11 @@ public:
             //throw std::runtime_error("recv_fd");
             return 0;
         }
-
+        int flags = fcntl(shmfd_, F_GETFD);
+        if (flags != -1) {
+            fcntl(shmfd_, F_SETFD, flags | FD_CLOEXEC);
+        }
+        
         struct stat st{};
         fstat(shmfd_, &st);
         shm_bytes_ = st.st_size;

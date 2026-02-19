@@ -59,7 +59,7 @@ static int send_fd(int sock, int fd_to_send) {
     cmsg->cmsg_len   = CMSG_LEN(sizeof(int));
 
     std::memcpy(CMSG_DATA(cmsg), &fd_to_send, sizeof(int));
-    //msg.msg_controllen = cmsg->cmsg_len;
+    msg.msg_controllen = cmsg->cmsg_len;
 
     return sendmsg(sock, &msg, 0);
 }
@@ -78,7 +78,7 @@ int create_shared_mem(DataHeader &dh, int ctrlfd){
     
     char *shmf_name;
     //sprintf(shmf_name, "mem-%s", ctrl.stream_ip.c_str());
-    int shmfd = memfd_create("camframe", MFD_CLOEXEC);
+    int shmfd = memfd_create("camframe", 0);
     //int shmfd = memfd_create_compat("camframe", 0);
     uint64_t total_bytes = dh.nbytes + sizeof(DataHeader);
     if (shmfd < 0) { 
