@@ -73,8 +73,10 @@ public:
     }
 
     uint32_t init(void){
+        closed_ = false;
         killed_ = false;
         unreg_ = false;
+        deinit_ = false;
         if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sv_) != 0) {
             printf(" [child-%d] socket pair error\n", id);
             return 0;
@@ -121,12 +123,12 @@ public:
         }
         close(sv_[1]);
         fn = std::string("image-") + std::to_string(id) + std::string(".jpeg");
-        closed_ = false;
+        
         epoll_registered = false;
         closed_ts = 0;
-        f_ts_= 0; // start fresh
+        //f_ts_= 0; //start fresh
         init_complete_ = true;
-        deinit_ = false;
+        
         printf("[src-%s] init complete\n", rtsp_url);
         //time(&f_ts_);
         return 1;
@@ -243,7 +245,8 @@ public:
     uint32_t kill_children(void){
         std::cout << "[parent] Killing child with pid= "<< pid_ << std::endl;
         if (pid_ > 0) {
-            kill(pid_, SIGKILL);
+            //kill(pid_, SIGKILL);
+            kill(pid_, SIGTERM);
             int status;
             pid_t result = waitpid(pid_, &status, WNOHANG);
             if (result == 0) {
@@ -492,7 +495,10 @@ public:
     bool is_closed(void)const{return closed_;}
     bool is_registered(void) const {return epoll_registered;}
     void set_epoll_flag(bool val){ epoll_registered = val;}
-    void mark_closed(void){closed_=true;time(&closed_ts);}
+    void mark_closed(void){
+        closed_=true;
+        time(&closed_ts);
+    }
     bool is_stale(void){
         if (closed_){return false;}
         time_t now;
