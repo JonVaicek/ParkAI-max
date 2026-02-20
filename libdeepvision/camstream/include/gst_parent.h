@@ -115,6 +115,11 @@ public:
                 close(evfd_);
             }
             std::cout << "[parent] evfd = " << evfd_ << std::endl;
+            // IMPORTANT: Close all other inherited file descriptors
+            // to prevent interference with other child processes.
+            for (int i = getdtablesize() - 1; i > 4; --i) {
+                close(i);
+            }
             // child branch: replace process image
             execl(worker_path, worker_path, rtsp_url, (char*)nullptr);
             // only reached if exec fails
