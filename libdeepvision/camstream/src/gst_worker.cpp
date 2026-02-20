@@ -19,8 +19,11 @@
 
 /* THESE WILL HAVE TO BE SOFT PROGRAMMED LATER*/
 #define STREAM_ID 1
+
+#define LOG_DISABLED    0
+#define LOG_TO_FILE     1
+#define LOG_TO_TERMINAL 2
 //#define RTSP_URL "rtsp://admin:Mordoras512_@192.168.0.13:554/live0"
-#define RTSP_URL "rtsp://admin:1234@192.168.0.20:554/h.264"
 
 static std::atomic<bool> g_run{true};
 static bool mem_shared = false;
@@ -29,6 +32,32 @@ void* shm = nullptr;
 
 StreamCtrl ctrl;
 
+std::string get_ip_from_rtsp(const std::string& input) {
+    std::string ip;
+    std::size_t pos = input.find("@");
+    ip = input.substr(pos+1, input.size()-1);
+    pos = ip.find(":");
+    ip = ip.substr(0, pos);
+    std::cout << ip << std::endl;
+    return ip;
+}
+
+void logger(int log_level, const char *__restrict__ __format, ...){
+    switch(log_level){
+        case LOG_DISABLED:
+        
+            break;
+        
+        case LOG_TO_FILE:
+
+            break;
+        
+        case LOG_TO_TERMINAL:
+
+            break;
+        
+    }
+}
 
 
 static int memfd_create_compat(const char* name, unsigned int flags) {
@@ -115,23 +144,39 @@ static void on_sigterm(int){
     //std::cout << " [child] exiting on sigterm\n";
     exit(0);
 }
+static void on_sigkill(int){
+    exit(0);
+}
+
+
 
 
 int main(int argc, char** argv) {
 
-    int ctrl_fd = 3;
-    int evfd    = 4;
+    const int ctrl_fd = 3;
+    const int evfd    = 4;
+
     std::signal(SIGTERM, on_sigterm);
-    //std::signal(SIGINT,  on_signal);
+    std::signal(SIGKILL, on_sigkill);
+
+    const char* rtsp_url = (argc > 1) ? argv[1] : "EMPTY";
+
+    if(LOG_TO_FILE){
+        std::string log_fn = "/tmp/" + get_ip_from_rtsp(rtsp_url) + ".log";
+        freopen(log_fn.c_str(), "a", stdout);
+        freopen(log_fn.c_str(), "a", stderr);
+        setlinebuf(stdout);
+        setlinebuf(stderr);
+    }
 
     gst_init(&argc, &argv);
 
-    //std::cout << "[worker] starting gstreamer worker, pid=" << getpid() << std::endl;
+    std::cout << "[worker] starting gstreamer worker, pid=" << getpid() << std::endl;
 
-    const char* rtsp_url = (argc > 1) ? argv[1] : "EMPTY";
     /* Creating gstreamer pipeline */
     std::mutex lock;
     ctrl.lock = &lock;
+
     vstream stream = load_video_stream(STREAM_ID, rtsp_url, &ctrl);
 
     int ret = send_signal(EVT_CHILD_STARTED, evfd);
