@@ -18,7 +18,7 @@
 #include <poll.h>
 #include <time.h>
 
-#define STREAM_IS_OFF_AFTER 20 /* seconds */
+#define STREAM_IS_OFF_AFTER 300  /* seconds */
 #define MINUTES_5_IN_SECONDS 300
 
 int recv_fd(int sock);
@@ -146,7 +146,7 @@ public:
         if (flags != -1) {
             fcntl(shmfd_, F_SETFD, flags | FD_CLOEXEC);
         }
-        
+
         struct stat st{};
         fstat(shmfd_, &st);
         shm_bytes_ = st.st_size;
