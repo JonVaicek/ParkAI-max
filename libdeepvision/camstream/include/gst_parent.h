@@ -141,7 +141,7 @@ public:
         
         epoll_registered = false;
         closed_ts = 0;
-        //f_ts_= 0; //start fresh
+        f_ts_= 0; //start fresh
         init_complete_ = true;
         
         printf("[src-%s] init complete\n", rtsp_url_);
@@ -260,8 +260,8 @@ public:
     uint32_t kill_children(void){
         std::cout << "[parent] Killing child with pid= "<< pid_ << std::endl;
         if (pid_ > 0) {
-            //kill(pid_, SIGKILL);
-            kill(pid_, SIGTERM);
+            kill(pid_, SIGKILL);
+            //kill(pid_, SIGTERM);
             int status;
             pid_t result = waitpid(pid_, &status, WNOHANG);
             if (result == 0) {
