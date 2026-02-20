@@ -28,13 +28,12 @@ uint64_t signal_parser(uint64_t val);
 
 class GstChildWorker{
 private:
+    static const int STRING_SIZE = 254;
     int id;
-    
-    
     pid_t pid_;
 
     uint64_t n_read=0;
-    std::string fn;
+    char fn[STRING_SIZE];
     const char *worker_path;
     bool closed_ = false;
     
@@ -56,17 +55,26 @@ public:
     int sv_[2] = {-1, -1};
     int evfd_;
     //const char *rtsp_url;
-    std::string rtsp_url;
+    char rtsp_url_[STRING_SIZE];
     bool unreg_ = false;
     bool deinit_ = false;
     bool init_complete_ = false;
     bool killed_ = false;
 
+    // Delete the copy constructor and copy assignment operator
+    // GstChildWorker(const GstChildWorker&) = delete;
+    // GstChildWorker& operator=(const GstChildWorker&) = delete;
+
+    // // Delete the move constructor and move assignment operator
+    // GstChildWorker(GstChildWorker&&) = delete;
+    // GstChildWorker& operator=(GstChildWorker&&) = delete;
+
     //GstChildWorker(int id, const char *workerpath):
     GstChildWorker(int id, const char *workerpath, const char *rtsp_url):
-    pid_(-1), id(id), worker_path(workerpath), rtsp_url(rtsp_url),
+    pid_(-1), id(id), worker_path(workerpath),
     shmfd_(-1), evfd_(-1)
     {
+        snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url);
         uint32_t ret = init();
         if (!ret){
             std::cout << " [parent] failed to initialize\n";
@@ -82,7 +90,7 @@ public:
             printf(" [child-%d] socket pair error\n", id);
             return 0;
         }
-        printf("[src-%s] socket pair created sv_={ %d, %d }\n", rtsp_url.c_str(), sv_[0], sv_[1]);
+        printf("[src-%s] socket pair created sv_={ %d, %d }\n", rtsp_url_, sv_[0], sv_[1]);
 
         // create eventfd
         evfd_ = eventfd(0, EFD_CLOEXEC);
@@ -90,7 +98,7 @@ public:
             printf(" [child-%d] eventfd error\n", id);
             return 0;
         }
-        printf("[src-%s] evfd created evfd={ %d }\n", rtsp_url.c_str(), evfd_);
+        printf("[src-%s] evfd created evfd={ %d }\n", rtsp_url_, evfd_);
 
         pid_ = fork();
 
@@ -122,20 +130,21 @@ public:
                 close(i);
             }
             // child branch: replace process image
-            execl(worker_path, worker_path, rtsp_url.c_str(), (char*)nullptr);
+            execl(worker_path, worker_path, rtsp_url_, (char*)nullptr);
             // only reached if exec fails
             std::cerr << "[parent->child] exec failed: " << std::strerror(errno) << "\n";
             return 0;
         }
         close(sv_[1]);
-        fn = std::string("image-") + std::to_string(id) + std::string(".jpeg");
+        snprintf(fn, STRING_SIZE, "image-%d.jpeg", id);
+        //fn = std::string("image-") + std::to_string(id) + std::string(".jpeg");
         
         epoll_registered = false;
         closed_ts = 0;
         //f_ts_= 0; //start fresh
         init_complete_ = true;
         
-        printf("[src-%s] init complete\n", rtsp_url.c_str());
+        printf("[src-%s] init complete\n", rtsp_url_);
         //time(&f_ts_);
         return 1;
     }
@@ -178,7 +187,7 @@ public:
     uint32_t close_shmfd(void){
         if (shmfd_ >= 0) {
             close(shmfd_);
-            printf("[%s] shared mem fd (%d) closed successfully\n", rtsp_url.c_str(), shmfd_);
+            printf("[%s] shared mem fd (%d) closed successfully\n", rtsp_url_, shmfd_);
             shmfd_ = -1;
             return 1;
         }
@@ -195,12 +204,12 @@ public:
                 shm_bytes_ = 0;
                 if(close_shmfd()){
                     shm_ready = false;
-                    printf("[%s] - memory unmaped\n", rtsp_url.c_str());
+                    printf("[%s] - memory unmaped\n", rtsp_url_);
                     return 1;
                 }
             }
             else{
-                printf(" [%s] - Error Unmapping Shared Memory\n", rtsp_url.c_str());
+                printf(" [%s] - Error Unmapping Shared Memory\n", rtsp_url_);
             }
         }
         else{
@@ -309,7 +318,7 @@ public:
     }
 
     uint32_t reset(void){
-        std::cout << " RESETING STREAM " << this->rtsp_url << std::endl;
+        std::cout << " RESETING STREAM " << this->rtsp_url_ << std::endl;
         f_ts_ = 0;
         deinit();
         init();

@@ -91,7 +91,7 @@ int print_sources_table(std::vector <GstChildWorker *> &vec){
     std::cout << "---|-------------------------------------------------------|-----|-----|-----|-----\n";
     printf(" id| rtsp_url ---------------------------------------------| evfd|  sv1|  sv2|  shm\n");
     for (const auto & ch:vec){
-        printf("%3d|%-55s|%5d|%5d|%5d|%5d\n", ch->get_id(), ch->rtsp_url.c_str(), ch->get_evfd(), ch->sv_[0], ch->sv_[1], ch->shmfd_);
+        printf("%3d|%-55s|%5d|%5d|%5d|%5d\n", ch->get_id(), ch->rtsp_url_, ch->get_evfd(), ch->sv_[0], ch->sv_[1], ch->shmfd_);
     }
     std::cout << "---|-------------------------------------------------------|-----|-----|-----|-----\n";
     return 1;
@@ -138,13 +138,13 @@ std::vector <GstChildWorker *> delete_from_epoll(int epfd, std::vector <GstChild
         for (auto & s:remove_list){
             if(epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr) == 0){
                 deleted.push_back(s);
-                printf("[src - %s] fd-%d deleted from epoll\n", s->rtsp_url.c_str(), s->get_evfd());
+                printf("[src - %s] fd-%d deleted from epoll\n", s->rtsp_url_, s->get_evfd());
                 s->unreg_ = true;
                 s->set_epoll_flag(false);
             }
             else{
                 survivors.push_back(s);
-                printf("[src - %s] fd-%d could not delete from epoll\n", s->rtsp_url.c_str(), s->get_evfd());
+                printf("[src - %s] fd-%d could not delete from epoll\n", s->rtsp_url_, s->get_evfd());
             }
         }
     return survivors;
@@ -156,7 +156,7 @@ std::vector <GstChildWorker *> kill_children_in_list(int epfd, std::vector <GstC
         for (auto & s:kill_list){
             if(s->kill_children()){
                 killed.push_back(s);
-                printf("[src - %s] child dead\n", s->rtsp_url.c_str());
+                printf("[src - %s] child dead\n", s->rtsp_url_);
                 s->unreg_ = true;
                 s->set_epoll_flag(false);
                 shutdown(s->sv_[0], SHUT_RDWR);
@@ -164,7 +164,7 @@ std::vector <GstChildWorker *> kill_children_in_list(int epfd, std::vector <GstC
             }
             else{
                 survivors.push_back(s);
-                printf("[src - %s] could not kill\n", s->rtsp_url.c_str());
+                printf("[src - %s] could not kill\n", s->rtsp_url_);
             }
         }
     return survivors;
@@ -178,13 +178,13 @@ std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChil
             if(evfd >= 0){
                 close(s->get_evfd());
                 s->evfd_ = -1;
-                printf("[%s] evfd (%d) closed successfully\n", s->rtsp_url.c_str(), evfd);
+                printf("[%s] evfd (%d) closed successfully\n", s->rtsp_url_, evfd);
             }
             int socketfd = s->sv_[0];
             if(s->sv_[0] >= 0){
                 close(s->sv_[0]);
                 s->sv_[0] = -1;
-                printf("[%s] socketfd (%d) closed successfully\n", s->rtsp_url.c_str(), socketfd);
+                printf("[%s] socketfd (%d) closed successfully\n", s->rtsp_url_, socketfd);
             }
             /* close shared mem if was created */
             if(s->release_mem()){
@@ -268,15 +268,15 @@ int StreamMuxer::child_epoller(void){
 
             /* clear the epoll events with deleted evfds */
             if(!src->is_registered()){
-                printf("[src-%s] received events after deletion\n", src->rtsp_url.c_str());
+                printf("[src-%s] received events after deletion\n", src->rtsp_url_);
                 continue; //
             }
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
                 src->mark_closed();
                 infected.push_back(src);
-                printf("[%s] adding to infected\n", src->rtsp_url.c_str());
-                std::cout << "[" << src->rtsp_url << "] exited\n";
+                printf("[%s] adding to infected\n", src->rtsp_url_);
+                std::cout << "[" << src->rtsp_url_ << "] exited\n";
                 continue;
             }
 
@@ -306,7 +306,7 @@ int StreamMuxer::child_epoller(void){
 
         for (auto & s:to_revive){
             if (s->is_past_timeout()){
-                printf("[src-%s] initializing again\n", s->rtsp_url.c_str());
+                printf("[src-%s] initializing again\n", s->rtsp_url_);
                 s->init();
                 relink_stream(s);
                 n_restarted ++;
