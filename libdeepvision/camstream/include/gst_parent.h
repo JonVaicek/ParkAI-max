@@ -265,10 +265,12 @@ public:
             int status;
             pid_t result = waitpid(pid_, &status, WNOHANG);
             if (result == 0) {
+                printf("[%s] - still runing\n", rtsp_url_);
                 return 0; // still running, must check later
             }
             else if (result == pid_){
                 // child exited, handle status
+                printf("[%s] - killed succesfully\n", rtsp_url_);
                 pid_ = -1;
                 killed_ = true;
                 return 1;
