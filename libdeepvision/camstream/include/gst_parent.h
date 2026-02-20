@@ -55,7 +55,8 @@ public:
     int shmfd_;
     int sv_[2] = {-1, -1};
     int evfd_;
-    const char *rtsp_url;
+    //const char *rtsp_url;
+    std::string rtsp_url;
     bool unreg_ = false;
     bool deinit_ = false;
     bool init_complete_ = false;
@@ -121,7 +122,7 @@ public:
                 close(i);
             }
             // child branch: replace process image
-            execl(worker_path, worker_path, rtsp_url, (char*)nullptr);
+            execl(worker_path, worker_path, rtsp_url.c_str(), (char*)nullptr);
             // only reached if exec fails
             std::cerr << "[parent->child] exec failed: " << std::strerror(errno) << "\n";
             return 0;
