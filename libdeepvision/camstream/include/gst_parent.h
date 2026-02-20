@@ -135,7 +135,7 @@ public:
         //f_ts_= 0; //start fresh
         init_complete_ = true;
         
-        printf("[src-%s] init complete\n", rtsp_url);
+        printf("[src-%s] init complete\n", rtsp_url.c_str());
         //time(&f_ts_);
         return 1;
     }
