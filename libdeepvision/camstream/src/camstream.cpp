@@ -557,8 +557,8 @@ static GstPadProbeReturn frame_probe_cb(GstPad *pad, GstPadProbeInfo *info, gpoi
 
 
     // Avoid blocking the streaming thread
-    if (!ctl->lock->try_lock()) return GST_PAD_PROBE_OK;
-    std::lock_guard<std::mutex> lock(*ctl->lock, std::adopt_lock);
+    //if (!ctl->lock->try_lock()) return GST_PAD_PROBE_OK;
+    //std::lock_guard<std::mutex> lock(*ctl->lock, std::adopt_lock);
     //std::cout << ctl->stream_ip << " Reading the new frame\n";
     GstMapInfo map;
     if (!gst_buffer_map(buffer, &map, GST_MAP_READ)) return GST_PAD_PROBE_OK;
