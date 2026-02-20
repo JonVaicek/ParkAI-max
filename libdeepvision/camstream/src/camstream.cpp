@@ -1012,8 +1012,8 @@ uint32_t new_simple_pipeline(int id, const char * rtsp_url, StreamCtrl *ctrl){
     }
 
     gst_element_set_state (p.pipeline, GST_STATE_NULL);
-    gst_element_get_state(p.pipeline,NULL, NULL, GST_CLOCK_TIME_NONE);
-
+    //gst_element_get_state(p.pipeline,NULL, NULL, GST_CLOCK_TIME_NONE);
+    gst_element_get_state(p.pipeline,NULL, NULL, 0);
     if (p.pipeline){
         gst_object_unref (p.pipeline);
         ctrl->valve = nullptr;
