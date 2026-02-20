@@ -82,7 +82,7 @@ public:
             printf(" [child-%d] socket pair error\n", id);
             return 0;
         }
-        printf("[src-%s] socket pair created sv_={ %d, %d }\n", rtsp_url, sv_[0], sv_[1]);
+        printf("[src-%s] socket pair created sv_={ %d, %d }\n", rtsp_url.c_str(), sv_[0], sv_[1]);
 
         // create eventfd
         evfd_ = eventfd(0, EFD_CLOEXEC);
@@ -90,7 +90,7 @@ public:
             printf(" [child-%d] eventfd error\n", id);
             return 0;
         }
-        printf("[src-%s] evfd created evfd={ %d }\n", rtsp_url, evfd_);
+        printf("[src-%s] evfd created evfd={ %d }\n", rtsp_url.c_str(), evfd_);
 
         pid_ = fork();
 
@@ -178,7 +178,7 @@ public:
     uint32_t close_shmfd(void){
         if (shmfd_ >= 0) {
             close(shmfd_);
-            printf("[%s] shared mem fd (%d) closed successfully\n", rtsp_url, shmfd_);
+            printf("[%s] shared mem fd (%d) closed successfully\n", rtsp_url.c_str(), shmfd_);
             shmfd_ = -1;
             return 1;
         }
@@ -195,12 +195,12 @@ public:
                 shm_bytes_ = 0;
                 if(close_shmfd()){
                     shm_ready = false;
-                    printf("[%s] - memory unmaped\n", rtsp_url);
+                    printf("[%s] - memory unmaped\n", rtsp_url.c_str());
                     return 1;
                 }
             }
             else{
-                printf(" [%s] - Error Unmapping Shared Memory\n", rtsp_url);
+                printf(" [%s] - Error Unmapping Shared Memory\n", rtsp_url.c_str());
             }
         }
         else{
