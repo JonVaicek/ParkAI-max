@@ -1280,20 +1280,21 @@ class Detector{
 
     std::vector <stream_info> streams;
     std::vector <std::thread> task;
-    std::vector <GstChildWorker> workers;
+    //std::vector <GstChildWorker> workers;
 
     std::string WORKDIR;
     StreamMuxer *pmuxer = nullptr;
 
     void detection_task(bool *run, int nthreads, bool visualize){
         init_camstream();
-        workers.reserve(streams.size());
+        //workers.reserve(streams.size());
         StreamMuxer muxer(streams.size());
         pmuxer = &muxer;
         for (int i=0; i<streams.size(); i++){
             std::cout << "Creating srcbin "<< streams[i].index << " - " << streams[i].url << std::endl;
-            workers.emplace_back(streams[i].index, "./libdeepvision/camstream/gst_worker", streams[i].url.c_str());
-            muxer.link_stream(&workers[i]);
+            //workers.emplace_back(streams[i].index, "./libdeepvision/camstream/gst_worker", streams[i].url.c_str());
+            //muxer.link_stream(&workers[i]);
+            muxer.create_source(streams[i].index, streams[i].url);
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // add streams with a delay
         }
         Inference inference (nthreads, visualize, WORKDIR);

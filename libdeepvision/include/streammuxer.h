@@ -63,6 +63,7 @@ class StreamMuxer{
 
     const static int MAX_STREAMS = 256;
     int num_sources;
+    std::vector <GstChildWorker> workers;
     std::vector <GstChildWorker *> sources;
     std::vector<FrameInfo> frames;
     std::mutex mlock;
@@ -99,6 +100,7 @@ class StreamMuxer{
     :num_sources(num_sources)
     {
         sources.reserve(num_sources);
+        workers.reserve(num_sources);
         init_epoll();
         memset(fd, 0, sizeof(fd));
         //mux_thread = std::thread([this](){muxer_thread();});
@@ -106,6 +108,29 @@ class StreamMuxer{
         mux_thread = std::thread([this](){child_epoller();});
         tick_thread =std::thread([this](){periodic_tick(STREAMMUX_MS);});
     };
+
+    int create_source(int index, std::string rtsp){
+        if(sources.size() >= MAX_STREAMS){
+            std::cerr << "Maximal amount of streams reached\n";
+            return 0;
+        }
+        mlock.lock();
+        workers.emplace_back(index, "./libdeepvision/camstream/gst_worker", rtsp.c_str());
+        GstChildWorker * src = &workers[workers.size()-1];
+        frames.push_back(FrameInfo{});
+        sources.push_back(src);
+        epoll_event ev{};
+        ev.events = EPOLLIN;
+        ev.data.ptr = src;
+        if (epoll_ctl(epfd, EPOLL_CTL_ADD, src->get_evfd(), &ev) == -1) {
+            perror("epoll_ctl");
+            std::cout << "****!!!!****!!!!EXITING HERE when linking\n";
+            exit(1);
+        }
+        src->set_epoll_flag(true);
+        mlock.unlock();
+        return 1;
+    }
 
     int link_stream(GstChildWorker * source){
         
