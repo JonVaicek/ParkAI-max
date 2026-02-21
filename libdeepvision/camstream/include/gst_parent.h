@@ -263,9 +263,9 @@ public:
                 return 1;
             }
             else {
-                    // error
-                    std::cout << "Error reaping children\n";
-                    return 0;
+                // error
+                std::cout << "Error reaping children\n";
+                return 0;
             }
         }
         else{
@@ -333,6 +333,7 @@ public:
                 break;
 
             case EVT_PIPELINE_EXIT:
+                printf("[%s] adding to infected\n", rtsp_url_);
                 state = INFECTED;
                 break;
         }
