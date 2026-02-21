@@ -150,6 +150,36 @@ std::vector <GstChildWorker *> delete_from_epoll(int epfd, std::vector <GstChild
     return survivors;
 }
 
+
+std::vector <GstChildWorker *> kill_infected(std::vector <GstChildWorker *> kill_list,
+                                                    std::vector <GstChildWorker *> &killed){
+    std::vector <GstChildWorker *> ret;
+    for(auto & s:kill_list){
+        if(s->killit()){
+            killed.push_back(s);
+        }
+        else{
+            ret.push_back(s);
+        }
+    }
+    return ret;
+}
+
+std::vector <GstChildWorker *> purge_zombies(std::vector <GstChildWorker *> purge_list,
+                                                    std::vector <GstChildWorker *> &reaped){
+    std::vector <GstChildWorker *> ret;
+    for (const auto & s:purge_list){
+        if (s->reap()){
+            reaped.push_back(s);
+        }
+        else{
+            ret.push_back(s);
+        }
+
+    }
+    return ret;
+}
+
 std::vector <GstChildWorker *> kill_children_in_list(int epfd, std::vector <GstChildWorker *> kill_list,
                                                     std::vector <GstChildWorker *> &killed){
     std::vector <GstChildWorker *> survivors;
@@ -190,6 +220,8 @@ std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChil
             if(s->release_mem()){
                 int sharedmemfd = s->shmfd_;
                 done.push_back(s);
+                s->state = PURGED;
+                s->mark_closed();
             }
             else{
                 survivors.push_back(s);
@@ -206,7 +238,9 @@ int StreamMuxer::child_epoller(void){
     std::cout << "EPPOLLING INIT DONE\n";
     
     std::vector <GstChildWorker *> infected;
-    std::vector <GstChildWorker *> to_kill;
+    std::vector <GstChildWorker *> to_reap;
+    std::vector <GstChildWorker *> to_delete_epoll;
+
     std::vector <GstChildWorker *> to_bury;
     std::vector <GstChildWorker *> to_revive;
     std::vector <GstChildWorker *> still_dead;
@@ -223,12 +257,10 @@ int StreamMuxer::child_epoller(void){
         epoll_event events[MAX_EVENTS];
         int n;
 
-        // survivors = kill_children_in_list(epfd, infected, to_kill);
-        // infected.clear();
-        // infected.shrink_to_fit();
-        // infected = survivors;
-        // survivors.clear();
-        // survivors.shrink_to_fit();
+        survivors = kill_infected(infected, to_reap);
+        infected.clear();
+        infected = survivors;
+
 
         do {
             n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
@@ -264,8 +296,8 @@ int StreamMuxer::child_epoller(void){
             }
             auto evt = signal_parser(sig);
             if(evt == EVT_PIPELINE_EXIT){
-                src->mark_closed();
-                infected.push_back(src);
+                //src->mark_closed();
+                to_reap.push_back(src);
                 printf("[%s] adding to infected\n", src->rtsp_url_);
                 std::cout << "[" << src->rtsp_url_ << "] exited\n";
                 continue;
@@ -277,48 +309,49 @@ int StreamMuxer::child_epoller(void){
             }
         }
 
-        // survivors = delete_from_epoll(epfd, to_kill, to_bury);
-        // to_kill.clear();
-        // to_kill.shrink_to_fit();
-        // to_kill = survivors;
-        // survivors.clear();
-        // survivors.shrink_to_fit();
+        /* Reap the dead */
+        survivors.clear();
+        survivors = purge_zombies(to_reap, to_delete_epoll);
+        to_delete_epoll.clear();
+        to_delete_epoll = survivors;
 
-        // survivors = close_children_fds(epfd, to_bury, to_revive);
-        // to_bury.clear();
-        // to_bury.shrink_to_fit();
-        // to_bury = survivors;
-        // survivors.clear();
-        // survivors.shrink_to_fit();
+        /* delete from epoll */
+        survivors.clear();
+        survivors = delete_from_epoll(epfd, to_delete_epoll, to_bury);
+        to_delete_epoll.clear();
+        to_delete_epoll = survivors;
 
-        // /* revive children here */
-        // still_dead.clear();
-        // still_dead.shrink_to_fit();
+        /* close fds */
+        survivors.clear();
+        survivors = close_children_fds(epfd, to_bury, to_revive);
+        to_bury.clear();
+        to_bury = survivors;
 
-        // for (auto & s:to_revive){
-        //     if (s->is_past_timeout()){
-        //         printf("[src-%s] initializing again\n", s->rtsp_url_);
-        //         s->reinit();
-        //         relink_stream(s);
-        //         n_restarted ++;
-        //     }
-        //     else{
-        //         still_dead.push_back(s);
-        //     }
-        // }
-        // to_revive.clear();
-        // to_revive.shrink_to_fit();
-        // to_revive = still_dead;
+        survivors.clear();
+        /* revive children here */
+        still_dead.clear();
+        for (auto & s:to_revive){
+            if (s->is_past_timeout()){
+                printf("[src-%s] initializing again\n", s->rtsp_url_);
+                s->reinit();
+                relink_stream(s);
+                n_restarted ++;
+            }
+            else{
+                still_dead.push_back(s);
+            }
+        }
+        to_revive.clear();
+        to_revive.shrink_to_fit();
+        to_revive = still_dead;
 
-        // /* force check stale sources */
-        // for (const auto & s:sources){
-        //     if (s->is_stale()){
-        //         s->mark_closed();
-        //         infected.push_back(s);
-        //     }
-        // }
-        
-
+        /* force check stale sources */
+        for (const auto & s:sources){
+            if (s->is_infected()){
+                //s->mark_closed();
+                infected.push_back(s);
+            }
+        }
         mlock.unlock();
     }
 }

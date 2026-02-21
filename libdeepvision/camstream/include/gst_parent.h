@@ -22,10 +22,18 @@
 #define STREAM_IS_OFF_AFTER 300  /* seconds */
 #define MINUTES_5_IN_SECONDS 300
 
+
 int recv_fd(int sock);
 uint64_t signal_parser(uint64_t val);
 
 
+typedef enum ChildState{
+    CREATION = 0,
+    ALIVE = 1,
+    INFECTED,
+    ZOMBIE,
+    PURGED
+};
 
 class GstChildWorker{
 private:
@@ -52,6 +60,7 @@ private:
     
 
 public:
+    ChildState state = CREATION; // initial state of this class
     bool empty = true;
     int shmfd_;
     int sv_[2] = {-1, -1};
@@ -72,6 +81,7 @@ public:
     uint32_t init(int id, const char *rtsp_url){
         this->id = id;
         snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
+        state = ALIVE;
         closed_ = false;
         killed_ = false;
         unreg_ = false;
@@ -244,6 +254,45 @@ public:
         pid_ = -1;
         closed_ = true;
         return 1;
+    }
+
+    uint32_t killit(void){
+        std::cout << "[parent] Killing child with pid= "<< pid_ << std::endl;
+        if (pid_ > 0) {
+            kill(pid_, SIGKILL);
+            //kill(pid_, SIGTERM);
+            state = ZOMBIE;
+        }
+        else{
+            printf("[parent] can't kill child [%s] pid is invalid\n", rtsp_url_);
+            return 0;
+        }
+        return 1;
+    }
+
+    uint32_t reap(void){
+        if (state == ZOMBIE && pid_ > 0){
+            int status;
+            pid_t result = waitpid(pid_, &status, WNOHANG);
+            if (result == 0) {
+                printf("[%s] - still runing\n", rtsp_url_);
+                return 0; // still running, must check later
+            }
+            else if (result == pid_){
+                // child exited, handle status
+                printf("[%s] - killed succesfully\n", rtsp_url_);
+                pid_ = -1;
+                return 1;
+            } else {
+                    // error
+                    std::cout << "Error reaping children\n";
+                    return 0;
+            }
+        }
+        else{
+            printf("Eror reaping child [%s] not zombie or pid isinvalid\n", rtsp_url_);
+            return 0;
+        }
     }
 
     uint32_t kill_children(void){
@@ -504,19 +553,20 @@ public:
         closed_=true;
         time(&closed_ts);
     }
-    bool is_stale(void){
-        if (closed_){return false;}
+    bool is_infected(void){
+        if (state != ALIVE){
+            return false;
+        }
         time_t now;
         time(&now);
         if (f_ts_ != 0 && now - f_ts_ > MINUTES_5_IN_SECONDS){
+            state = INFECTED;
             return true;
         }
         else{
             return false;
         }
     }
-
-
 };
 
 
