@@ -62,15 +62,7 @@ public:
     bool init_complete_ = false;
     bool killed_ = false;
 
-    // Delete the copy constructor and copy assignment operator
-    // GstChildWorker(const GstChildWorker&) = delete;
-    // GstChildWorker& operator=(const GstChildWorker&) = delete;
 
-    // // Delete the move constructor and move assignment operator
-    // GstChildWorker(GstChildWorker&&) = delete;
-    // GstChildWorker& operator=(GstChildWorker&&) = delete;
-
-    //GstChildWorker(int id, const char *workerpath):
     GstChildWorker(void):
     pid_(-1), shmfd_(-1), evfd_(-1)
     {
@@ -133,9 +125,14 @@ public:
         closed_ts = 0;
         f_ts_= 0; //start fresh
         init_complete_ = true;
-        
+        empty = false;
         printf("[src-%s] init complete\n", rtsp_url_);
         //time(&f_ts_);
+        return 1;
+    }
+
+    int reinit(void){
+        init(id, worker_path, rtsp_url_);
         return 1;
     }
 
@@ -313,7 +310,6 @@ public:
         std::cout << " RESETING STREAM " << this->rtsp_url_ << std::endl;
         f_ts_ = 0;
         deinit();
-        init();
         return 1;
     }
 

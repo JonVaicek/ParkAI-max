@@ -24,6 +24,8 @@
 
 typedef unsigned char uchar;
 
+#define GST_WORKER_PATH "./libdeepvision/camstream/gst_worker"
+
 #define STREAMMUX_MS 1
 #define FRAME_NOT_RECEIVED_THRESHOLD_MS 10000
 
@@ -74,6 +76,8 @@ class StreamMuxer{
     uint64_t frames_returned = 0;
     bool run=true;
 
+    int fd[10] = {0,0,0,0,0,0,0,0,0,0};
+
     static const int MAX_EVENTS = 1024;
     
     int epfd = -1;
@@ -102,7 +106,6 @@ class StreamMuxer{
         sources.reserve(num_sources);
         workers.reserve(num_sources);
         init_epoll();
-        memset(fd, 0, sizeof(fd));
         //mux_thread = std::thread([this](){muxer_thread();});
         th_frame_reader = std::thread([this](){frame_reader();});
         mux_thread = std::thread([this](){child_epoller();});
@@ -115,11 +118,11 @@ class StreamMuxer{
             return 0;
         }
         mlock.lock();
-        workers.emplace_back(index, "./libdeepvision/camstream/gst_worker", rtsp.c_str());
-
-        GstChildWorker * src = &workers[workers.size()];
+        //workers.emplace_back(index, "./libdeepvision/camstream/gst_worker", rtsp.c_str());
+        childs[sources.size()].init(index, GST_WORKER_PATH, rtsp.c_str());
+        GstChildWorker * src = &childs[sources.size()];
         frames.push_back(FrameInfo{});
-        sources.push_back(src);
+        sources.emplace_back(src);
         epoll_event ev{};
         ev.events = EPOLLIN;
         ev.data.ptr = src;

@@ -198,14 +198,6 @@ std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChil
     return survivors;
 }
 
-void revive_children(int epfd, std::vector <GstChildWorker *> src_list,
-                                                    std::vector <GstChildWorker *> &done){
-    std::vector <GstChildWorker *> survivors;
-        for (auto & s:src_list){
-            s->init();
-        }
-}
-
 
 int StreamMuxer::child_epoller(void){
 
@@ -307,7 +299,7 @@ int StreamMuxer::child_epoller(void){
         for (auto & s:to_revive){
             if (s->is_past_timeout()){
                 printf("[src-%s] initializing again\n", s->rtsp_url_);
-                s->init();
+                s->reinit();
                 relink_stream(s);
                 n_restarted ++;
             }

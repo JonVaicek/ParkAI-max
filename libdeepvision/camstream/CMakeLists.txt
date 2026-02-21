@@ -28,11 +28,9 @@ include_directories(
 set(SOURCES
     src/gst_parent.cpp
     src/camstream.cpp
-    src/main.cpp
 )
 
-# 7. Add executable
-add_executable(camstream ${SOURCES})
+
 add_library(libcamstream STATIC
     src/camstream.cpp
     src/gst_parent.cpp
@@ -58,19 +56,13 @@ target_link_libraries(libcamstream
     PNG::PNG
 )
 
-# Link the executable to your library
-target_link_libraries(camstream
-    PRIVATE
-    libcamstream
-)
+
 
 # 9. Compiler definitions (optional, for pkg-config)
 target_compile_options(libcamstream PUBLIC
     ${GST_CFLAGS_OTHER}
     ${GLIB_CFLAGS_OTHER}
 )
-
-
 
 # Worker sources
 set(WORKER_SOURCES
