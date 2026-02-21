@@ -210,8 +210,6 @@ int StreamMuxer::child_epoller(void){
     std::vector <GstChildWorker *> to_bury;
     std::vector <GstChildWorker *> to_revive;
     std::vector <GstChildWorker *> still_dead;
-
-
     std::vector <GstChildWorker *> survivors;
     
 
@@ -224,13 +222,13 @@ int StreamMuxer::child_epoller(void){
         //print_sources_table(sources);
         epoll_event events[MAX_EVENTS];
         int n;
-        //infected = delete_from_epoll(epfd, infected, to_kill);
-        survivors = kill_children_in_list(epfd, infected, to_kill);
-        infected.clear();
-        infected.shrink_to_fit();
-        infected = survivors;
-        survivors.clear();
-        survivors.shrink_to_fit();
+
+        // survivors = kill_children_in_list(epfd, infected, to_kill);
+        // infected.clear();
+        // infected.shrink_to_fit();
+        // infected = survivors;
+        // survivors.clear();
+        // survivors.shrink_to_fit();
 
         do {
             n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
@@ -279,46 +277,46 @@ int StreamMuxer::child_epoller(void){
             }
         }
 
-        survivors = delete_from_epoll(epfd, to_kill, to_bury);
-        to_kill.clear();
-        to_kill.shrink_to_fit();
-        to_kill = survivors;
-        survivors.clear();
-        survivors.shrink_to_fit();
+        // survivors = delete_from_epoll(epfd, to_kill, to_bury);
+        // to_kill.clear();
+        // to_kill.shrink_to_fit();
+        // to_kill = survivors;
+        // survivors.clear();
+        // survivors.shrink_to_fit();
 
-        survivors = close_children_fds(epfd, to_bury, to_revive);
-        to_bury.clear();
-        to_bury.shrink_to_fit();
-        to_bury = survivors;
-        survivors.clear();
-        survivors.shrink_to_fit();
+        // survivors = close_children_fds(epfd, to_bury, to_revive);
+        // to_bury.clear();
+        // to_bury.shrink_to_fit();
+        // to_bury = survivors;
+        // survivors.clear();
+        // survivors.shrink_to_fit();
 
-        /* revive children here */
-        still_dead.clear();
-        still_dead.shrink_to_fit();
+        // /* revive children here */
+        // still_dead.clear();
+        // still_dead.shrink_to_fit();
 
-        for (auto & s:to_revive){
-            if (s->is_past_timeout()){
-                printf("[src-%s] initializing again\n", s->rtsp_url_);
-                s->reinit();
-                relink_stream(s);
-                n_restarted ++;
-            }
-            else{
-                still_dead.push_back(s);
-            }
-        }
-        to_revive.clear();
-        to_revive.shrink_to_fit();
-        to_revive = still_dead;
+        // for (auto & s:to_revive){
+        //     if (s->is_past_timeout()){
+        //         printf("[src-%s] initializing again\n", s->rtsp_url_);
+        //         s->reinit();
+        //         relink_stream(s);
+        //         n_restarted ++;
+        //     }
+        //     else{
+        //         still_dead.push_back(s);
+        //     }
+        // }
+        // to_revive.clear();
+        // to_revive.shrink_to_fit();
+        // to_revive = still_dead;
 
-        /* force check stale sources */
-        for (const auto & s:sources){
-            if (s->is_stale()){
-                s->mark_closed();
-                infected.push_back(s);
-            }
-        }
+        // /* force check stale sources */
+        // for (const auto & s:sources){
+        //     if (s->is_stale()){
+        //         s->mark_closed();
+        //         infected.push_back(s);
+        //     }
+        // }
         
 
         mlock.unlock();
@@ -355,62 +353,6 @@ int StreamMuxer::frame_reader(void){
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
-
-int StreamMuxer::child_poller(void){
-    std::cout << "Child Pollester started\n";
-    uint64_t nfr = 0;
-
-    while(true){
-        std::vector<pollfd> pfds;
-        bool error_pfd = false;
-        for (auto* w : sources) {
-            if(w == nullptr){
-                error_pfd = true;
-                break;
-            }
-            pollfd p{};
-            p.fd = w->get_evfd();
-            p.events = POLLIN;
-            pfds.push_back(p);
-            /* copy frames that are ready */
-        }
-        if (pfds.size() == 0 || error_pfd)
-            continue;
-
-        std::cout << "polling children\n";
-        int ready = poll(pfds.data(), pfds.size(), -1); // BLOCK
-        if (ready <= 0)
-            continue;
-        for (size_t i = 0; i < pfds.size(); i++) {
-            if (pfds[i].revents & POLLIN) {
-                uint64_t sig;
-                read(pfds[i].fd, &sig, sizeof(sig));
-                auto evt = signal_parser(sig);
-                sources[i]->handle_event(evt);
-                /* always check if there is a frame waiting, and if so process it */
-                if((sig & EVT_FRAME_WAITING)==EVT_FRAME_WAITING && frames[i].ready == false){
-                    /* read the frame here */
-                    mlock.lock();
-                    if(sources[i]->read_frame(&frames[i].idata, &frames[i].nbytes)){
-                        frames[i].width = sources[i]->header()->w;
-                        frames[i].height = sources[i]->header()->h;
-                        //std::cout << "Read image at: " << frames[i].idata << "size: " << frames[i].nbytes << std::endl;
-                        frames[i].ready = true;
-                        frames[i].read = false;
-                        frames[i].fid = nfr;
-                        nfr++;
-                        //sources[i]->set_frame_waiting(false);
-                        std::cout << "New Image buffer was read\n";
-                    }
-                    mlock.unlock();
-                }
-            }
-        }
-    }
-    return 1;
-}
-
-
 
 int StreamMuxer::muxer_thread(void){
     try{

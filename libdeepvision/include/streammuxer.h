@@ -254,7 +254,6 @@ class StreamMuxer{
     float get_fps(void);
     time_t get_stream_ts(int index);
     time_t get_stream_td(int index);
-    int child_poller(void);
     int child_epoller(void);
 };
 
