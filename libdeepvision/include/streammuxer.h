@@ -102,8 +102,9 @@ class StreamMuxer{
     public:
     StreamMuxer(int num_sources)
     :num_sources(num_sources)
-    {
+    {   
         sources.reserve(num_sources);
+        sources.resize(num_sources);
         frames.reserve(num_sources);
         //workers.reserve(num_sources);
         init_epoll();
@@ -118,6 +119,7 @@ class StreamMuxer{
             std::cerr << "Maximal amount of streams reached\n";
             return 0;
         }
+        printf("Creating source with index- %d", index);
         mlock.lock();
         //workers.emplace_back(index, "./libdeepvision/camstream/gst_worker", rtsp.c_str());
         childs[sources.size()].init(index, GST_WORKER_PATH, rtsp.c_str());
