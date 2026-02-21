@@ -34,7 +34,7 @@ private:
 
     uint64_t n_read=0;
     char fn[STRING_SIZE];
-    const char *worker_path;
+    char worker_path[254];
     bool closed_ = false;
     
     bool frame_waiting = false;
@@ -69,6 +69,7 @@ public:
     }
 
     uint32_t init(int id, const char *workerpath, const char *rtsp_url){
+        snprintf(worker_path, STRING_SIZE, "%s", workerpath);
         snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
         closed_ = false;
         killed_ = false;
@@ -111,7 +112,6 @@ public:
                 dup2(evfd_, 4);
                 close(evfd_);
             }
-            printf("Address %s\n", worker_path);
             // child branch: replace process image
             execl(workerpath, workerpath, rtsp_url_, (char*)nullptr);
             // only reached if exec fails
