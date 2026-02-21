@@ -64,6 +64,7 @@ class StreamMuxer{
     const static int MAX_STREAMS = 256;
     int num_sources;
     std::vector <GstChildWorker> workers;
+    GstChildWorker childs[MAX_STREAMS];
     std::vector <GstChildWorker *> sources;
     std::vector<FrameInfo> frames;
     std::mutex mlock;
@@ -71,7 +72,6 @@ class StreamMuxer{
     std::thread tick_thread;
     std::thread th_frame_reader;
     uint64_t frames_returned = 0;
-    uint64_t fd[10];
     bool run=true;
 
     static const int MAX_EVENTS = 1024;
@@ -116,7 +116,8 @@ class StreamMuxer{
         }
         mlock.lock();
         workers.emplace_back(index, "./libdeepvision/camstream/gst_worker", rtsp.c_str());
-        GstChildWorker * src = &workers[workers.size()-1];
+
+        GstChildWorker * src = &workers[workers.size()];
         frames.push_back(FrameInfo{});
         sources.push_back(src);
         epoll_event ev{};

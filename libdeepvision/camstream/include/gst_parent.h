@@ -51,6 +51,7 @@ private:
     
 
 public:
+    bool empty = true;
     int shmfd_;
     int sv_[2] = {-1, -1};
     int evfd_;
@@ -70,18 +71,13 @@ public:
     // GstChildWorker& operator=(GstChildWorker&&) = delete;
 
     //GstChildWorker(int id, const char *workerpath):
-    GstChildWorker(int id, const char *workerpath, const char *rtsp_url):
-    pid_(-1), id(id), worker_path(workerpath),
-    shmfd_(-1), evfd_(-1)
+    GstChildWorker(void):
+    pid_(-1), shmfd_(-1), evfd_(-1)
     {
-        snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
-        uint32_t ret = init();
-        if (!ret){
-            std::cout << " [parent] failed to initialize\n";
-        }
     }
 
-    uint32_t init(void){
+    uint32_t init(int id, const char *workerpath, const char *rtsp_url){
+        snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
         closed_ = false;
         killed_ = false;
         unreg_ = false;
@@ -123,12 +119,6 @@ public:
                 dup2(evfd_, 4);
                 close(evfd_);
             }
-            std::cout << "[parent] evfd = " << evfd_ << std::endl;
-            // IMPORTANT: Close all other inherited file descriptors
-            // to prevent interference with other child processes.
-            // for (int i = getdtablesize() - 1; i > 4; --i) {
-            //     close(i);
-            // }
             // child branch: replace process image
             execl(worker_path, worker_path, rtsp_url_, (char*)nullptr);
             // only reached if exec fails
