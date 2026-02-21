@@ -1286,7 +1286,7 @@ class Detector{
     StreamMuxer *pmuxer = nullptr;
 
     void detection_task(bool *run, int nthreads, bool visualize){
-        init_camstream();
+        //init_camstream();
         //workers.reserve(streams.size());
         StreamMuxer muxer(streams.size());
         pmuxer = &muxer;

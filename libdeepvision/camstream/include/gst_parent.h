@@ -393,7 +393,7 @@ public:
         *size = d->nbytes;
         memcpy(*img_buf, data_ptr(), d->nbytes);
         /* set buffer to read */
-        //d->state = SHM_EMPTY;
+        d->state = SHM_EMPTY;
 
         time(&f_ts_);
         return 1;

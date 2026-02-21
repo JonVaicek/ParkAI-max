@@ -104,6 +104,7 @@ class StreamMuxer{
     :num_sources(num_sources)
     {
         sources.reserve(num_sources);
+        frames.reserve(num_sources);
         //workers.reserve(num_sources);
         init_epoll();
         //mux_thread = std::thread([this](){muxer_thread();});
