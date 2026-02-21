@@ -290,7 +290,7 @@ public:
         if (d == nullptr){
             return 0;
         }
-        if( state == ALIVE || d->state != SHM_READY){
+        if( state != ALIVE || d->state != SHM_READY){
             return 0;
         }
         /* allocate destination buffer if does not exist*/
