@@ -1295,7 +1295,7 @@ class Detector{
             //workers.emplace_back(streams[i].index, "./libdeepvision/camstream/gst_worker", streams[i].url.c_str());
             //muxer.link_stream(&workers[i]);
             muxer.create_source(streams[i].index, streams[i].url);
-            //std::this_thread::sleep_for(std::chrono::milliseconds(100)); // add streams with a delay
+            std::this_thread::sleep_for(std::chrono::milliseconds(50)); // add streams with a delay
         }
         Inference inference (nthreads, visualize, WORKDIR);
         inference.link_muxer(&muxer);
