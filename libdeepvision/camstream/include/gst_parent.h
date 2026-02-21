@@ -111,8 +111,9 @@ public:
                 dup2(evfd_, 4);
                 close(evfd_);
             }
+            printf("Address %s\n", worker_path);
             // child branch: replace process image
-            execl(worker_path, worker_path, rtsp_url_, (char*)nullptr);
+            execl(workerpath, workerpath, rtsp_url_, (char*)nullptr);
             // only reached if exec fails
             std::cerr << "[parent->child] exec failed: " << std::strerror(errno) << "\n";
             return 0;
