@@ -333,7 +333,7 @@ public:
                 break;
 
             case EVT_PIPELINE_EXIT:
-                state = ZOMBIE;
+                state = INFECTED;
                 break;
         }
     }
