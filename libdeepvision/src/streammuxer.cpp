@@ -122,6 +122,9 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
 
 
 uint32_t delete_from_epoll(int epfd, GstChildWorker *worker){
+    if (!worker->is_registered()){
+        return 1;
+    }
     if(epoll_ctl(epfd, EPOLL_CTL_DEL, worker->get_evfd(), nullptr) == 0){
         printf("[%s] fd-%d deleted from epoll\n", worker->rtsp_url_, worker->get_evfd());
         worker->set_epoll_flag(false);
