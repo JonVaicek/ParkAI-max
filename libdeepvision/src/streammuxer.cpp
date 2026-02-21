@@ -119,115 +119,62 @@ int StreamMuxer::periodic_tick(uint32_t period_ms){
     return 1;
 }
 
-uint32_t StreamMuxer::update_frame(uint32_t id){
-    //this allocates memory in passed address, user must release it after 
-    int ret = sources[id]->pull_frame(&frames[id].idata, &frames[id].nbytes);
-    if (!ret){
-        //std::cout << id << " - Frame Failed To Update\n";
+
+
+uint32_t delete_from_epoll(int epfd, GstChildWorker *worker){
+    if(epoll_ctl(epfd, EPOLL_CTL_DEL, worker->get_evfd(), nullptr) == 0){
+        printf("[%s] fd-%d deleted from epoll\n", worker->rtsp_url_, worker->get_evfd());
+        worker->set_epoll_flag(false);
+        return 1;
+    }
+    else{
+        printf("[%s] fd-%d could not delete from epoll\n", worker->rtsp_url_, worker->get_evfd());
         return 0;
     }
-    frames[id].width = sources[id]->header()->w;
-    frames[id].height = sources[id]->header()->h;
-    //std::cout << id << " - Frame Updated\n";
+}
+
+
+int StreamMuxer::state_machine(void){
+    
+    while(true){
+        if(mlock.try_lock()){
+            if (!sources.empty()){
+                for (auto & s:sources){
+                    switch(s->state){
+                        case ALIVE:
+                            s->is_infected();
+                            break;
+
+                        case INFECTED:
+                            s->killit();
+                            break;
+
+                        case ZOMBIE:
+                            if(s->reap()){
+                                delete_from_epoll(epfd, s);
+                            }
+                            break;
+
+                        case PURGED:
+                            /* close fds */
+                            s->close_sockfd();
+                            s->close_evfd();
+                            s->release_mem();
+                            s->close_shmfd();
+                            s->bury();
+                            break;
+
+                        case BURIED:
+                            s->reinit();
+                            break;
+                    }
+                }
+            }
+            mlock.unlock();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     return 1;
-}
-
-std::vector <GstChildWorker *> delete_from_epoll(int epfd, std::vector <GstChildWorker *> remove_list,
-                                                    std::vector <GstChildWorker *> &deleted){
-    std::vector <GstChildWorker *> survivors;
-        for (auto & s:remove_list){
-            if(epoll_ctl(epfd, EPOLL_CTL_DEL, s->get_evfd(), nullptr) == 0){
-                deleted.push_back(s);
-                printf("[src - %s] fd-%d deleted from epoll\n", s->rtsp_url_, s->get_evfd());
-                s->unreg_ = true;
-                s->set_epoll_flag(false);
-            }
-            else{
-                survivors.push_back(s);
-                printf("[src - %s] fd-%d could not delete from epoll\n", s->rtsp_url_, s->get_evfd());
-            }
-        }
-    return survivors;
-}
-
-
-std::vector <GstChildWorker *> kill_infected(std::vector <GstChildWorker *> kill_list,
-                                                    std::vector <GstChildWorker *> &killed){
-    std::vector <GstChildWorker *> ret;
-    for(auto & s:kill_list){
-        if(s->killit()){
-            killed.push_back(s);
-        }
-        else{
-            ret.push_back(s);
-        }
-    }
-    return ret;
-}
-
-std::vector <GstChildWorker *> purge_zombies(std::vector <GstChildWorker *> purge_list,
-                                                    std::vector <GstChildWorker *> &reaped){
-    std::vector <GstChildWorker *> ret;
-    for (const auto & s:purge_list){
-        if (s->reap()){
-            reaped.push_back(s);
-        }
-        else{
-            ret.push_back(s);
-        }
-
-    }
-    return ret;
-}
-
-std::vector <GstChildWorker *> kill_children_in_list(int epfd, std::vector <GstChildWorker *> kill_list,
-                                                    std::vector <GstChildWorker *> &killed){
-    std::vector <GstChildWorker *> survivors;
-        for (auto & s:kill_list){
-            if(s->kill_children()){
-                killed.push_back(s);
-                printf("[src - %s] child dead\n", s->rtsp_url_);
-                s->unreg_ = true;
-                s->set_epoll_flag(false);
-                shutdown(s->sv_[0], SHUT_RDWR);
-                shutdown(s->sv_[1], SHUT_RDWR);
-            }
-            else{
-                survivors.push_back(s);
-                printf("[src - %s] could not kill\n", s->rtsp_url_);
-            }
-        }
-    return survivors;
-}
-
-std::vector <GstChildWorker *> close_children_fds(int epfd, std::vector <GstChildWorker *> src_list,
-                                                    std::vector <GstChildWorker *> &done){
-    std::vector <GstChildWorker *> survivors;
-        for (auto & s:src_list){
-            int evfd = s->get_evfd();
-            if(evfd >= 0){
-                close(s->get_evfd());
-                s->evfd_ = -1;
-                printf("[%s] evfd (%d) closed successfully\n", s->rtsp_url_, evfd);
-            }
-            int socketfd = s->sv_[0];
-            if(s->sv_[0] >= 0){
-                close(s->sv_[0]);
-                s->sv_[0] = -1;
-                printf("[%s] socketfd (%d) closed successfully\n", s->rtsp_url_, socketfd);
-            }
-            /* close shared mem if was created */
-            if(s->release_mem()){
-                int sharedmemfd = s->shmfd_;
-                done.push_back(s);
-                s->state = PURGED;
-                s->mark_closed();
-            }
-            else{
-                survivors.push_back(s);
-            }
-        }
-    return survivors;
 }
 
 
@@ -237,127 +184,66 @@ int StreamMuxer::child_epoller(void){
     uint64_t n_restarted = 0;
     std::cout << "EPPOLLING INIT DONE\n";
     
-    std::vector <GstChildWorker *> infected;
-    std::vector <GstChildWorker *> to_reap;
-    std::vector <GstChildWorker *> to_delete_epoll;
-
-    std::vector <GstChildWorker *> to_bury;
-    std::vector <GstChildWorker *> to_revive;
-    std::vector <GstChildWorker *> still_dead;
-    std::vector <GstChildWorker *> survivors;
-    
-
     while (true){
         
     if(!sources.empty()){
-    if(mlock.try_lock()){
-        printf("Program has restarted streams - %lu times\n", n_restarted);
-        bool epoll_del = false;
-        //print_sources_table(sources);
-        epoll_event events[MAX_EVENTS];
-        int n;
+        if(mlock.try_lock()){
+            printf("Program has restarted streams - %lu times\n", n_restarted);
+            bool epoll_del = false;
+            //print_sources_table(sources);
+            epoll_event events[MAX_EVENTS];
+            int n;
 
-        survivors = kill_infected(infected, to_reap);
-        infected.clear();
-        infected = survivors;
+            do {
+                n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
+            } while (n < 0 && errno == EINTR);
 
-
-        do {
-            n = epoll_wait(epfd, events, MAX_EVENTS, 1000);
-        } while (n < 0 && errno == EINTR);
-
-        if(n < 0){
-            std::cout << "epoll error\n";
-            continue;
-        }
-        
-        for (int e = 0; e < n; e++) {
-            //size_t i = events[e].data.u32;
-            auto* src = static_cast<GstChildWorker*>(events[e].data.ptr);
-            std::cout << "Reading event from fd = " << src->get_evfd() << std::endl;
-            printf("[%s] - evfd [%d] received new event\n", src->rtsp_url_, src->get_evfd());
-            if(src->get_evfd() <= 0){
-                std::cout << "invalid evfd\n";
+            if(n < 0){
+                std::cout << "epoll error\n";
                 continue;
             }
-            uint64_t sig;   
-            ssize_t s = read(src->get_evfd(), &sig, sizeof(sig));
-            if (s == -1) {
-                if (errno == EAGAIN) continue;
-                perror("read evfd failed");
-                continue;
-            }
-            if (s != sizeof(sig)) continue;
+            
+            for (int e = 0; e < n; e++) {
+                //size_t i = events[e].data.u32;
+                auto* src = static_cast<GstChildWorker*>(events[e].data.ptr);
+                std::cout << "Reading event from fd = " << src->get_evfd() << std::endl;
+                printf("[%s] - evfd [%d] received new event\n", src->rtsp_url_, src->get_evfd());
+                if(src->get_evfd() <= 0){
+                    std::cout << "invalid evfd\n";
+                    continue;
+                }
+                uint64_t sig;   
+                ssize_t s = read(src->get_evfd(), &sig, sizeof(sig));
+                if (s == -1) {
+                    if (errno == EAGAIN) continue;
+                    perror("read evfd failed");
+                    continue;
+                }
+                if (s != sizeof(sig)) continue;
 
-            /* clear the epoll events with deleted evfds */
-            if(!src->is_registered()){
-                printf("[src-%s] received events after deletion\n", src->rtsp_url_);
-                continue; //
-            }
-            auto evt = signal_parser(sig);
-            if(evt == EVT_PIPELINE_EXIT){
-                //src->mark_closed();
-                to_reap.push_back(src);
-                printf("[%s] adding to infected\n", src->rtsp_url_);
-                std::cout << "[" << src->rtsp_url_ << "] exited\n";
-                continue;
-            }
+                /* clear the epoll events with deleted evfds */
+                if(!src->is_registered()){
+                    printf("[src-%s] received events after deletion\n", src->rtsp_url_);
+                    continue; //
+                }
+                auto evt = signal_parser(sig);
+                if(evt == EVT_PIPELINE_EXIT){
+                    printf("[%s] adding to infected\n", src->rtsp_url_);
+                    std::cout << "[" << src->rtsp_url_ << "] exited\n";
+                    continue;
+                }
 
-            src->handle_event(evt); // this handles the shm_init event and deinit_
-            if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
-                src->set_frame_waiting(true);
+                src->handle_event(evt); // this handles the shm_init event and deinit_
+                if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
+                    src->set_frame_waiting(true);
+                }
             }
+            mlock.unlock();
         }
-
-        /* Reap the dead */
-        survivors.clear();
-        survivors = purge_zombies(to_reap, to_delete_epoll);
-        to_delete_epoll.clear();
-        to_delete_epoll = survivors;
-
-        /* delete from epoll */
-        survivors.clear();
-        survivors = delete_from_epoll(epfd, to_delete_epoll, to_bury);
-        to_delete_epoll.clear();
-        to_delete_epoll = survivors;
-
-        /* close fds */
-        survivors.clear();
-        survivors = close_children_fds(epfd, to_bury, to_revive);
-        to_bury.clear();
-        to_bury = survivors;
-
-        survivors.clear();
-        /* revive children here */
-        still_dead.clear();
-        for (auto & s:to_revive){
-            if (s->is_past_timeout()){
-                printf("[src-%s] initializing again\n", s->rtsp_url_);
-                s->reinit();
-                relink_stream(s);
-                n_restarted ++;
-            }
-            else{
-                still_dead.push_back(s);
-            }
-        }
-        to_revive.clear();
-        to_revive.shrink_to_fit();
-        to_revive = still_dead;
-
-        /* force check stale sources */
-        for (const auto & s:sources){
-            if (s->is_infected()){
-                //s->mark_closed();
-                infected.push_back(s);
-            }
-        }
-        mlock.unlock();
     }
-}
-else{
-    std::cout << "empty sources\n";
-}
+    else{
+            
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     return 1;
@@ -387,36 +273,7 @@ int StreamMuxer::frame_reader(void){
     }
 }
 
-int StreamMuxer::muxer_thread(void){
-    try{
-    uint64_t nfr = 0;
-    int ret = 0;
-    while (true){
-        // mutex lock
-        for (int i = 0; i < sources.size(); i++){
-            if (mlock.try_lock()){
-                if(frames[i].ready == false && frames[i].read == true){
-                    ret = update_frame(i);
-                    if(ret){
-                        frames[i].ready = true; // if frame.ready == true there is allocated memory;
-                        frames[i].read = false;
-                        frames[i].fid = nfr;
-                        nfr ++;
-                        std::cout << " [streammux] Frame Updated\n";
-                    }
-                }
-                mlock.unlock();
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-    } catch (const std::exception &e){
-        std::cerr << "muxer_thread exception: " << e.what() << '\n';
-    } catch (...){
-        std::cerr << "muxer_thread unknown exception\n";
-    }
-    return 1;
-}
+
 
 int StreamMuxer::copy_frame(int id, uchar **data, uint64_t *nbytes, uint32_t *w, uint32_t *h){
     if (id >= frames.size()){

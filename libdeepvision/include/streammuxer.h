@@ -72,6 +72,7 @@ class StreamMuxer{
     std::mutex mlock;
     std::thread mux_thread;
     std::thread tick_thread;
+    std::thread state_machine_th;
     std::thread th_frame_reader;
     uint64_t frames_returned = 0;
     bool run=true;
@@ -82,10 +83,16 @@ class StreamMuxer{
     
     int epfd = -1;
 
+    /* Stream State Bins*/
+    std::vector <GstChildWorker *> infected;
+    std::vector <GstChildWorker *> zombies;
+    std::vector <GstChildWorker *> purged;
+
+
     /* Private Methods */
     int update_fd(void);
     int periodic_tick(uint32_t period_ms);
-    int muxer_thread(void);
+
     int frame_reader(void);
     int init_epoll(void){
         epfd = epoll_create1(0);
@@ -110,8 +117,11 @@ class StreamMuxer{
         //mux_thread = std::thread([this](){muxer_thread();});
         th_frame_reader = std::thread([this](){frame_reader();});
         mux_thread = std::thread([this](){child_epoller();});
+        state_machine_th = std::thread([this](){state_machine();});
         tick_thread =std::thread([this](){periodic_tick(STREAMMUX_MS);});
+
     };
+    int state_machine(void);
 
     int create_source(int index, std::string rtsp){
         if(sources.size() >= MAX_STREAMS){
@@ -174,7 +184,6 @@ class StreamMuxer{
         return 1;
     }
 
-    uint32_t update_frame(uint32_t id);
 
     uint32_t pull_valid_frame(uchar **data, uint64_t *nbytes){
         uint32_t id=STREAMMUX_RET_ERROR;
