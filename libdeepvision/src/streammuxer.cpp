@@ -245,6 +245,7 @@ int StreamMuxer::child_epoller(void){
             //size_t i = events[e].data.u32;
             auto* src = static_cast<GstChildWorker*>(events[e].data.ptr);
             std::cout << "Reading event from fd = " << src->get_evfd() << std::endl;
+            printf("[%s] - evfd [%d] received new event\n", src->rtsp_url_, src->get_evfd());
             if(src->get_evfd() <= 0){
                 std::cout << "invalid evfd\n";
                 continue;
