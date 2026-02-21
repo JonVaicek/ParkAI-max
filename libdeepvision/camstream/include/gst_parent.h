@@ -134,6 +134,7 @@ public:
         this->id = id;
         snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
         start_child();
+        return 1;
     }
 
     int reinit(void){
