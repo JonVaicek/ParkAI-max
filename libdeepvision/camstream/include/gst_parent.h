@@ -18,6 +18,7 @@
 #include <poll.h>
 #include <time.h>
 
+#define GST_WORKER_PATH "./libdeepvision/camstream/gst_worker"
 #define STREAM_IS_OFF_AFTER 300  /* seconds */
 #define MINUTES_5_IN_SECONDS 300
 
@@ -68,9 +69,8 @@ public:
     {
     }
 
-    uint32_t init(int id, const char *workerpath, const char *rtsp_url){
+    uint32_t init(int id, const char *rtsp_url){
         this->id = id;
-        snprintf(worker_path, STRING_SIZE, "%s", workerpath);
         snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
         closed_ = false;
         killed_ = false;
@@ -114,7 +114,7 @@ public:
                 close(evfd_);
             }
             // child branch: replace process image
-            execl(workerpath, workerpath, rtsp_url_, (char*)nullptr);
+            execl(GST_WORKER_PATH, GST_WORKER_PATH, rtsp_url_, (char*)nullptr);
             // only reached if exec fails
             std::cerr << "[parent->child] exec failed: " << std::strerror(errno) << "\n";
             return 0;
@@ -134,7 +134,7 @@ public:
     }
 
     int reinit(void){
-        init(id, worker_path, rtsp_url_);
+        init(id, rtsp_url_);
         return 1;
     }
 

@@ -24,7 +24,7 @@
 
 typedef unsigned char uchar;
 
-#define GST_WORKER_PATH "./libdeepvision/camstream/gst_worker"
+
 
 #define STREAMMUX_MS 1
 #define FRAME_NOT_RECEIVED_THRESHOLD_MS 10000
@@ -121,7 +121,7 @@ class StreamMuxer{
         printf("Creating source with index- %d", index);
         mlock.lock();
         //workers.emplace_back(index, "./libdeepvision/camstream/gst_worker", rtsp.c_str());
-        childs[sources.size()].init(index, GST_WORKER_PATH, rtsp.c_str());
+        childs[sources.size()].init(index, rtsp.c_str());
         GstChildWorker * src = &childs[sources.size()];
         frames.push_back(FrameInfo{});
         sources.push_back(src);
