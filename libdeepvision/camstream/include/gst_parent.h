@@ -136,7 +136,9 @@ public:
     }
 
     int reinit(void){
-        init(id, rtsp_url_);
+        if (is_past_timeout()){
+            init(id, rtsp_url_);
+        }
         return 1;
     }
 
