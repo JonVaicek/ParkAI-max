@@ -69,6 +69,7 @@ public:
     }
 
     uint32_t init(int id, const char *workerpath, const char *rtsp_url){
+        this->id = id;
         snprintf(worker_path, STRING_SIZE, "%s", workerpath);
         snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
         closed_ = false;
