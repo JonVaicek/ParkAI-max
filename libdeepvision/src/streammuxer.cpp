@@ -350,6 +350,7 @@ int StreamMuxer::frame_reader(void){
                 }
             }
         }
+        mlock.unlock();
     }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
