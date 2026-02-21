@@ -229,7 +229,7 @@ int StreamMuxer::child_epoller(void){
                 auto evt = signal_parser(sig);
                 if(evt == EVT_PIPELINE_EXIT){
                     printf("[%s] adding to infected\n", src->rtsp_url_);
-                    src->state = INFECTED;
+                    src->state = ZOMBIE;
                     continue;
                 }
 
