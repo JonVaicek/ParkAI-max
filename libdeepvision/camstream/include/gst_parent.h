@@ -72,13 +72,8 @@ public:
     pid_(-1), shmfd_(-1), evfd_(-1)
     {
     }
-
-    uint32_t init(int id, const char *rtsp_url){
-        /* */
-        this->id = id;
-        snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
-        
-        /* Create socket pair file-descriptors */
+    uint32_t start_child(void){
+        /* Create socket pair */
         if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sv_) != 0) {
             printf(" [child-%d] socket pair error\n", id);
             return 0;
@@ -92,7 +87,6 @@ public:
             return 0;
         }
         printf("[src-%s] evfd created evfd={ %d }\n", rtsp_url_, evfd_);
-
         /* Create Child Process */
         pid_ = fork();
 
@@ -130,14 +124,21 @@ public:
         epoll_registered = false;
         closed_ts = 0;
         f_ts_= 0;
+        shm_mapped = false;
         state = ALIVE;
         printf("[src-%s] init complete\n", rtsp_url_);
         return 1;
     }
 
+    uint32_t init(int id, const char *rtsp_url){
+        this->id = id;
+        snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
+        start_child();
+    }
+
     int reinit(void){
         if (is_past_timeout()){
-            init(id, rtsp_url_);
+            start_child();
         }
         return 1;
     }
