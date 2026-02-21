@@ -117,8 +117,8 @@ class StreamMuxer{
         mlock.lock();
         workers.emplace_back(index, "./libdeepvision/camstream/gst_worker", rtsp.c_str());
         GstChildWorker * src = &workers[workers.size()-1];
-        frames.emplace_back(FrameInfo{});
-        sources.emplace_back(src);
+        frames.push_back(FrameInfo{});
+        sources.push_back(src);
         epoll_event ev{};
         ev.events = EPOLLIN;
         ev.data.ptr = src;
