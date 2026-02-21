@@ -74,7 +74,7 @@ public:
     pid_(-1), id(id), worker_path(workerpath),
     shmfd_(-1), evfd_(-1)
     {
-        snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url);
+        snprintf(rtsp_url_, STRING_SIZE, "%s", rtsp_url); 
         uint32_t ret = init();
         if (!ret){
             std::cout << " [parent] failed to initialize\n";
