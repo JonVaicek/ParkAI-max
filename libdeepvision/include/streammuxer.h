@@ -122,7 +122,7 @@ class StreamMuxer{
         childs[sources.size()].init(index, GST_WORKER_PATH, rtsp.c_str());
         GstChildWorker * src = &childs[sources.size()];
         frames.push_back(FrameInfo{});
-        sources.emplace_back(src);
+        sources.push_back(src);
         epoll_event ev{};
         ev.events = EPOLLIN;
         ev.data.ptr = src;
