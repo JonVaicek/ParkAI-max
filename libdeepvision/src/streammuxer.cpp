@@ -335,6 +335,7 @@ else{
 int StreamMuxer::frame_reader(void){
     uint64_t nfr = 0;
     while(true){
+        if (mlock.try_lock()){
         for (int i = 0; i < sources.size(); i++){
             if(sources[i]->is_frame_waiting() && !frames[i].ready){
                 //printf("Reading Frame from [%d] in sources [%d]\n", i, sources[i]->get_id());
@@ -349,6 +350,7 @@ int StreamMuxer::frame_reader(void){
                 }
             }
         }
+    }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
