@@ -197,8 +197,10 @@ public:
     }
 
     uint32_t bury(void){
-        if (shmfd_ == -1 && evfd_ == -1 && sv_[0] == -1 && !shm_mapped)
+        if (shmfd_ == -1 && evfd_ == -1 && sv_[0] == -1 && !shm_mapped){
             state = BURIED;
+            time(&closed_ts);
+        }
         return 1;
     }
 

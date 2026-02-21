@@ -233,7 +233,7 @@ int StreamMuxer::child_epoller(void){
                     continue;
                 }
 
-                src->handle_event(evt); // this handles the shm_init event and deinit_
+                src->handle_event(evt); 
                 if ((sig & EVT_FRAME_WAITING) == EVT_FRAME_WAITING) {
                     src->set_frame_waiting(true);
                 }
