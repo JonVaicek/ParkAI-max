@@ -252,12 +252,12 @@ public:
             int status;
             pid_t result = waitpid(pid_, &status, WNOHANG);
             if (result == 0) {
-                printf("[%s] - still runing\n", rtsp_url_);
+                printf("[%s] - could not reap\n", rtsp_url_);
                 return 0; // still running, must check later
             }
             else if (result == pid_){
                 // child exited, handle status
-                printf("[%s] - killed succesfully\n", rtsp_url_);
+                printf("[%s] - reaped succesfully\n", rtsp_url_);
                 pid_ = -1;
                 state = PURGED;
                 return 1;
@@ -269,7 +269,7 @@ public:
             }
         }
         else{
-            printf("Eror reaping child [%s] not zombie or pid isinvalid\n", rtsp_url_);
+            printf("Eror reaping child [%s] not zombie or pid is invalid\n", rtsp_url_);
             return 0;
         }
     }
