@@ -19,7 +19,7 @@
 #include <time.h>
 
 #define GST_WORKER_PATH "./libdeepvision/camstream/gst_worker"
-#define STREAM_IS_OFF_AFTER 300  /* seconds */
+#define STREAM_IS_OFF_AFTER 60  /* seconds */
 #define MINUTES_5_IN_SECONDS 300
 
 
@@ -140,8 +140,9 @@ public:
     int reinit(void){
         if (is_past_timeout()){
             start_child();
+            return 1;
         }
-        return 1;
+        return 0;
     }
 
     int init_shm(void){

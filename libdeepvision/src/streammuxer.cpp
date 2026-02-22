@@ -168,7 +168,9 @@ int StreamMuxer::state_machine(void){
                             break;
 
                         case BURIED:
-                            s->reinit();
+                            if(s->reinit()){
+                                relink_stream(s);
+                            }
                             break;
                     }
                 }
